@@ -1,0 +1,1955 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>報表連結日期分段工具 v20</title>
+<style>
+  :root{
+    --ink:#1c2b24;
+    --paper:#f6f4ee;
+    --panel:#ffffff;
+    --line:#d7d2c4;
+    --accent:#2f5d4f;
+    --accent-soft:#e4ede9;
+    --warn:#a3492c;
+    --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", -apple-system, sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    line-height:1.55;
+  }
+  .wrap{
+    max-width:1480px;
+    margin:0 auto;
+    padding:40px 32px 80px;
+  }
+  .setup-grid{
+    display:grid;
+    grid-template-columns: 1fr 300px 380px;
+    gap:24px;
+    align-items:start;
+  }
+  .setup-side{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:18px;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+  .setup-side .field{
+    flex:none;
+  }
+  .setup-side #generate-btn{
+    width:100%;
+    margin-top:4px;
+  }
+  .setup-extra{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:18px;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+  .setup-extra .field{
+    flex:none;
+  }
+  .split-panel{
+    min-width:0;
+  }
+  #dept-checkbox-list{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap:6px 14px;
+  }
+  #area-group-list{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap:8px;
+    align-items:start;
+  }
+  @media (max-width: 1100px){
+    .setup-grid{
+      grid-template-columns: 1fr 300px;
+    }
+    .setup-extra{
+      grid-column: 1 / -1;
+    }
+  }
+  @media (max-width: 860px){
+    .setup-grid{
+      grid-template-columns: 1fr;
+    }
+    .setup-extra{
+      grid-column: auto;
+    }
+  }
+  header{
+    border-bottom:2px solid var(--ink);
+    padding-bottom:18px;
+    margin-bottom:32px;
+  }
+  header h1{
+    font-size:22px;
+    margin:0 0 6px;
+    font-weight:700;
+    letter-spacing:0.01em;
+  }
+  header p{
+    margin:0;
+    color:#5a6a60;
+    font-size:14px;
+  }
+  section{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:22px 24px;
+    margin-bottom:20px;
+  }
+  section h2{
+    font-size:15px;
+    margin:0 0 14px;
+    padding-bottom:10px;
+    border-bottom:1px solid var(--line);
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  label{
+    display:block;
+    font-size:13px;
+    font-weight:600;
+    margin-bottom:6px;
+    color:#3a453f;
+  }
+  textarea{
+    width:100%;
+    min-height:78px;
+    padding:10px 12px;
+    border:1px solid var(--line);
+    border-radius:3px;
+    font-family:var(--mono);
+    font-size:12.5px;
+    resize:vertical;
+    background:#fbfaf6;
+  }
+  textarea:focus, input:focus{
+    outline:2px solid var(--accent);
+    outline-offset:1px;
+  }
+  .row{
+    display:flex;
+    gap:16px;
+    flex-wrap:wrap;
+    margin-top:16px;
+  }
+  .field{
+    flex:1 1 160px;
+  }
+  input[type="date"], input[type="number"]{
+    width:100%;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:3px;
+    font-size:14px;
+    background:#fbfaf6;
+    color:var(--ink);
+  }
+  .hint{
+    font-size:12px;
+    color:#7a8880;
+    margin-top:4px;
+  }
+  .parsed-tag{
+    display:inline-block;
+    font-size:11.5px;
+    padding:2px 8px;
+    border-radius:10px;
+    background:var(--accent-soft);
+    color:var(--accent);
+    margin-top:8px;
+  }
+  .actions{
+    display:flex;
+    gap:10px;
+    margin-top:20px;
+    flex-wrap:wrap;
+  }
+  button{
+    font-family:inherit;
+    font-size:14px;
+    font-weight:600;
+    padding:10px 18px;
+    border-radius:3px;
+    border:1px solid var(--ink);
+    background:var(--ink);
+    color:var(--paper);
+    cursor:pointer;
+  }
+  button.secondary{
+    background:transparent;
+    color:var(--ink);
+    border:1px solid var(--line);
+  }
+  button.secondary:hover{
+    border-color:var(--ink);
+  }
+  button.small{
+    font-size:12.5px;
+    padding:6px 12px;
+  }
+  button:disabled{
+    opacity:0.4;
+    cursor:not-allowed;
+  }
+  #error{
+    color:var(--warn);
+    font-size:13px;
+    margin-top:10px;
+    display:none;
+  }
+  #results-section{
+    display:none;
+  }
+  .summary{
+    font-size:13px;
+    color:#5a6a60;
+    margin-bottom:14px;
+  }
+  ol.link-list{
+    list-style:none;
+    margin:0;
+    padding:0;
+    border-top:1px solid var(--line);
+  }
+  ol.link-list li{
+    border-bottom:1px solid var(--line);
+    padding:12px 0;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  ol.link-list li.current{
+    background:var(--accent-soft);
+  }
+  ol.link-list li.done .seg-range{
+    color:#9aa79f;
+    text-decoration:line-through;
+  }
+  .seg-index{
+    font-family:var(--mono);
+    font-size:12px;
+    color:#8a9590;
+    min-width:26px;
+  }
+  .seg-range{
+    font-size:13.5px;
+    font-weight:600;
+    min-width:240px;
+  }
+  .seg-link{
+    flex:1 1 200px;
+    font-family:var(--mono);
+    font-size:11.5px;
+    color:var(--accent);
+    word-break:break-all;
+    text-decoration:none;
+  }
+  .seg-link:hover{
+    text-decoration:underline;
+  }
+  .seg-open{
+    font-size:12.5px;
+    padding:6px 12px;
+    background:var(--accent-soft);
+    color:var(--accent);
+    border:none;
+    white-space:nowrap;
+  }
+  .footer-actions{
+    margin-top:18px;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  .step-box{
+    margin-top:18px;
+    padding:16px;
+    background:#fbfaf6;
+    border:1px dashed var(--line);
+    border-radius:4px;
+  }
+  .step-box .step-label{
+    font-size:12.5px;
+    color:#7a8880;
+    margin-bottom:6px;
+  }
+  .step-box .step-range{
+    font-size:16px;
+    font-weight:700;
+    margin-bottom:10px;
+  }
+  #open-progress{
+    font-size:12.5px;
+    color:#7a8880;
+  }
+  code{
+    font-family:var(--mono);
+    background:#f0ede2;
+    padding:1px 5px;
+    border-radius:2px;
+    font-size:12px;
+  }
+  .toggle-link{
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--accent);
+    cursor:pointer;
+    text-decoration:underline;
+    background:none;
+    border:none;
+    padding:0;
+  }
+  iframe.embed{
+    width:100%;
+    height:520px;
+    border:1px solid var(--line);
+    border-radius:3px;
+    margin-top:12px;
+    background:#fff;
+  }
+  .embed-note{
+    font-size:12px;
+    color:#7a8880;
+    margin-top:8px;
+  }
+  .area-group{
+    border:1px solid var(--line);
+    border-radius:3px;
+    margin-bottom:6px;
+    background:#fbfaf6;
+  }
+  .area-group summary{
+    cursor:pointer;
+    padding:7px 10px;
+    font-size:13px;
+    font-weight:600;
+    list-style:none;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+  }
+  .area-group summary::-webkit-details-marker{ display:none; }
+  .area-group summary .area-group-count{
+    font-weight:500;
+    color:#8a9590;
+    font-size:11.5px;
+  }
+  .area-group-body{
+    padding:8px 10px 10px;
+    border-top:1px solid var(--line);
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap:5px 10px;
+  }
+  .area-group-actions{
+    grid-column: 1 / -1;
+    display:flex;
+    gap:8px;
+    margin-bottom:6px;
+  }
+  .area-group-actions button{
+    font-size:11px;
+    padding:3px 8px;
+  }
+  .area-checkbox-label{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-weight:500;
+    font-size:13px;
+    margin:0;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>報表連結日期分段工具 <span style="font-size:13px; font-weight:600; color:#8a9590; border:1px solid var(--line); border-radius:10px; padding:2px 9px; vertical-align:middle;">v20</span></h1>
+    <p>貼上原始報表網址，設定起迄日期、每段天數，並可選擇要切分的營業處或更細的營業所，自動產生分段後的下載連結。</p>
+  </header>
+
+  <section>
+    <h2>
+      <span>1. 網址與日期</span>
+      <a href="https://ttl.unidyna.com/ubmsys_report_survey/lists" target="_blank" rel="noopener" style="font-size:12.5px; font-weight:600; color:var(--accent); text-decoration:none; border:1px solid var(--line); border-radius:3px; padding:4px 10px; background:var(--accent-soft);">問卷管理列表 ↗</a>
+    </h2>
+
+    <div class="setup-grid">
+      <div class="setup-main">
+        <label for="url-input">原始網址</label>
+        <textarea id="url-input" placeholder="貼上像 https://ttl.unidyna.com/...&str_date=2026-09-08&end_date=2026-09-08 這樣的完整網址"></textarea>
+        <div id="parse-tag"></div>
+
+        <button class="toggle-link" id="toggle-list-parse-btn" type="button" style="margin-top:12px;">或：從問卷列表原始碼選連結（選用） ▾</button>
+        <div id="list-parse-wrap" style="display:none; margin-top:10px; padding:14px; background:#fbfaf6; border:1px dashed var(--line); border-radius:4px;">
+          <p class="hint" style="margin-top:0;">開啟右上「問卷管理列表」後，按 <code>Ctrl+U</code> 檢視原始碼，全選複製貼在這裡解析，可一鍵把連結帶入上面的網址欄位。</p>
+          <textarea id="list-source-input" placeholder="貼上頁面原始碼"></textarea>
+          <div class="actions" style="margin-top:10px;">
+            <button id="parse-list-btn" class="secondary">解析並顯示列表</button>
+          </div>
+          <div id="list-error" style="color:var(--warn); font-size:13px; margin-top:8px; display:none;"></div>
+          <div id="survey-list-wrap" style="display:none; margin-top:14px;">
+            <div class="summary" id="survey-summary"></div>
+            <div style="margin-bottom:10px;">
+              <label for="category-filter" style="display:inline; margin-right:8px; font-size:12.5px;">分類篩選：</label>
+              <select id="category-filter" style="padding:6px 10px; border:1px solid var(--line); border-radius:3px; font-size:13px; background:#fbfaf6;">
+                <option value="__all__">全部分類</option>
+              </select>
+            </div>
+            <ol class="link-list" id="survey-list"></ol>
+          </div>
+        </div>
+
+        <div id="error"></div>
+      </div>
+
+      <div class="setup-side">
+        <div class="field">
+          <label>資料模式</label>
+          <div style="display:flex; flex-direction:column; gap:8px; padding:4px 0;">
+            <label style="display:flex; align-items:center; gap:6px; font-weight:500; font-size:13.5px; margin:0;">
+              <input type="radio" name="data-mode" id="mode-image" value="image" checked style="width:auto;"> 含圖（有照片）
+            </label>
+            <label style="display:flex; align-items:center; gap:6px; font-weight:500; font-size:13.5px; margin:0;">
+              <input type="radio" name="data-mode" id="mode-plain" value="plain" style="width:auto;"> 純值（無照片）
+            </label>
+          </div>
+          <div class="hint">純值模式網址結尾多一段 /1。切換後，套用 surv_id、從列表選擇、或直接按「產生分段連結」都會依此模式產生正確網址。</div>
+        </div>
+
+        <div class="field">
+          <label for="survid-input">surv_id 快速套用</label>
+          <div style="display:flex; gap:8px;">
+            <input type="number" id="survid-input" placeholder="例如 274" style="flex:1;">
+            <button class="secondary small" id="apply-survid-btn" type="button" style="white-space:nowrap;">套用</button>
+          </div>
+        </div>
+
+        <div class="field" style="border-top:1px solid var(--line); padding-top:14px;">
+          <label for="start-date">起始日期</label>
+          <input type="date" id="start-date">
+        </div>
+        <div class="field">
+          <label for="end-date">結束日期</label>
+          <input type="date" id="end-date">
+        </div>
+        <div class="field">
+          <label for="interval">每段天數</label>
+          <input type="number" id="interval" min="0" max="90" value="10" placeholder="留空或 0 = 不分段">
+          <div class="hint">輸入天數（如 10）代表每段涵蓋這麼多天再往下一段；留空或填 0 表示不分段，會產生涵蓋整個起訖範圍的單一連結。對方系統限制單次查詢起訖不能超過 90 天，若整段範圍或設定的天數超過，會自動改成 90 天一段。</div>
+        </div>
+
+      </div>
+
+      <div class="setup-extra">
+        <div class="field split-panel" id="dept-field">
+          <label>營業處切分（選用）</label>
+          <div class="actions" style="margin-top:0; margin-bottom:8px;">
+            <button type="button" class="secondary small" id="dept-select-all-btn">全選</button>
+            <button type="button" class="secondary small" id="dept-select-none-btn">全不選</button>
+          </div>
+          <div id="dept-checkbox-list"></div>
+          <div class="hint">勾選要切分的營業處，會依「日期區間 × 營業處」產生連結，每份資料更小份，只帶 dept_id（維持原本作法）。都不勾＝不切分營業處，維持原網址的 dept_id。若下面「營業所」有勾選，會以營業所為準，這裡的勾選會被忽略。</div>
+        </div>
+
+        <div class="field split-panel" id="area-field" style="border-top:1px solid var(--line); padding-top:14px;">
+          <label>營業所切分（更細，選用）</label>
+          <div class="actions" style="margin-top:0; margin-bottom:8px;">
+            <button type="button" class="secondary small" id="area-select-all-btn">全部展開＋全選</button>
+            <button type="button" class="secondary small" id="area-select-none-btn">全不選</button>
+          </div>
+          <div id="area-group-list"></div>
+          <div class="hint">依處分組，點群組標題展開該處的營業所清單，方便尋找。勾選後會依「日期區間 × 營業所」產生連結，只帶 store_area_id（dept_id 留空，比照參考網址的格式）；資料量比只切營業處更小份，適合檔案還是太大的情況。</div>
+        </div>
+
+        <button id="generate-btn">產生分段連結</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="results-section">
+    <h2>2. 分段連結結果</h2>
+    <div class="summary" id="summary-text"></div>
+    <ol class="link-list" id="link-list"></ol>
+
+    <div class="step-box">
+      <div class="step-label">最穩定的開啟方式：一次點一段，不會被瀏覽器擋下</div>
+      <div class="step-range" id="step-range">尚未開始</div>
+      <div class="actions" style="margin-top:0;">
+        <button id="step-open-btn">開啟目前這段並前進下一段</button>
+        <button class="secondary" id="step-reset-btn">重新從第一段開始</button>
+      </div>
+    </div>
+
+    <div class="step-box" id="batch-box">
+      <div class="step-label">自動依序開啟：設定間隔秒數，按開始後放著讓它自己跑完，不用你一段一段點</div>
+      <div class="row" style="margin-top:0;">
+        <div class="field" style="flex:0 1 160px;">
+          <label for="batch-interval">間隔秒數</label>
+          <input type="number" id="batch-interval" min="3" max="600" value="15">
+        </div>
+      </div>
+      <div class="step-range" id="batch-status" style="margin-top:14px;">尚未開始</div>
+      <div class="actions" style="margin-top:0;">
+        <button id="batch-start-btn">開始，自動依序開啟</button>
+        <button class="secondary" id="batch-next-now-btn" disabled>立即開下一段（若自動被擋下）</button>
+        <button class="secondary" id="batch-stop-btn" disabled>停止</button>
+      </div>
+      <div class="hint">
+        倒數是單純計時，不是偵測對方伺服器跑完了沒——建議先手動測一段大概要等多久，間隔設得比那個時間寬鬆一些。若被瀏覽器擋下自動開啟，按「立即開下一段」補開即可，不用重來。
+      </div>
+    </div>
+
+    <div class="step-box" id="autodl-box">
+      <div class="step-label">自動下載＋改檔名＋指定資料夾（推薦）</div>
+      <ul class="hint" style="margin:0 0 12px 18px; padding:0;">
+        <li>檔名自動變成「原檔名_處名｜起迄日期」，例：原檔名_高雄處｜2026-09-03 ~ 2026-09-07</li>
+        <li>可選存放資料夾、同時下載 1～5 個（預設 2），一個完成自動換下一個</li>
+        <li>該區間無資料（伺服器回 500）會自動略過並記錄</li>
+        <li>可中斷續跑，已下載的不重抓；連續失敗會自動暫停</li>
+      </ul>
+      <div class="actions" style="margin-top:0;">
+        <button id="dl-script-copy-btn">複製下載腳本</button>
+        <button class="secondary" id="dl-script-file-btn">下載腳本檔（.js）</button>
+      </div>
+      <ol class="hint" style="margin:12px 0 0 18px; padding:0;">
+        <li>登入報表網站，任一頁面按 F12 → Console</li>
+        <li>先輸入 <code>allow pasting</code> 按 Enter，再貼上腳本按 Enter</li>
+        <li>右上面板：選資料夾 → 先「試跑」確認檔名 → 按「開始」</li>
+      </ol>
+      <div class="step-label" style="margin-top:18px;">下載完自動關機（選用）</div>
+      <ul class="hint" style="margin:0 0 12px 18px; padding:0;">
+        <li>全部下載完成時，資料夾會出現 <code>_ALL_DONE.txt</code>；批次檔偵測到它就倒數 60 秒關機</li>
+        <li>試跑、手動停止、登入過期、連續失敗都不會觸發關機</li>
+        <li>睡眠請先設為「永不」，瀏覽器保持開啟</li>
+      </ul>
+      <div class="actions" style="margin-top:0;">
+        <button class="secondary" id="dl-bat-file-btn">下載自動關機批次檔（.bat）</button>
+        <button class="secondary" id="dl-bat-copy-btn">複製批次檔內容</button>
+      </div>
+      <ol class="hint" style="margin:12px 0 0 18px; padding:0;">
+        <li>先在報表網站面板按「開始」</li>
+        <li>把「存放資料夾」拖曳到 .bat 檔上（或把 .bat 放進該資料夾後雙擊）</li>
+        <li>出現等待畫面後即可離開；要取消關機，按 Win+R 輸入 <code>shutdown /a</code></li>
+        <li>.bat 被瀏覽器或公司擋下時：按「複製批次檔內容」，用記事本貼上，另存成 .bat</li>
+      </ol>
+      <div class="hint" id="dl-script-msg" style="margin-top:8px;"></div>
+    </div>
+    <div class="footer-actions">
+      <button class="secondary" id="copy-all-btn">複製全部連結</button>
+      <button class="secondary" id="download-list-btn">下載連結清單（.txt，中文檔名）</button>
+      <button id="open-all-btn">一次全部開啟（同一次點擊內開啟）</button>
+      <span id="open-progress"></span>
+    </div>
+    <div class="hint" style="margin-top:12px;">
+      這個工具與報表系統是不同網域，本身無法直接下載檔案；下載、改檔名、指定資料夾由上方「下載腳本」在報表網站的 Console 執行，沿用你的登入身分。<br><br>
+      三種開啟方式怎麼選：段數不多、或對方伺服器扛得住同時查詢時，用「一次全部開啟」最快；段數多、擔心同時查詢把對方伺服器打爆時，用上面的「自動依序開啟」設好間隔放著跑；如果連這樣都不放心，就退回最原始的「開啟目前這段並前進下一段」，每段都是你自己按一次。<br><br>
+      關於畫面被新分頁搶走：每次開新分頁後，工具都會嘗試把焦點搶回這一頁，多數情況下畫面不會被拉走；但這不是瀏覽器保證一定有效的行為，少數情況仍可能被搶走一下。<br><br>
+      關於檔名：用「下載腳本」下載時，檔名會自動加上處名與起迄日期；若改用其他開啟方式（開啟目前這段、自動依序開啟、一次全部開啟），檔名由對方網站決定，需自行到瀏覽器設定開啟「下載前詢問儲存位置」。
+    </div>
+  </section>
+</div>
+
+<script type="text/plain" id="dl-template">
+/*
+ * 報表批次下載器（由「報表連結日期分段工具」產生，清單已內嵌）
+ * 用法：在報表網站已登入的分頁 → F12 → Console → 先輸入 allow pasting → 貼上整份 → Enter
+ * 需求：Chrome / Edge 最新版
+ */
+(() => {
+  'use strict';
+
+  // ===== 可調整設定 =====
+  const SEP = '_';                       // 原檔名與「XX處｜日期」之間的分隔字元
+  const LOG = '_下載紀錄.json';           // 續跑用紀錄（放在你選的資料夾內）
+  const FAILED = '_失敗清單.txt';         // 失敗項目（格式與原清單相同，可直接重新載入）
+  const NODATA = '_無資料清單.txt';       // 伺服器回 500 = 該區間無資料
+  const DONEFLAG = '_ALL_DONE.txt';      // 「正常跑完」才寫入；搭配自動關機 .bat 使用
+  const EMBEDDED = /*__TASKS__*/[];       // 由工具填入 [{label,url},...]
+  const TIMEOUT_MS = 5 * 60 * 1000;      // 單一檔案逾時
+  const RETRIES = 2;                     // 失敗重試次數
+  const DELAY_MS = 500;                  // 每個檔案完成後的間隔
+  const NODATA_CONFIRM = 1;              // 500 時多確認幾次才判定無資料（防暫時性錯誤）
+  const MAX_CONSEC_FAIL = 5;             // 連續失敗幾筆就自動暫停
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const safe = s => String(s).replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_').replace(/[. ]+$/, '').trim();
+
+  class FatalError extends Error { constructor(m) { super(m); this.fatal = true; } }
+  class NoDataError extends Error { constructor() { super('HTTP 500'); this.noData = true; } }
+
+  // ===== 清單解析 =====
+  function labelFromUrl(url) {
+    try {
+      const p = new URL(url).searchParams;
+      return p.get('str_date') && p.get('end_date') ? `${p.get('str_date')} ~ ${p.get('end_date')}` : null;
+    } catch { return null; }
+  }
+
+  function dedupe(items) {
+    const seen = {};
+    return items.map(it => {
+      let l = it.label; seen[l] = (seen[l] || 0) + 1;
+      if (seen[l] > 1) l += `(${seen[l]})`;          // 重複標題自動編號，避免檔名衝突
+      return { label: l, url: it.url };
+    });
+  }
+
+  function parseList(text) {
+    const items = [];
+    let label = null;
+    for (const raw of String(text).replace(/^\uFEFF/, '').split(/\r?\n/)) {
+      const line = raw.trim();
+      if (!line) continue;
+      if (/^https?:\/\//i.test(line)) {
+        items.push({ label: label || labelFromUrl(line) || `item-${items.length + 1}`, url: line });
+        label = null;
+      } else {
+        const m = line.match(/^\d+\.\s*(.+)$/);
+        label = (m ? m[1] : line).trim();
+      }
+    }
+    return dedupe(items);
+  }
+
+  // ===== 檔名處理 =====
+  function fixMojibake(s) {
+    if (!/[\u0080-\u00ff]/.test(s) || /[^\u0000-\u00ff]/.test(s)) return s;
+    try { return new TextDecoder('utf-8', { fatal: true }).decode(Uint8Array.from(s, c => c.charCodeAt(0))); }
+    catch { return s; }
+  }
+
+  function parseFilename(cd) {
+    if (!cd) return null;
+    let m = cd.match(/filename\*\s*=\s*([^']*)'[^']*'([^;]+)/i);
+    if (m) { try { return decodeURIComponent(m[2].trim().replace(/^"|"$/g, '')); } catch { /* 往下試 */ } }
+    m = cd.match(/filename\s*=\s*"((?:[^"\\]|\\.)*)"/i) || cd.match(/filename\s*=\s*([^;]+)/i);
+    if (!m) return null;
+    let v = m[1].trim();
+    if (/%[0-9a-f]{2}/i.test(v)) { try { v = decodeURIComponent(v); } catch { /* 保持原樣 */ } }
+    return fixMojibake(v);
+  }
+
+  function fallbackName(ct) {
+    ct = (ct || '').toLowerCase();
+    const ext = ct.includes('spreadsheetml') ? '.xlsx' : ct.includes('ms-excel') ? '.xls'
+      : ct.includes('csv') ? '.csv' : ct.includes('zip') ? '.zip' : ct.includes('pdf') ? '.pdf' : '';
+    return '報表' + ext;
+  }
+
+  function splitExt(name) {
+    const i = name.lastIndexOf('.');
+    return i > 0 && name.length - i <= 8 ? [name.slice(0, i), name.slice(i)] : [name, ''];
+  }
+
+  function buildName(orig, label) {
+    const [stem, ext] = splitExt(safe(orig));
+    return safe(`${stem.slice(0, 100)}${SEP}${label}`).slice(0, 180) + ext;
+  }
+
+  // ===== 檔案系統 =====
+  async function fileSize(dir, name) {
+    try { return (await (await dir.getFileHandle(name)).getFile()).size; } catch { return -1; }
+  }
+
+  async function writeFile(dir, name, data) {
+    const fh = await dir.getFileHandle(name, { create: true });
+    const w = await fh.createWritable();
+    try { await w.write(data); await w.close(); }
+    catch (e) { try { await w.abort(); } catch { /* ignore */ } throw e; }
+  }
+
+  async function loadLog(root) {
+    try { return JSON.parse(await (await (await root.getFileHandle(LOG)).getFile()).text()) || {}; }
+    catch { return {}; }
+  }
+
+  function makePersist(root, done) {
+    let chain = Promise.resolve();
+    return () => (chain = chain.then(() => writeFile(root, LOG, JSON.stringify(done, null, 1))).catch(() => {}));
+  }
+
+  async function targetDir(ctx, item) {
+    const sub = ctx.subfolder && item.label.includes('｜') ? safe(item.label.split('｜')[0]) : '';
+    return { sub, dir: sub ? await ctx.root.getDirectoryHandle(sub, { create: true }) : ctx.root };
+  }
+
+  async function dirByName(root, sub) {
+    if (!sub) return root;
+    try { return await root.getDirectoryHandle(sub); } catch { return null; }
+  }
+
+  function formatList(items) {
+    return items.map((it, i) => `${i + 1}. ${it.label}\n${it.url}\n`).join('\n');
+  }
+
+  // ===== 單筆下載 =====
+  async function downloadOne(item, ctx) {
+    const prev = ctx.done[item.label];
+    if (prev && prev.nodata && !ctx.recheck) return { status: 'nodata', cached: true };
+    if (prev && !prev.nodata) {                       // 紀錄的是「檔名＋所在資料夾」（舊格式為純檔名）
+      const pn = typeof prev === 'string' ? prev : prev.n;
+      const pd = await dirByName(ctx.root, typeof prev === 'string' ? '' : prev.d);
+      if (pd && (await fileSize(pd, pn)) > 0) return { status: 'skipped', name: pn };
+    }
+    const { sub, dir } = await targetDir(ctx, item);
+
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), ctx.timeoutMs);
+    try {
+      let res;
+      try { res = await ctx.fetch(item.url, { credentials: 'include', signal: ac.signal }); }
+      catch (e) { throw new Error(e.name === 'AbortError' ? '逾時' : `連線失敗：${e.message}`); }
+
+      if (res.status === 401 || res.status === 403) throw new FatalError(`HTTP ${res.status}，登入可能已過期`);
+      if (res.status === 500) throw new NoDataError();
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const ct = res.headers.get('content-type') || '';
+      if (/text\/html/i.test(ct)) throw new FatalError('回傳的是網頁而非檔案，登入可能已過期');
+
+      const orig = parseFilename(res.headers.get('content-disposition')) || fallbackName(ct);
+      let blob;
+      try { blob = await res.blob(); }
+      catch (e) { throw new Error(e.name === 'AbortError' ? '逾時' : `下載中斷：${e.message}`); }
+      if (!blob.size) throw new Error('檔案為空');
+
+      const name = buildName(orig, item.label);
+      await writeFile(dir, name, blob);
+      ctx.done[item.label] = { n: name, d: sub };
+      await ctx.persist();
+      return { status: 'ok', name, size: blob.size };
+    } finally { clearTimeout(timer); }
+  }
+
+  // ===== 佇列：同時最多 N 個，一個完成就補下一個 =====
+  async function runQueue(items, ctx, opt) {
+    const { concurrency = 2, retries = RETRIES, delayMs = DELAY_MS, onEvent = () => {} } = opt || {};
+    const maxConsec = ctx.maxConsecFail || MAX_CONSEC_FAIL;
+    const results = new Array(items.length);
+    let next = 0, consec = 0, okCount = 0;
+    const stats = { active: 0, maxActive: 0 };
+
+    async function worker() {
+      while (!ctx.stopped) {
+        const idx = next++;
+        if (idx >= items.length) return;
+        const item = items[idx];
+        stats.active++; stats.maxActive = Math.max(stats.maxActive, stats.active);
+        let res, attempt = 0, nd = 0;
+        for (;;) {
+          try { res = await downloadOne(item, ctx); break; }
+          catch (e) {
+            if (e.fatal) { ctx.stopped = true; res = { status: 'fatal', error: e.message }; break; }
+            if (e.noData) {
+              if (nd++ < NODATA_CONFIRM && !ctx.stopped) { await sleep(1000); continue; }
+              ctx.done[item.label] = { nodata: true }; await ctx.persist();
+              res = { status: 'nodata' }; break;
+            }
+            if (attempt >= retries || ctx.stopped) { res = { status: 'failed', error: e.message }; break; }
+            attempt++; await sleep(1500 * attempt);
+          }
+        }
+        stats.active--;
+        results[idx] = { item, ...res };
+        if (res.status === 'failed') { if (++consec >= maxConsec) { ctx.stopped = true; ctx.paused = true; } }
+        else if (res.status !== 'fatal') consec = 0;
+        if (res.status === 'ok' && ctx.stopAfterOk && ++okCount >= ctx.stopAfterOk) ctx.stopped = true;
+        onEvent({ idx, total: items.length, item, result: results[idx] });
+        const hitServer = !(res.status === 'skipped' || res.cached);
+        if (!ctx.stopped && delayMs && hitServer) await sleep(delayMs);
+      }
+    }
+    await Promise.all(Array.from({ length: concurrency }, worker));
+    return { results, stats };
+  }
+
+  const core = { EMBEDDED, dedupe, NODATA, parseList, parseFilename, buildName, fallbackName, downloadOne, runQueue, formatList, loadLog, makePersist, writeFile, FAILED, LOG, FatalError };
+  if (typeof module !== 'undefined' && module.exports) module.exports = core;
+
+  // ===== 操作面板 =====
+  function initUI() {
+    const old = document.getElementById('__rdl'); if (old) old.remove();
+    const box = document.createElement('div');
+    box.id = '__rdl';
+    box.style.cssText = 'position:fixed;top:12px;right:12px;z-index:2147483647;width:370px;background:#fff;color:#222;border:1px solid #888;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.3);font:13px/1.5 "Microsoft JhengHei",sans-serif;padding:10px';
+    box.innerHTML = `
+      <div style="display:flex;justify-content:space-between;font-weight:bold;margin-bottom:6px">
+        <span>報表批次下載器</span><a id="rdl-x" style="cursor:pointer">✕</a></div>
+      <div>清單：<span id="rdl-list-s" style="color:#666">未載入</span>
+        <button id="rdl-list" style="margin-left:4px">改選 .txt</button></div>
+      <div style="margin-top:4px"><button id="rdl-dir">選擇存放資料夾</button> <span id="rdl-dir-s" style="color:#666">未選</span></div>
+      <div style="margin-top:6px">同時下載
+        <select id="rdl-n"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option></select> 個
+        <label style="margin-left:8px"><input type="checkbox" id="rdl-sub"> 依處別建子資料夾</label></div>
+      <div><label><input type="checkbox" id="rdl-recheck"> 重查已標示「無資料」的項目</label></div>
+      <div style="margin-top:8px">
+        <button id="rdl-try">試跑（抓到 1 個檔就停）</button>
+        <button id="rdl-go">開始</button>
+        <button id="rdl-stop" disabled>停止</button></div>
+      <div id="rdl-p" style="margin-top:6px;font-weight:bold"></div>
+      <pre id="rdl-log" style="margin:4px 0 0;max-height:170px;overflow:auto;white-space:pre-wrap;font-size:12px;background:#f5f5f5;padding:4px"></pre>`;
+    document.body.appendChild(box);
+    const $ = id => box.querySelector('#' + id);
+    const st = { items: [], root: null, running: false, ctx: null };
+    const log = t => { const l = $('rdl-log'); l.textContent += t + '\n'; l.scrollTop = l.scrollHeight; };
+    const BTNS = ['rdl-list', 'rdl-dir', 'rdl-try', 'rdl-go'];
+
+    $('rdl-x').onclick = () => box.remove();
+
+    function setItems(items, note) {
+      st.items = items;
+      $('rdl-list-s').textContent = items.length ? `${note} ${items.length} 筆` : '沒有讀到連結';
+      if (items.length) log(`首筆：${items[0].label}\n末筆：${items[items.length - 1].label}`);
+    }
+    if (EMBEDDED.length) setItems(dedupe(EMBEDDED.map(t => ({ label: String(t.label), url: String(t.url) }))), '內嵌');
+
+    $('rdl-list').onclick = async () => {
+      try {
+        const [h] = await window.showOpenFilePicker({ types: [{ description: '文字檔', accept: { 'text/plain': ['.txt'] } }] });
+        setItems(parseList(await (await h.getFile()).text()), '已載入');
+      } catch (e) { if (e.name !== 'AbortError') log('✘ 讀取清單失敗：' + e.message); }
+    };
+
+    $('rdl-dir').onclick = async () => {
+      try {
+        st.root = await window.showDirectoryPicker({ mode: 'readwrite', id: 'ttl-report-dl' });
+        $('rdl-dir-s').textContent = st.root.name;
+      } catch (e) {
+        if (e.name !== 'AbortError') log('✘ 無法使用該資料夾：' + e.message + '\n  （Chrome 不允許直接選「下載」「桌面」「文件」本身，請選其中的子資料夾）');
+      }
+    };
+
+    async function start(trial) {
+      if (st.running) return;
+      if (!st.items.length) return log('沒有清單可下載');
+      if (!st.root) return log('請先選擇存放資料夾');
+      st.running = true;
+      BTNS.forEach(i => { $(i).disabled = true; });
+      $('rdl-stop').disabled = false;
+      window.onbeforeunload = () => '下載進行中';
+
+      try { await st.root.removeEntry(DONEFLAG); } catch { /* 不存在就算了 */ }   // 清掉上次遺留的標記，避免一開跑就關機
+      const done = await loadLog(st.root);
+      const ctx = st.ctx = { root: st.root, fetch: (u, o) => fetch(u, o), done, persist: makePersist(st.root, done),
+        subfolder: $('rdl-sub').checked, recheck: $('rdl-recheck').checked, timeoutMs: TIMEOUT_MS,
+        stopped: false, trial: !!trial, stopAfterOk: trial ? 1 : 0 };
+      const c = { ok: 0, skipped: 0, nodata: 0, failed: 0 };
+      const { results } = await runQueue(st.items, ctx, {
+        concurrency: trial ? 1 : +$('rdl-n').value,
+        onEvent: ({ idx, total, item, result }) => {
+          const n = `[${idx + 1}/${total}]`;
+          if (result.status === 'ok') { c.ok++; log(`✔ ${n} ${result.name}`); }
+          else if (result.status === 'skipped') { c.skipped++; log(`↷ ${n} 已存在，略過`); }
+          else if (result.status === 'nodata') { c.nodata++; log(`∅ ${n} ${item.label}：無資料${result.cached ? '（先前已確認）' : ''}`); }
+          else { c.failed++; log(`✘ ${n} ${item.label}：${result.error}`); }
+          $('rdl-p').textContent = `成功 ${c.ok}｜略過 ${c.skipped}｜無資料 ${c.nodata}｜失敗 ${c.failed}｜共 ${total}`;
+        } });
+
+      const failed = results.filter(r => r && (r.status === 'failed' || r.status === 'fatal')).map(r => r.item);
+      if (failed.length) { try { await writeFile(st.root, FAILED, formatList(failed)); log(`失敗 ${failed.length} 筆，已寫入 ${FAILED}`); } catch { /* ignore */ } }
+      const nodata = Object.keys(done).filter(k => done[k] && done[k].nodata);
+      if (nodata.length) { try { await writeFile(st.root, NODATA, nodata.join('\n') + '\n'); } catch { /* ignore */ } }
+
+      let flagged = false;                                  // 只有「佇列自然跑完」才算完成：試跑／手動停止／登入過期／連續失敗都不寫
+      if (!ctx.stopped && !ctx.trial) {
+        const p = n => String(n).padStart(2, '0'), d = new Date();
+        const ts = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+        try {
+          await writeFile(st.root, DONEFLAG, `finished=${ts}\nok=${c.ok}\nskipped=${c.skipped}\nnodata=${c.nodata}\nfailed=${c.failed}\ntotal=${st.items.length}\n`);
+          flagged = true;
+        } catch { /* ignore */ }
+      }
+
+      if (results.some(r => r && r.status === 'fatal')) log('⚠ 偵測到登入過期：請重新整理並登入後，再按「開始」（已完成的會自動略過）');
+      else if (ctx.paused) log(`⚠ 連續失敗 ${MAX_CONSEC_FAIL} 筆，已自動暫停：請檢查網路與登入狀態後，再按「開始」（已完成的會自動略過）`);
+      else if (ctx.trial) log(c.ok ? '試跑完成：請到資料夾確認檔名、檔案能正常開啟，再按「開始」' : '試跑沒有抓到檔案（可能都是無資料或已下載）');
+      else if (ctx.stopped) log('已停止（進行中的檔案會先完成）');
+      else log(failed.length ? '結束，有失敗項目' : `全部完成${c.nodata ? `（無資料 ${c.nodata} 筆，清單見 ${NODATA}）` : ''}`);
+
+      if (flagged) log(`已寫入完成標記 ${DONEFLAG}（自動關機批次檔會據此關機）`);
+      window.onbeforeunload = null;
+      st.running = false;
+      BTNS.forEach(i => { $(i).disabled = false; });
+      $('rdl-stop').disabled = true;
+    }
+
+    $('rdl-try').onclick = () => start(true);
+    $('rdl-go').onclick = () => start(false);
+    $('rdl-stop').onclick = () => { if (st.ctx) st.ctx.stopped = true; $('rdl-stop').disabled = true; log('停止中…'); };
+    log('請先選資料夾 → 按「試跑」確認檔名 → 再按「開始」');
+  }
+
+  if (typeof document !== 'undefined') initUI();
+})();
+
+</script>
+<script>
+(function(){
+  const urlInput = document.getElementById('url-input');
+  const parseTag = document.getElementById('parse-tag');
+  const errorBox = document.getElementById('error');
+  const startDateInput = document.getElementById('start-date');
+  const endDateInput = document.getElementById('end-date');
+  const intervalInput = document.getElementById('interval');
+  const generateBtn = document.getElementById('generate-btn');
+  const resultsSection = document.getElementById('results-section');
+  const summaryText = document.getElementById('summary-text');
+  const linkList = document.getElementById('link-list');
+  const copyAllBtn = document.getElementById('copy-all-btn');
+  const downloadListBtn = document.getElementById('download-list-btn');
+  const openAllBtn = document.getElementById('open-all-btn');
+  const openProgress = document.getElementById('open-progress');
+  const stepRange = document.getElementById('step-range');
+  const stepOpenBtn = document.getElementById('step-open-btn');
+  const stepResetBtn = document.getElementById('step-reset-btn');
+  const toggleListParseBtn = document.getElementById('toggle-list-parse-btn');
+  const listParseWrap = document.getElementById('list-parse-wrap');
+  const listSourceInput = document.getElementById('list-source-input');
+  const parseListBtn = document.getElementById('parse-list-btn');
+  const listError = document.getElementById('list-error');
+  const surveyListWrap = document.getElementById('survey-list-wrap');
+  const surveySummary = document.getElementById('survey-summary');
+  const surveyList = document.getElementById('survey-list');
+  const categoryFilter = document.getElementById('category-filter');
+  const survIdInput = document.getElementById('survid-input');
+  const applySurvIdBtn = document.getElementById('apply-survid-btn');
+  const batchIntervalInput = document.getElementById('batch-interval');
+  const batchStatus = document.getElementById('batch-status');
+  const batchStartBtn = document.getElementById('batch-start-btn');
+  const batchNextNowBtn = document.getElementById('batch-next-now-btn');
+  const batchStopBtn = document.getElementById('batch-stop-btn');
+
+  let generatedUrls = [];
+  let stepIndex = 0;
+  let surveyItems = [];
+
+  // --- 自動依序開啟 state (shares stepIndex with the manual step-box below,
+  // so whichever method opens a link — step button, auto timer, or manual
+  // "立即開下一段" — the segment list and progress line stay in sync and the
+  // opened rows still get struck through) ---
+  let batchRunning = false;  // true while the countdown-to-next-link is active
+  let batchPendingTimeout = null; // setTimeout handle for the next auto batch
+  let batchCountdownInterval = null; // setInterval handle for the visible countdown
+  let batchSecondsLeft = 0;
+
+  const SITE_ORIGIN = 'https://ttl.unidyna.com';
+
+  // 營業處代碼表：dept_id 對照單位名
+  const DEPARTMENTS = [
+    { id: '1',  name: '北部處' },
+    { id: '8',  name: '桃園處' },
+    { id: '5',  name: '臺中處' },
+    { id: '9',  name: '嘉義處' },
+    { id: '7',  name: '臺南處' },
+    { id: '10', name: '高雄處' },
+    { id: '11', name: '花蓮處' }
+  ];
+  const DEPT_KEY = 'dept_id';
+
+  const deptCheckboxList = document.getElementById('dept-checkbox-list');
+  const deptSelectAllBtn = document.getElementById('dept-select-all-btn');
+  const deptSelectNoneBtn = document.getElementById('dept-select-none-btn');
+
+  (function initDeptCheckboxes(){
+    deptCheckboxList.innerHTML = DEPARTMENTS.map(function(d){
+      return '<label style="display:flex; align-items:center; gap:6px; font-weight:500; font-size:13.5px; margin:0;">' +
+        '<input type="checkbox" class="dept-checkbox" value="' + d.id + '" style="width:auto;"> ' +
+        d.name + '（' + d.id + '）' +
+        '</label>';
+    }).join('');
+  })();
+
+  function getDeptCheckboxes(){
+    return Array.from(deptCheckboxList.querySelectorAll('.dept-checkbox'));
+  }
+
+  function getSelectedDepartments(){
+    return getDeptCheckboxes()
+      .filter(function(cb){ return cb.checked; })
+      .map(function(cb){
+        const d = DEPARTMENTS.find(function(x){ return x.id === cb.value; });
+        return d || { id: cb.value, name: cb.value };
+      });
+  }
+
+  deptSelectAllBtn.addEventListener('click', function(){
+    getDeptCheckboxes().forEach(function(cb){ cb.checked = true; });
+  });
+  deptSelectNoneBtn.addEventListener('click', function(){
+    getDeptCheckboxes().forEach(function(cb){ cb.checked = false; });
+  });
+
+  // ---- 營業所（store_area_id）：更細一層的切分，依處分組 ----
+  const STORE_AREA_KEY = 'store_area_id';
+
+  // 前綴（label 破折號前那段）對應到營業處代碼，沿用 DEPARTMENTS 的處名
+  const PREFIX_TO_DEPT_ID = {
+    '北部': '1', '桃園': '8', '臺中': '5', '嘉義': '9',
+    '臺南': '7', '高雄': '10', '花蓮': '11'
+  };
+
+  // 原始 store_area_id 選項（僅保留 label 含「-」的營業所層級，排除「全部」「未分類」及純處名）
+  const STORE_AREA_RAW = [
+    ['19','花蓮-花蓮'],['20','花蓮-玉里'],['21','花蓮-臺東'],['22','花蓮-成功'],['23','花蓮-太麻里'],
+    ['24','花蓮-宜蘭'],['25','花蓮-羅東'],
+    ['26','臺中-大甲'],['27','臺中-埔里'],['28','臺中-東勢'],['29','臺中-行銷課'],['30','臺中-北區'],
+    ['31','臺中-豐原'],['32','臺中-竹山'],['33','臺中-和美'],['34','臺中-員林'],['35','臺中-北斗'],
+    ['37','北部-三重'],['38','北部-三峽'],['39','北部-士林'],['40','北部-中正'],['41','北部-中和'],
+    ['42','北部-行銷課'],['43','北部-板橋'],['44','北部-新店'],['45','北部-艋舺'],['46','北部-蘆洲'],
+    ['48','嘉義-斗六'],['49','嘉義-民雄'],['50','嘉義-朴子'],['51','嘉義-行銷課'],['52','嘉義-西螺'],
+    ['53','嘉義-虎尾'],['54','嘉義-嘉義'],
+    ['55','臺南-行銷課'],['56','臺南-佳里'],['57','臺南-南門'],['58','臺南-善化'],['59','臺南-新營'],['60','臺南-歸仁'],
+    ['62','桃園-中壢'],['63','桃園-竹東'],['64','桃園-竹南'],['65','桃園-苗栗'],['66','桃園-桃新'],
+    ['67','桃園-新竹'],['68','桃園-新埔'],['70','桃園-龍潭'],['72','桃園-楊梅'],
+    ['74','高雄-行銷課'],['75','高雄-岡山'],['76','高雄-林園'],['77','高雄-恆春'],['78','高雄-苓雅'],
+    ['79','高雄-馬公'],['80','高雄-旗山'],['81','高雄-鳳山'],['82','高雄-潮州']
+  ];
+
+  const STORE_AREAS = STORE_AREA_RAW.map(function(pair){
+    const id = pair[0], label = pair[1];
+    const prefix = label.split('-')[0];
+    return { id: id, name: label, deptId: PREFIX_TO_DEPT_ID[prefix] || null };
+  });
+
+  const areaGroupList = document.getElementById('area-group-list');
+  const areaSelectAllBtn = document.getElementById('area-select-all-btn');
+  const areaSelectNoneBtn = document.getElementById('area-select-none-btn');
+
+  (function initAreaGroups(){
+    areaGroupList.innerHTML = DEPARTMENTS.map(function(d){
+      const areasInDept = STORE_AREAS.filter(function(a){ return a.deptId === d.id; });
+      if(!areasInDept.length) return '';
+      const checkboxesHtml = areasInDept.map(function(a){
+        return '<label class="area-checkbox-label">' +
+          '<input type="checkbox" class="area-checkbox" data-dept-id="' + d.id + '" value="' + a.id + '" style="width:auto;"> ' +
+          a.name +
+          '</label>';
+      }).join('');
+      return '<details class="area-group" data-dept-id="' + d.id + '">' +
+        '<summary>' + d.name + '<span class="area-group-count">' + areasInDept.length + ' 個營業所</span></summary>' +
+        '<div class="area-group-body">' +
+          '<div class="area-group-actions">' +
+            '<button type="button" class="secondary small area-group-all-btn" data-dept-id="' + d.id + '">本處全選</button>' +
+            '<button type="button" class="secondary small area-group-none-btn" data-dept-id="' + d.id + '">本處全不選</button>' +
+          '</div>' +
+          checkboxesHtml +
+        '</div>' +
+      '</details>';
+    }).join('');
+  })();
+
+  function getAreaCheckboxes(){
+    return Array.from(areaGroupList.querySelectorAll('.area-checkbox'));
+  }
+
+  function getSelectedStoreAreas(){
+    return getAreaCheckboxes()
+      .filter(function(cb){ return cb.checked; })
+      .map(function(cb){
+        const a = STORE_AREAS.find(function(x){ return x.id === cb.value; });
+        return a || { id: cb.value, name: cb.value, deptId: cb.dataset.deptId };
+      });
+  }
+
+  areaGroupList.addEventListener('click', function(e){
+    const allBtn = e.target.closest('.area-group-all-btn');
+    const noneBtn = e.target.closest('.area-group-none-btn');
+    if(!allBtn && !noneBtn) return;
+    const deptId = (allBtn || noneBtn).dataset.deptId;
+    const checked = !!allBtn;
+    getAreaCheckboxes().filter(function(cb){ return cb.dataset.deptId === deptId; })
+      .forEach(function(cb){ cb.checked = checked; });
+  });
+
+  areaSelectAllBtn.addEventListener('click', function(){
+    getAreaCheckboxes().forEach(function(cb){ cb.checked = true; });
+    areaGroupList.querySelectorAll('details.area-group').forEach(function(d){ d.open = true; });
+  });
+  areaSelectNoneBtn.addEventListener('click', function(){
+    getAreaCheckboxes().forEach(function(cb){ cb.checked = false; });
+  });
+
+  function setAreaGroupOpenForChecked(){
+    areaGroupList.querySelectorAll('details.area-group').forEach(function(d){
+      const deptId = d.dataset.deptId;
+      const hasChecked = getAreaCheckboxes().some(function(cb){ return cb.dataset.deptId === deptId && cb.checked; });
+      if(hasChecked){ d.open = true; }
+    });
+  }
+
+  function getSelectedMode(){
+    return document.querySelector('input[name="data-mode"]:checked').value; // 'image' or 'plain'
+  }
+
+  // Build a fresh report URL from scratch using the known template structure,
+  // for when there's no existing report URL to base anything on.
+  function buildTemplateUrl(survId, mode){
+    let path = '/ubmsys_report_survey/form/' + survId + '/horizontal/1';
+    if(mode === 'plain'){ path += '/1'; }
+    const parts = [
+      'ch_store_id=', 'ch_id=', 'dept_id=', 'user_id=', 'group_id=', 'task_id=',
+      'surv_q_options_id=', 'store_area_id=', 'user_area_id=', 'filter=1', 'sort_mode=1',
+      'channel_store_category_ids=', 'user_is_leave=', 'unicharm_daterange[]=',
+      'surv_id=' + survId, 'surv_q_id=', 'str_date=', 'end_date=',
+      'str_date_last_edited=', 'end_date_last_edited='
+    ];
+    return SITE_ORIGIN + path + '?&' + parts.join('&');
+  }
+
+  // Single source of truth for the plain/image path segment. Rewrites the
+  // /form/{id}/horizontal/{n}[/1] path on rawUrl to match `mode`, optionally
+  // swapping in a new survId. Used both by "套用" (which passes a survId) and
+  // by "產生分段連結" (which passes no survId, just enforcing the current mode
+  // on whatever URL is already in the box) so the two can never drift apart.
+  function rewriteUrlPath(rawUrl, survId, mode){
+    let u = null;
+    if(rawUrl){
+      try{ u = new URL(rawUrl); }catch(e){ u = null; }
+    }
+    if(!u || !/\/ubmsys_report_survey\/form\//.test(u.pathname)){
+      return survId ? buildTemplateUrl(survId, mode) : rawUrl;
+    }
+    const pathMatch = u.pathname.match(/^(.*\/ubmsys_report_survey\/form\/)(\d+)(\/horizontal\/\d+)(\/\d+)?$/);
+    if(!pathMatch){
+      return survId ? buildTemplateUrl(survId, mode) : rawUrl;
+    }
+    const prefix = pathMatch[1];
+    const idToUse = survId || pathMatch[2];
+    const horizontalPart = pathMatch[3];
+    let newPath = prefix + idToUse + horizontalPart;
+    if(mode === 'plain'){ newPath += '/1'; }
+    u.pathname = newPath;
+    u.searchParams.set('surv_id', String(idToUse));
+    return u.toString();
+  }
+
+  function applySurvIdAndMode(rawUrl, survId, mode){
+    return rewriteUrlPath(rawUrl, survId, mode);
+  }
+
+  function detectModeFromUrl(rawUrl){
+    try{
+      const u = new URL(rawUrl);
+      const m = u.pathname.match(/\/ubmsys_report_survey\/form\/\d+\/horizontal\/\d+(\/\d+)?$/);
+      if(m && m[1]){ return 'plain'; }
+      if(m){ return 'image'; }
+    }catch(e){}
+    return null;
+  }
+
+  applySurvIdBtn.addEventListener('click', function(){
+    const survId = survIdInput.value.trim();
+    if(!survId){
+      showError('請先輸入 surv_id。');
+      return;
+    }
+    showError('');
+    const mode = getSelectedMode();
+    urlInput.value = applySurvIdAndMode(urlInput.value.trim(), survId, mode);
+    tryParseUrlAndFillDates();
+  });
+
+  toggleListParseBtn.addEventListener('click', function(){
+    const showing = listParseWrap.style.display !== 'none';
+    listParseWrap.style.display = showing ? 'none' : 'block';
+    toggleListParseBtn.textContent = showing
+      ? '或：從問卷列表原始碼選連結（選用） ▾'
+      : '或：從問卷列表原始碼選連結（選用） ▴';
+  });
+
+  function showListError(msg){
+    if(!msg){
+      listError.style.display = 'none';
+      listError.textContent = '';
+      return;
+    }
+    listError.style.display = 'block';
+    listError.textContent = msg;
+  }
+
+  function extractSurvId(links){
+    for(let i = 0; i < links.length; i++){
+      const m = links[i].href.match(/\/ubmsys_report_survey\/(?:form|chart)\/(\d+)/);
+      if(m){ return m[1]; }
+    }
+    return null;
+  }
+
+  function parseSurveyListHtml(htmlStr){
+    const doc = new DOMParser().parseFromString(htmlStr, 'text/html');
+    const rows = Array.from(doc.querySelectorAll('table tr')).filter(function(tr){
+      return tr.querySelectorAll('td').length >= 2;
+    });
+    const items = rows.map(function(tr){
+      const tds = Array.from(tr.querySelectorAll('td'));
+      const name = tds[0] ? tds[0].textContent.trim() : '';
+      const category = tds[1] ? tds[1].textContent.trim() : '';
+      const expireDate = tds[2] ? tds[2].textContent.trim() : '';
+      const links = Array.from(tr.querySelectorAll('a[href]')).map(function(a){
+        let href = a.getAttribute('href') || '';
+        try{ href = new URL(href, SITE_ORIGIN).toString(); }catch(e){}
+        return { text: a.textContent.trim() || '連結', href: href };
+      }).filter(function(l){ return l.href && l.href.indexOf('javascript:') !== 0; });
+      const survId = extractSurvId(links);
+      return { name: name, category: category, expireDate: expireDate, links: links, survId: survId };
+    }).filter(function(item){ return item.name; });
+    return items;
+  }
+
+  parseListBtn.addEventListener('click', function(){
+    showListError('');
+    const raw = listSourceInput.value;
+    if(!raw || !raw.trim()){
+      showListError('請先貼上頁面原始碼。');
+      return;
+    }
+    const items = parseSurveyListHtml(raw);
+    if(!items.length){
+      showListError('沒有解析到任何問卷資料，請確認貼上的是完整頁面原始碼（包含表格內容），或改用 F12 開發人員工具複製表格的 HTML。');
+      surveyListWrap.style.display = 'none';
+      return;
+    }
+    surveyItems = items;
+    populateCategoryFilter();
+    renderSurveyList();
+  });
+
+  function populateCategoryFilter(){
+    const categories = Array.from(new Set(surveyItems.map(function(i){ return i.category || '無分類'; }))).sort();
+    categoryFilter.innerHTML = '<option value="__all__">全部分類</option>' +
+      categories.map(function(c){ return '<option value="' + c + '">' + c + '</option>'; }).join('');
+    categoryFilter.value = '__all__';
+  }
+
+  categoryFilter.addEventListener('change', renderSurveyList);
+
+  function renderSurveyList(){
+    surveyListWrap.style.display = 'block';
+    const selectedCategory = categoryFilter.value;
+    const visibleItems = surveyItems.filter(function(item){
+      if(selectedCategory === '__all__') return true;
+      return (item.category || '無分類') === selectedCategory;
+    });
+    surveySummary.textContent = '共 ' + surveyItems.length + ' 筆問卷，目前顯示 ' + visibleItems.length + ' 筆。按「套用此問卷」會依目前選的資料模式，把 surv_id 換到上面的網址並保留其他篩選參數。';
+    surveyList.innerHTML = '';
+    visibleItems.forEach(function(item){
+      const idx = surveyItems.indexOf(item);
+      const li = document.createElement('li');
+      const applyBtn = item.survId
+        ? '<button class="seg-open apply-survey-btn" data-idx="' + idx + '">套用此問卷</button>'
+        : '<span style="font-size:12px; color:#8a9590;">（找不到 surv_id）</span>';
+      li.innerHTML =
+        applyBtn +
+        '<span class="seg-index">' + String(idx+1).padStart(2,'0') + '</span>' +
+        '<span class="seg-range">' + item.name + (item.category ? '（' + item.category + '）' : '') + '</span>' +
+        '<span style="font-size:12px; color:#8a9590;">' + (item.survId ? 'surv_id: ' + item.survId : '') + '</span>';
+      surveyList.appendChild(li);
+    });
+  }
+
+  surveyList.addEventListener('click', function(e){
+    const btn = e.target.closest('.apply-survey-btn');
+    if(!btn) return;
+    const item = surveyItems[parseInt(btn.dataset.idx, 10)];
+    if(!item || !item.survId) return;
+    const mode = getSelectedMode();
+    urlInput.value = applySurvIdAndMode(urlInput.value.trim(), item.survId, mode);
+    survIdInput.value = item.survId;
+    tryParseUrlAndFillDates();
+    urlInput.scrollIntoView({behavior:'smooth', block:'center'});
+  });
+
+  // date param keys that should be synced to each segment's start/end
+  const START_KEYS = ['str_date', 'str_date_last_edited'];
+  const END_KEYS = ['end_date', 'end_date_last_edited'];
+  const MONTH_RANGE_KEY = 'unicharm_daterange[]';
+
+  function showError(msg){
+    if(!msg){
+      errorBox.style.display = 'none';
+      errorBox.textContent = '';
+      return;
+    }
+    errorBox.style.display = 'block';
+    errorBox.textContent = msg;
+  }
+
+  function fmtDate(d){
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    return y + '-' + m + '-' + day;
+  }
+
+  function fmtMonth(d){
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    return y + '-' + m;
+  }
+
+  function parseDateLocal(str){
+    const parts = str.split('-').map(Number);
+    return new Date(parts[0], parts[1]-1, parts[2]);
+  }
+
+  function tryParseUrlAndFillDates(){
+    const raw = urlInput.value.trim();
+    parseTag.innerHTML = '';
+    if(!raw){ return; }
+    let u;
+    try{
+      u = new URL(raw);
+    }catch(e){
+      return;
+    }
+    const params = u.searchParams;
+    const sd = params.get('str_date');
+    const ed = params.get('end_date');
+    if(sd){ startDateInput.value = sd; }
+    if(ed){ endDateInput.value = ed; }
+
+    const survIdFromUrl = params.get('surv_id');
+    if(survIdFromUrl){ survIdInput.value = survIdFromUrl; }
+
+    const detectedMode = detectModeFromUrl(raw);
+    if(detectedMode === 'plain'){ document.getElementById('mode-plain').checked = true; }
+    else if(detectedMode === 'image'){ document.getElementById('mode-image').checked = true; }
+
+    const deptIdFromUrl = params.get(DEPT_KEY);
+    let deptNameFromUrl = null;
+    if(deptIdFromUrl){
+      const matched = DEPARTMENTS.find(function(d){ return d.id === deptIdFromUrl; });
+      if(matched){
+        deptNameFromUrl = matched.name;
+        getDeptCheckboxes().forEach(function(cb){ cb.checked = (cb.value === deptIdFromUrl); });
+      }
+    }
+
+    const areaIdFromUrl = params.get(STORE_AREA_KEY);
+    let areaNameFromUrl = null;
+    if(areaIdFromUrl){
+      const matchedArea = STORE_AREAS.find(function(a){ return a.id === areaIdFromUrl; });
+      if(matchedArea){
+        areaNameFromUrl = matchedArea.name;
+        getAreaCheckboxes().forEach(function(cb){ cb.checked = (cb.value === areaIdFromUrl); });
+        setAreaGroupOpenForChecked();
+      }
+    }
+
+    const tagBits = [];
+    if(sd || ed){ tagBits.push('日期：' + (sd || '?') + ' ~ ' + (ed || '?')); }
+    if(survIdFromUrl){ tagBits.push('surv_id：' + survIdFromUrl); }
+    if(detectedMode){ tagBits.push('模式：' + (detectedMode === 'plain' ? '純值（無照片）' : '含圖（有照片）')); }
+    if(deptIdFromUrl){ tagBits.push('營業處：' + (deptNameFromUrl || deptIdFromUrl) + '（已預先勾選，可自行調整）'); }
+    if(areaIdFromUrl){ tagBits.push('營業所：' + (areaNameFromUrl || areaIdFromUrl) + '（已預先勾選，可自行調整）'); }
+    if(tagBits.length){
+      parseTag.innerHTML = '<span class="parsed-tag">已從網址解析到 ' + tagBits.join('，') + '</span>';
+    }
+  }
+
+  urlInput.addEventListener('blur', tryParseUrlAndFillDates);
+  urlInput.addEventListener('paste', function(){
+    setTimeout(tryParseUrlAndFillDates, 0);
+  });
+
+  function buildSegments(start, end, intervalDays){
+    const segments = [];
+    let cursor = new Date(start);
+    while(cursor <= end){
+      const segStart = new Date(cursor);
+      let segEnd = new Date(cursor);
+      segEnd.setDate(segEnd.getDate() + intervalDays - 1);
+      if(segEnd > end){ segEnd = new Date(end); }
+      segments.push([segStart, segEnd]);
+      cursor = new Date(segEnd);
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    return segments;
+  }
+
+  function buildUrlForSegment(baseUrl, segStart, segEnd, deptId, areaId){
+    const u = new URL(baseUrl);
+    const params = u.searchParams;
+    const sdStr = fmtDate(segStart);
+    const edStr = fmtDate(segEnd);
+
+    START_KEYS.forEach(function(k){ if(params.has(k)) params.set(k, sdStr); });
+    END_KEYS.forEach(function(k){ if(params.has(k)) params.set(k, edStr); });
+
+    if(params.has(MONTH_RANGE_KEY)){
+      params.set(MONTH_RANGE_KEY, fmtMonth(segStart));
+    }
+    if(deptId){
+      params.set(DEPT_KEY, deptId);
+    }
+    if(areaId){
+      params.set(STORE_AREA_KEY, areaId);
+    }
+    return u.toString();
+  }
+
+  generateBtn.addEventListener('click', function(){
+    showError('');
+    const raw = urlInput.value.trim();
+    if(!raw){
+      showError('請先貼上原始網址。');
+      return;
+    }
+    let baseUrl;
+    try{
+      baseUrl = new URL(raw).toString();
+    }catch(e){
+      showError('這個網址格式看起來不正確，請確認完整貼上（需包含 https://）。');
+      return;
+    }
+    // Enforce the currently selected 資料模式 on the base URL, regardless of
+    // whether the pasted/loaded URL already matched it. This is what keeps
+    // "產生分段連結" in sync with the 含圖/純值 radio buttons.
+    baseUrl = rewriteUrlPath(baseUrl, null, getSelectedMode());
+    const sdVal = startDateInput.value || fmtDate(new Date());
+    const edVal = endDateInput.value || fmtDate(new Date());
+    if(!startDateInput.value){ startDateInput.value = sdVal; }
+    if(!endDateInput.value){ endDateInput.value = edVal; }
+    const start = parseDateLocal(sdVal);
+    const end = parseDateLocal(edVal);
+    if(start > end){
+      showError('起始日期不能晚於結束日期。');
+      return;
+    }
+    const totalDays = Math.round((end - start) / 86400000) + 1;
+    let interval = parseInt(intervalInput.value, 10);
+    let cappedNotice = '';
+    const MAX_SEGMENT_DAYS = 90;
+    if(!interval || interval < 1){
+      // 沒填或填 0：視為「不分段」，先當作一整段（整個起訖範圍）
+      interval = totalDays;
+    }
+    if(interval > MAX_SEGMENT_DAYS){
+      interval = MAX_SEGMENT_DAYS;
+      intervalInput.value = MAX_SEGMENT_DAYS;
+      cappedNotice = totalDays > MAX_SEGMENT_DAYS
+        ? '起訖範圍共 ' + totalDays + ' 天，超過對方系統限制的 90 天，已自動每 90 天切一段。'
+        : '你輸入的每段天數超過對方系統限制的 90 天，已自動改成 90 天再產生分段連結。';
+    }
+
+    const segments = buildSegments(start, end, interval);
+    const selectedAreas = getSelectedStoreAreas();
+    const selectedDepts = getSelectedDepartments();
+
+    // 優先序：營業所 > 營業處 > 不切分（只切日期）
+    let groups, splitKind;
+    if(selectedAreas.length){
+      groups = selectedAreas.map(function(a){
+        return { label: a.name, deptId: null, areaId: a.id };
+      });
+      splitKind = 'area';
+    }else if(selectedDepts.length){
+      groups = selectedDepts.map(function(d){
+        return { label: d.name, deptId: d.id, areaId: null };
+      });
+      splitKind = 'dept';
+    }else{
+      groups = [null];
+      splitKind = 'none';
+    }
+
+    generatedUrls = [];
+    groups.forEach(function(g){
+      segments.forEach(function(seg){
+        const s = seg[0], e = seg[1];
+        const dateRange = fmtDate(s) + ' ~ ' + fmtDate(e);
+        generatedUrls.push({
+          range: g ? (g.label + '｜' + dateRange) : dateRange,
+          url: buildUrlForSegment(baseUrl, s, e, g ? g.deptId : null, g ? g.areaId : null)
+        });
+      });
+    });
+
+    stepIndex = 0;
+    resetBatchState();
+    renderResults(cappedNotice, segments.length, groups.length, splitKind);
+    updateStepBox();
+  });
+
+  function renderResults(cappedNotice, dateSegCount, groupCount, splitKind){
+    resultsSection.style.display = 'block';
+    let breakdown = '';
+    if(splitKind === 'area'){
+      breakdown = '（' + dateSegCount + ' 個日期區間 × ' + groupCount + ' 個營業所）';
+    }else if(splitKind === 'dept'){
+      breakdown = '（' + dateSegCount + ' 個日期區間 × ' + groupCount + ' 個營業處）';
+    }
+    summaryText.innerHTML = '共產生 ' + generatedUrls.length + ' 段連結' + breakdown + '。' +
+      (cappedNotice ? '　<span style="color:var(--warn); font-weight:600;">⚠ ' + cappedNotice + '</span>' : '');
+    linkList.innerHTML = '';
+    generatedUrls.forEach(function(item, idx){
+      const li = document.createElement('li');
+      li.dataset.idx = idx;
+      li.innerHTML =
+        '<span class="seg-index">' + String(idx+1).padStart(2,'0') + '</span>' +
+        '<span class="seg-range">' + item.range + '</span>' +
+        '<a class="seg-link" href="' + item.url + '" target="_blank" rel="noopener">' + item.url + '</a>' +
+        '<button class="seg-open" data-idx="' + idx + '">開啟</button>';
+      linkList.appendChild(li);
+    });
+    resultsSection.scrollIntoView({behavior:'smooth', block:'start'});
+  }
+
+  linkList.addEventListener('click', function(e){
+    const btn = e.target.closest('.seg-open');
+    if(!btn) return;
+    const idx = parseInt(btn.dataset.idx, 10);
+    window.open(generatedUrls[idx].url, '_blank', 'noopener');
+    window.focus();
+  });
+
+  copyAllBtn.addEventListener('click', async function(){
+    if(!generatedUrls.length) return;
+    const text = generatedUrls.map(function(i){ return i.url; }).join('\n');
+    try{
+      await navigator.clipboard.writeText(text);
+      copyAllBtn.textContent = '已複製！';
+      setTimeout(function(){ copyAllBtn.textContent = '複製全部連結'; }, 1500);
+    }catch(e){
+      showError('複製失敗，請手動選取連結複製。');
+    }
+  });
+
+  downloadListBtn.addEventListener('click', function(){
+    if(!generatedUrls.length) return;
+    const text = generatedUrls.map(function(i, idx){
+      return (idx+1) + '. ' + i.range + '\n' + i.url;
+    }).join('\n\n');
+    const blob = new Blob([text], {type:'text/plain;charset=utf-8'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const sdVal = startDateInput.value || '起';
+    const edVal = endDateInput.value || '迄';
+    const deptSuffix = getSelectedStoreAreas().length ? '_分營業所'
+      : (getSelectedDepartments().length ? '_分營業處' : '');
+    a.download = '報表分段連結清單_' + sdVal + '_至_' + edVal + deptSuffix + '.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  });
+
+  // ===== 自動下載腳本：把目前的分段清單內嵌進範本，貼到報表網站 Console 執行 =====
+  const dlCopyBtn = document.getElementById('dl-script-copy-btn');
+  const dlFileBtn = document.getElementById('dl-script-file-btn');
+  const dlMsg = document.getElementById('dl-script-msg');
+  function dlNote(text, isWarn){
+    dlMsg.textContent = text;
+    dlMsg.style.color = isWarn ? 'var(--warn)' : '';
+  }
+  function buildDownloaderScript(){
+    const tpl = document.getElementById('dl-template').textContent;
+    const tasks = generatedUrls.map(function(i){ return { label: i.range, url: i.url }; });
+    return tpl.replace('/*__TASKS__*/[]', function(){ return JSON.stringify(tasks); });
+  }
+  dlCopyBtn.addEventListener('click', async function(){
+    if(!generatedUrls.length){ dlNote('請先按「產生分段連結」。', true); return; }
+    try{
+      await navigator.clipboard.writeText(buildDownloaderScript());
+      dlNote('已複製（含 ' + generatedUrls.length + ' 段清單）。到報表網站的 Console 貼上執行。');
+    }catch(e){
+      dlNote('複製失敗，請改按「下載腳本檔（.js）」，用記事本開啟後全選複製。', true);
+    }
+  });
+  dlFileBtn.addEventListener('click', function(){
+    if(!generatedUrls.length){ dlNote('請先按「產生分段連結」。', true); return; }
+    const blob = new Blob([buildDownloaderScript()], {type:'text/javascript;charset=utf-8'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const sdVal = startDateInput.value || '起';
+    const edVal = endDateInput.value || '迄';
+    const suffix = getSelectedStoreAreas().length ? '_分營業所'
+      : (getSelectedDepartments().length ? '_分營業處' : '');
+    a.download = '報表下載腳本_' + sdVal + '_至_' + edVal + suffix + '.js';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    dlNote('已下載腳本檔，用記事本開啟後全選複製，再貼到報表網站的 Console。');
+  });
+
+  // ===== 自動關機批次檔（純 ASCII + CRLF，避免命令列中文編碼問題）=====
+  function buildBatText(){
+    return [
+      '@echo off',
+      'setlocal',
+      'title Auto shutdown after download',
+      'set "FLAG=_ALL_DONE.txt"',
+      'set "DELAY=60"',
+      'set "TARGET=%~dp0"',
+      'if not "%~1"=="" set "TARGET=%~1"',
+      'cd /d "%TARGET%" || goto badpath',
+      'echo ================================================',
+      'echo  Folder: %CD%',
+      'echo  Waiting for the download to finish. Checks every 30 sec.',
+      'echo  Close this window to cancel.',
+      'echo ================================================',
+      'if not exist "%FLAG%" goto wait',
+      'echo.',
+      'echo A finished-marker already exists in this folder:',
+      'type "%FLAG%"',
+      'choice /c YN /m "Y = already finished, shut down now / N = ignore it and wait for the next run"',
+      'if errorlevel 2 goto ignoreold',
+      'goto done',
+      ':ignoreold',
+      'del "%FLAG%"',
+      ':wait',
+      'if exist "%FLAG%" goto done',
+      'timeout /t 30 /nobreak >nul',
+      'goto wait',
+      ':done',
+      'echo.',
+      'echo ---- finished marker ----',
+      'type "%FLAG%"',
+      'echo -------------------------',
+      'echo Download finished. Shutting down in %DELAY% seconds.',
+      'echo To cancel, run:  shutdown /a',
+      'shutdown /s /t %DELAY%',
+      'echo.',
+      'pause',
+      'exit /b 0',
+      ':badpath',
+      'echo Cannot open folder: %TARGET%',
+      'pause',
+      'exit /b 1',
+      ''
+    ].join('\r\n');
+  }
+  document.getElementById('dl-bat-file-btn').addEventListener('click', function(){
+    const blob = new Blob([buildBatText()], {type:'application/octet-stream'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '下載完自動關機.bat';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    dlNote('已下載批次檔。若被瀏覽器警告，選「保留」；被公司擋下請改按「複製批次檔內容」。');
+  });
+  document.getElementById('dl-bat-copy-btn').addEventListener('click', async function(){
+    try{
+      await navigator.clipboard.writeText(buildBatText());
+      dlNote('已複製。用記事本貼上，另存成「下載完自動關機.bat」（存檔類型選「所有檔案」）。');
+    }catch(e){
+      dlNote('複製失敗，請改按「下載自動關機批次檔（.bat）」。', true);
+    }
+  });
+
+  // Open all synchronously within the same click event, so the browser
+  // still treats every window.open as user-initiated (avoids most popup blocking).
+  openAllBtn.addEventListener('click', function(){
+    if(!generatedUrls.length) return;
+    let openedCount = 0;
+    for(let i = 0; i < generatedUrls.length; i++){
+      const w = window.open(generatedUrls[i].url, '_blank', 'noopener');
+      if(w){ openedCount++; }
+    }
+    window.focus();
+    if(openedCount === generatedUrls.length){
+      openProgress.textContent = '已開啟全部 ' + openedCount + ' 個分頁。';
+    }else{
+      openProgress.textContent = '只成功開啟 ' + openedCount + ' / ' + generatedUrls.length + '，其餘被瀏覽器擋下，請允許彈出視窗後再試一次，或改用下方逐段開啟。';
+    }
+  });
+
+  // --- 自動依序開啟 ---
+  // Opens exactly one link (same trick as openAllBtn/step-open: a direct,
+  // synchronous window.open call so the browser treats it as user-initiated),
+  // then schedules the next one after the interval. One at a time by design —
+  // this is what keeps concurrent load on the report server to a minimum.
+  function openOneLink(idx){
+    const item = generatedUrls[idx];
+    const w = window.open(item.url, '_blank', 'noopener');
+    window.focus();
+    return !!w;
+  }
+
+  function clearBatchTimers(){
+    if(batchPendingTimeout){ clearTimeout(batchPendingTimeout); batchPendingTimeout = null; }
+    if(batchCountdownInterval){ clearInterval(batchCountdownInterval); batchCountdownInterval = null; }
+  }
+
+  function resetBatchState(){
+    clearBatchTimers();
+    batchRunning = false;
+    batchStatus.textContent = '尚未開始';
+    batchStartBtn.disabled = false;
+    batchStartBtn.textContent = '開始，自動依序開啟';
+    batchNextNowBtn.disabled = true;
+    batchStopBtn.disabled = true;
+  }
+
+  function getBatchInterval(){
+    let n = parseInt(batchIntervalInput.value, 10);
+    if(!n || n < 3){ n = 3; }
+    batchIntervalInput.value = n;
+    return n;
+  }
+
+  // Opens generatedUrls[stepIndex], then either schedules the next one
+  // after a countdown or finishes. Called both by the auto-timer and by the
+  // "立即開下一段" manual fallback button. Shares stepIndex with the manual
+  // step box, so the segment list's done/current highlighting updates the
+  // same way no matter which open method was used.
+  function runBatchStep(){
+    clearBatchTimers();
+    if(stepIndex >= generatedUrls.length){
+      batchRunning = false;
+      batchStatus.textContent = '全部 ' + generatedUrls.length + ' 段都已開啟完成。';
+      batchStartBtn.disabled = true;
+      batchStartBtn.textContent = '已完成';
+      batchNextNowBtn.disabled = true;
+      batchStopBtn.disabled = true;
+      return;
+    }
+    const idx = stepIndex;
+    const opened = openOneLink(idx);
+    stepIndex = idx + 1;
+    updateStepBox();
+
+    let rangeLabel = '第 ' + (idx+1) + ' 段（共 ' + generatedUrls.length + ' 段）';
+    let openedNote = opened
+      ? ''
+      : '　⚠ 被瀏覽器擋下，可按「立即開下一段」補開或允許彈出視窗';
+
+    if(stepIndex >= generatedUrls.length){
+      batchStatus.textContent = '已開啟 ' + rangeLabel + openedNote + '，全部完成。';
+      batchRunning = false;
+      batchStartBtn.disabled = true;
+      batchStartBtn.textContent = '已完成';
+      batchNextNowBtn.disabled = true;
+      batchStopBtn.disabled = true;
+      return;
+    }
+
+    const intervalSec = getBatchInterval();
+    batchSecondsLeft = intervalSec;
+    batchRunning = true;
+    batchStartBtn.disabled = true;
+    batchNextNowBtn.disabled = false;
+    batchStopBtn.disabled = false;
+
+    function renderCountdown(){
+      batchStatus.textContent = '已開啟 ' + rangeLabel + openedNote +
+        '　下一段將於 ' + batchSecondsLeft + ' 秒後自動開啟...';
+    }
+    renderCountdown();
+    batchCountdownInterval = setInterval(function(){
+      batchSecondsLeft--;
+      if(batchSecondsLeft > 0){ renderCountdown(); }
+    }, 1000);
+    batchPendingTimeout = setTimeout(function(){
+      runBatchStep();
+    }, intervalSec * 1000);
+  }
+
+  batchStartBtn.addEventListener('click', function(){
+    if(!generatedUrls.length) return;
+    clearBatchTimers();
+    batchStartBtn.textContent = '執行中...';
+    runBatchStep();
+  });
+
+  batchNextNowBtn.addEventListener('click', function(){
+    if(!batchRunning) return;
+    runBatchStep();
+  });
+
+  batchStopBtn.addEventListener('click', function(){
+    clearBatchTimers();
+    batchRunning = false;
+    batchStatus.textContent = '已停止（停在第 ' + (stepIndex+1) + ' 段之前），按「開始」可繼續。';
+    batchStartBtn.disabled = false;
+    batchStartBtn.textContent = '繼續，自動依序開啟';
+    batchNextNowBtn.disabled = true;
+    batchStopBtn.disabled = true;
+  });
+
+  function updateStepBox(){
+    linkList.querySelectorAll('li').forEach(function(li){
+      const idx = parseInt(li.dataset.idx, 10);
+      li.classList.toggle('current', idx === stepIndex);
+      li.classList.toggle('done', idx < stepIndex);
+    });
+    if(!generatedUrls.length){
+      stepRange.textContent = '尚未開始';
+      stepOpenBtn.disabled = true;
+      return;
+    }
+    if(stepIndex >= generatedUrls.length){
+      stepRange.textContent = '全部 ' + generatedUrls.length + ' 段都已開啟完成';
+      stepOpenBtn.disabled = true;
+    }else{
+      stepRange.textContent = '第 ' + (stepIndex+1) + ' / ' + generatedUrls.length + ' 段：' + generatedUrls[stepIndex].range;
+      stepOpenBtn.disabled = false;
+    }
+  }
+
+  stepOpenBtn.addEventListener('click', function(){
+    if(stepIndex >= generatedUrls.length) return;
+    if(batchRunning){ resetBatchState(); } // manual click takes over from the auto timer
+    window.open(generatedUrls[stepIndex].url, '_blank', 'noopener');
+    window.focus();
+    stepIndex++;
+    updateStepBox();
+  });
+
+  stepResetBtn.addEventListener('click', function(){
+    stepIndex = 0;
+    resetBatchState();
+    updateStepBox();
+  });
+
+  // Default the date range to today when nothing has been set yet, so
+  // "產生分段連結" still works even if the user hasn't picked dates.
+  (function initDefaultDates(){
+    const todayStr = fmtDate(new Date());
+    if(!startDateInput.value){ startDateInput.value = todayStr; }
+    if(!endDateInput.value){ endDateInput.value = todayStr; }
+  })();
+})();
+</script>
+<script>
+/* ===== 檢查更新（GitHub 最新版確認與下載）=====
+   做法同「人力調查表編輯工具」：掃描 GitHub repo 根目錄的檔名，找「同名稱、版本號更大」的檔案。
+   檔名格式：名稱_v數字.html（舊版請放子資料夾，例如 archive/，只掃根目錄）。
+   本模組自成一體，執行後會把自己的 script 標籤從畫面移除（避免被「整頁拷貝式」的匯出夾帶）。 */
+(function(){
+'use strict';
+var cs=document.currentScript;
+var C={key:'報表連結分段工具',
+  ver:[function(){return document.querySelector('header h1 span').textContent}],
+  anchor:'header h1 span',
+  btnStyle:'font-family:inherit;font-size:13px;font-weight:600;color:var(--accent);background:var(--accent-soft);border:1px solid var(--line);border-radius:10px;padding:2px 9px;margin-left:8px;vertical-align:middle;cursor:pointer',
+  hint:'目前輸入的網址與設定不會帶到新版。'};
+var RAW='https://raw.githubusercontent.com/1061005ttl-lab/tool/main/',
+    API='https://api.github.com/repos/1061005ttl-lab/tool/contents/',
+    MIN=10,LK='ghu_list_v1',SK='ghu_skip_'+C.key,busy=false,tt=0;
+function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){}return null}
+function nk(t){return String(t).replace(/[\s\u3000_\-]/g,'').toLowerCase()}
+function pf(n){var m=String(n).match(/^(.+?)[v]0*(\d+)\.html?$/i);return m?{base:nk(m[1]),ver:Number(m[2])}:null}
+function cur(){var i,v,f=C.ver||[];for(i=0;i<f.length;i++){try{v=parseInt(String(f[i]()).match(/\d+/)[0],10);if(v>0)return v}catch(e){}}return 0}
+function mark(e){e.setAttribute('data-ghu','');e.setAttribute('data-html2canvas-ignore','true');return e}
+function css(){
+  if(document.getElementById('ghu-css'))return;
+  var s=mark(document.createElement('style'));s.id='ghu-css';
+  s.textContent=[
+    '.ghu-bar{position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:2147483000;display:none;align-items:center;gap:10px;flex-wrap:wrap;box-sizing:border-box;max-width:min(760px,calc(100vw - 20px));background:#fff2cc;color:#3a2e00;border:1px solid #d9a400;border-radius:10px;padding:9px 14px;box-shadow:0 6px 24px rgba(0,0,0,.28);font:13px/1.55 "Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;text-align:left}',
+    '.ghu-bar.on{display:flex}.ghu-bar .ghu-t{flex:1 1 300px}.ghu-bar .ghu-m{color:#6b5a1e;font-size:12px}',
+    '.ghu-bar button{font:inherit;cursor:pointer;color:#3a2e00;background:#fff;border:1px solid #b58a00;border-radius:6px;padding:4px 12px;margin:0}',
+    '.ghu-bar button.p{background:#b58a00;color:#fff;font-weight:600}.ghu-bar button:disabled{opacity:.6;cursor:default}',
+    '.ghu-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:2147483001;max-width:min(640px,calc(100vw - 24px));background:#222;color:#fff;border-radius:8px;padding:9px 16px;font:13px/1.5 "Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.3);opacity:0;pointer-events:none;transition:opacity .2s}',
+    '.ghu-toast.on{opacity:1}',
+    '.ghu-fab{position:fixed;right:12px;bottom:12px;z-index:2147482999;font:12px "Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;background:#fff;color:#333;border:1px solid #bbb;border-radius:14px;padding:4px 12px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18)}',
+    '@media print{[data-ghu]{display:none!important}}'
+  ].join('\n');
+  (document.head||document.documentElement).appendChild(s);
+}
+function toast(m){
+  var e=document.getElementById('ghu-toast');
+  if(!e){e=mark(document.createElement('div'));e.id='ghu-toast';e.className='ghu-toast';e.setAttribute('role','status');document.body.appendChild(e)}
+  e.textContent=m;e.classList.add('on');clearTimeout(tt);tt=setTimeout(function(){e.classList.remove('on')},4500);
+}
+async function getList(force){
+  var c=null;
+  if(!force){try{c=JSON.parse(ls(LK)||'null')}catch(e){}if(c&&Array.isArray(c.l)&&Date.now()-c.t<MIN*6e4)return c.l}
+  var ac=window.AbortController?new AbortController():null,tm=ac?setTimeout(function(){ac.abort()},6000):0;
+  var r=await fetch(API,{signal:ac?ac.signal:undefined,headers:{Accept:'application/vnd.github+json'}});clearTimeout(tm);
+  if(!r.ok){var er=new Error('http');er.status=r.status;throw er}
+  var j=await r.json();if(!Array.isArray(j))throw new Error('format');
+  var l=j.filter(function(f){return f.type==='file'}).map(function(f){return{n:f.name,u:f.html_url,d:f.download_url}});
+  ls(LK,JSON.stringify({t:Date.now(),l:l}));return l;
+}
+function showBar(best,v){
+  var u=document.getElementById('ghu-bar');
+  if(!u){u=mark(document.createElement('div'));u.id='ghu-bar';u.className='ghu-bar';u.setAttribute('role','status');document.body.appendChild(u)}
+  u.textContent='';
+  var t=document.createElement('span');t.className='ghu-t';
+  var l1=document.createElement('span'),b=document.createElement('b');
+  l1.appendChild(document.createTextNode('🔔 有新版 '));b.textContent='v'+best.ver;l1.appendChild(b);
+  l1.appendChild(document.createTextNode('（目前 v'+v+'）：'+best.n));
+  var m=document.createElement('span');m.className='ghu-m';
+  var tip='按「直接下載」會把新版存到下載資料夾，再關掉這個頁面、改開新下載的檔案即可。'+(C.hint||'');
+  m.textContent=tip;
+  t.appendChild(l1);t.appendChild(document.createElement('br'));t.appendChild(m);u.appendChild(t);
+  function mk(txt,cls,fn){var x=document.createElement('button');x.type='button';x.textContent=txt;if(cls)x.className=cls;x.onclick=fn;u.appendChild(x);return x}
+  mk('直接下載','p',async function(e){
+    var g=e.currentTarget;
+    try{
+      g.disabled=true;g.textContent='下載中…';
+      var r=await fetch(best.d||(RAW+encodeURIComponent(best.n)),{cache:'no-store'});if(!r.ok)throw new Error(r.status);
+      var bl=new Blob([await r.blob()],{type:'text/html'}),a=document.createElement('a');
+      a.href=URL.createObjectURL(bl);a.download=best.n;document.body.appendChild(a);a.click();a.remove();
+      setTimeout(function(){URL.revokeObjectURL(a.href)},4000);
+      g.textContent='已下載 ✓';m.textContent='已存到下載資料夾：'+best.n+'。請關掉這個頁面，改開新下載的檔案。'+(C.hint||'');
+    }catch(err){g.disabled=false;g.textContent='重試';m.textContent='下載失敗（可能是網路不穩，或公司網路擋住 GitHub），請稍後按「重試」。'}
+  });
+  mk('略過此版','',function(){ls(SK,String(best.ver));u.classList.remove('on')});
+  mk('稍後再說','',function(){u.classList.remove('on')});
+  u.classList.add('on');
+}
+async function check(force){
+  if(busy){if(force)toast('查詢中，請稍候⋯');return}
+  try{if(C.skip&&C.skip()){if(force)toast('靜態副本不檢查更新');return}}catch(e){}
+  if(!window.fetch){if(force)toast('這個瀏覽器不支援檢查更新');return}
+  var v=cur();if(!v){if(force)toast('讀不到目前的版本號，無法檢查更新');return}
+  busy=true;if(force)toast('查詢中⋯');
+  try{
+    var list=await getList(force),best={ver:0},base=nk(C.key);
+    list.forEach(function(f){var p=pf(f.n);if(p&&p.base===base&&p.ver>best.ver)best={ver:p.ver,n:f.n,u:f.u,d:f.d}});
+    if(!best.ver){if(force)toast('GitHub 根目錄找不到「'+C.key+'」的檔案（檔名需為 名稱_v數字.html，且不能放在子資料夾）');return}
+    if(best.ver<=v){if(force)toast(best.ver===v?'目前已是最新版 v'+v:'目前 v'+v+' 比 GitHub 上的 v'+best.ver+' 還新（可能還沒上傳）');return}
+    if(!force&&(Number(ls(SK))||0)>=best.ver)return;
+    showBar(best,v);
+  }catch(e){
+    if(force)toast(e&&e.status?'查詢失敗（'+e.status+'），可能是查詢次數用完，請稍後再試':'查不到更新（可能離線，或公司網路擋住 GitHub）');
+  }finally{busy=false}
+}
+function ensureBtn(){
+  var b=document.getElementById('ghu-btn');if(b&&b.isConnected)return;
+  b=mark(document.createElement('button'));b.type='button';b.id='ghu-btn';b.textContent='檢查更新';
+  b.title='立即到 GitHub 查有沒有新版';b.onclick=function(){check(true)};
+  var a=C.anchor?document.querySelector(C.anchor):null;
+  if(a&&a.parentNode){if(C.cls)b.className=C.cls;if(C.btnStyle)b.style.cssText=C.btnStyle;a.insertAdjacentElement('afterend',b)}
+  else{b.className='ghu-fab';document.body.appendChild(b)}
+}
+/* 供「整頁拷貝式」匯出使用：暫時拿掉本模組加進畫面的元素，回傳的函式負責放回去 */
+window.__ghuSuspend=function(){
+  var s=[];[].slice.call(document.querySelectorAll('[data-ghu]')).forEach(function(e){if(e.parentNode){s.push([e,e.parentNode,e.nextSibling]);e.parentNode.removeChild(e)}});
+  return function(){for(var i=s.length-1;i>=0;i--){try{s[i][1].insertBefore(s[i][0],s[i][2])}catch(e){}}};
+};
+css();ensureBtn();
+function go(){ensureBtn();setTimeout(function(){check(false)},1500)}
+if(document.readyState==='complete')go();else window.addEventListener('load',go);
+if(cs&&cs.parentNode)cs.parentNode.removeChild(cs);
+})();
+</script>
+
+</body>
+</html>
