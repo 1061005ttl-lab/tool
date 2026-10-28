@@ -20,7 +20,7 @@ V78 四小時備查新增處所：店名含營業處／營業所／商化所者�
 V79 處所判定改「臨時優先」：店名含「臨時」者（客戶檔有「台中營業處-臨時點」「臨時點-臺南營業處」這類名稱）視為臨時點，不算處所，逾四小時仍列異常；說明書、報表附表、判定標準同步；與督導管理系統 v410 對齊
 V80 備查項統一稱「四小時備查」：畫面卡片、按鈕、說明書、報表附表、Excel 分頁、匯出檔名標記同步（群組仍叫「備查（非異常）」）；與督導管理系統 v411 對齊
 V81 營業所/課 查無者統一歸「其他」（原「處本部」）：ofc() 與匯出報表分組三處、說明書、判定標準同步；與督導管理系統 v416 對齊
-V83 新增「GitHub 檢查更新」（比照人力調查表編輯工具）：開啟時自動到 GitHub（1061005ttl-lab/tool）檢查有無新版，頂端顯示更新提示條，可「直接下載」「略過此版」「稍後再說」；說明書旁新增「檢查更新」按鈕（畫面用字從簡；「GitHub 檢查更新」是程式碼內部的統一名稱）可立即重查；提示條與按鈕不會被📸截圖拍進去（data-shot-skip）；查不到（離線、被擋）時靜默略過，不影響使用；功能與判定規則不變
+V83 新增「GitHub 檢查更新」（比照人力調查表編輯工具）：開啟時自動到 GitHub（1061005ttl-lab/tool）檢查有無新版，頂端顯示更新提示條，可「直接下載」「略過此版」「稍後再說」；說明書旁新增「檢查更新」按鈕（畫面用字從簡；「GitHub 檢查更新」是程式碼內部的統一名稱）可立即重查；更新提示條與按鈕不會被📸截圖拍進去（data-shot-skip）；查不到（離線、被擋）時靜默略過，不影響使用；功能與判定規則不變
 V82 處所判定改為「店家型態屬其他類別」且店名含營業處／營業所／商化所（臨時優先不變）：不足一分、衛星訊號異常（10/12 前的店名排除）、同店連打、四小時備查四處同步；說明書、報表附表、判定標準同步；與督導管理系統 isOfficeLikeName 對齊
 -->
 <!DOCTYPE html>
@@ -55,11 +55,11 @@ V82 處所判定改為「店家型態屬其他類別」且店名含營業處／�
   需連網載入 cdnjs：SheetJS 0.18.5、JSZip 3.10.1（多份 ZIP 才需要）、html2canvas 1.4.1（截圖）。
 【內建說明書】標題右側「📖 說明書」，<details> 摺疊式純靜態文字，JS 在 </body> 前獨立 <script>；共十五節（第十四節匯出、第十五節畫面操作）。⚠️ 要和 analyze()、applyMin()、ofc() 同步，改規則時一起改。使用者明定：說明書面向一般使用者，不放版本字樣（Vxx）、函式名稱、網址參數等開發者內容，也不放「對回工作管理整筆排除」的技術說明；這些只寫在本開發紀錄。
 【GitHub 檢查更新】（V83；與「人力調查表編輯工具」「全聯18天銷售分析工具」同一套做法，三個工具統一稱「GitHub 檢查更新」（僅用於程式碼說明、版本紀錄；畫面上的按鈕一律用較短的「檢查更新」）；不要叫「線上更新」「自動更新」——它只負責偵測並讓使用者下載，不會原地替換）
-  做法：開啟時 checkUpdate() 讀 GitHub API（api.github.com/repos/1061005ttl-lab/tool/contents/）列出 repo「根目錄」的檔名，找「名稱相同、版本號更大」的 .html；有的話顯示 #upd 提示條（直接下載／略過此版／稍後再說）。「直接下載」用 download_url 抓檔再以 <a download> 存到下載資料夾，失敗時按鈕變「重試」。說明書旁 #ubtn「檢查更新」＝checkUpdate(true)：不看暫存，並用 alert 明確告知（已是最新版／有新版／查詢失敗）。
+  做法：開啟時 checkUpdate() 讀 GitHub API（api.github.com/repos/1061005ttl-lab/tool/contents/）列出 repo「根目錄」的檔名，找「名稱相同、版本號更大」的 .html；有的話顯示 #upd 更新提示條（直接下載／略過此版／稍後再說）。「直接下載」用 download_url 抓檔再以 <a download> 存到下載資料夾，失敗時按鈕變「重試」。說明書旁 #ubtn「檢查更新」＝checkUpdate(true)：不看暫存，並用 alert 明確告知（已是最新版／有新版／查詢失敗）。
   檔名規則：名稱_v數字.html（v 大小寫皆可、底線可有可無、版本號可補 0，例 打卡異常檢核工具_v83.html）。舊版必須搬進子資料夾（例 archive/），只掃根目錄。
   比對用的兩個值：① UPD.key＝'打卡異常檢核工具'，必須與檔名前綴相同（比對時去掉空白、底線、連字號並轉小寫）；工具改名時 UPD.key 一定要跟著改，否則永遠找不到新版。② 目前版本＝VERN（const VER='V83' 去掉非數字），所以改版號只要改 ④ const VER 即可，不用另外改這裡。
   行為細節：自動檢查結果存 localStorage（cx_upd_cache）10 分鐘（UPD.min），期間不重查；按「GitHub 檢查更新」一律重查。「略過此版」存 cx_skip，之後只對更高的版本再提示；手動檢查不受略過影響。6 秒逾時；離線、被公司網路擋、查詢次數用完（匿名 API 每 IP 每小時約 60 次，會回 403）時，自動檢查靜默略過，手動檢查才提示。三個工具的 localStorage key 各自獨立（人力調查表 hc_upd_cache／hc_skip、全聯 ghu_list_v1／ghu_skip_…），本工具用 cx_ 開頭。
-  提示文字：本工具的資料每次都要重新匯入，沒有「舊資料看不到」的問題，所以提示條沒有備份提醒；人力調查表、全聯有，因為它們的資料存在瀏覽器裡。
+  提示文字：本工具的資料不存在瀏覽器裡、每次都要重新匯入，所以更新提示條只提醒「新版不會保留目前載入的資料，需重新匯入檔案」，沒有備份提醒；人力調查表、全聯的資料存在瀏覽器裡，所以提醒的是先備份再還原。
   踩過的坑／注意：#upd 與 #ubtn 都加了 data-shot-skip，📸 截圖（html2canvas ignoreElements）不會拍到；列印時以 @media print 隱藏。檔案是本機開啟的 HTML，外部網址只允許 cdnjs 之外再加 GitHub（api.github.com、raw.githubusercontent.com）；公司網路若擋 GitHub，功能就靜默失效，不影響其他功能。要原地替換（不經下載）目前做不到，需改用 File System Access API 或把工具放到網頁主機，見 AI 對話討論，未實作。
 【踩過的坑】
   - 打卡異常「執行人員」可能帶開頭星號（*名-員編），對回工作規劃是用整串名稱當鍵，必須先去掉開頭的 * 才對得上（V71；V72 改為全部人員欄位共用 cs()）。
@@ -1258,13 +1258,13 @@ async function checkUpdate(force){
   let sk=0;try{sk=Number(localStorage.getItem('cx_skip'))||0}catch(e){}
   if(!force&&sk>=nv){done();return}
   const u=$('upd');
-  u.innerHTML=`<span class="t">🔔 有新版 <b>V${nv}</b>（目前 ${VER}）：${esc(best.name||'')}<br><span id="updMsg" class="mu">按「直接下載」會把新版存到下載資料夾，再改開新下載的檔案即可。本工具的資料每次都要重新匯入，不會有舊資料遺失的問題。</span></span><button class="p" id="updGo">直接下載</button><button id="updSkip">略過此版</button><button id="updLater">稍後再說</button>`;
+  u.innerHTML=`<span class="t">🔔 有新版 <b>V${nv}</b>（目前 ${VER}）：${esc(best.name||'')}<br><span id="updMsg" class="mu">按「直接下載」會把新版存到下載資料夾，再關掉這個頁面、改開新下載的檔案即可。新版不會保留目前載入的資料，需重新匯入檔案。</span></span><button class="p" id="updGo">直接下載</button><button id="updSkip">略過此版</button><button id="updLater">稍後再說</button>`;
   u.classList.add('on');done();
   $('updGo').onclick=async e=>{const b=e.currentTarget,m=$('updMsg');
    try{b.disabled=true;b.textContent='下載中…';
     const r=await fetch(best.dl||(UPD.raw+encodeURIComponent(best.name)),{cache:'no-store'});if(!r.ok)throw new Error(r.status);
     const bl=new Blob([await r.blob()],{type:'text/html'}),a=document.createElement('a');a.href=URL.createObjectURL(bl);a.download=best.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
-    b.textContent='已下載 ✓';m.textContent='已存到下載資料夾：'+best.name+'。請關掉這個頁面，改開新下載的檔案。'}
+    b.textContent='已下載 ✓';m.textContent='已存到下載資料夾：'+best.name+'。請關掉這個頁面，改開新下載的檔案。新版不會保留目前載入的資料，需重新匯入檔案。'}
    catch(err){b.disabled=false;b.textContent='重試';m.textContent='下載失敗（可能是網路不穩，或公司網路擋住 GitHub），請稍後按「重試」。'}};
   $('updSkip').onclick=()=>{try{localStorage.setItem('cx_skip',String(nv))}catch(e){}u.classList.remove('on')};
   $('updLater').onclick=()=>u.classList.remove('on');

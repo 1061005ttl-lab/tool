@@ -640,7 +640,7 @@ async function exportAs(kind){
     toast(note+(cut?'已將單位名稱中的「營業所」簡化為「所」。':'')+'已送出下載')
   }catch(e){if(e&&e.code==='declined')toast('已取消下載');else{console.error(e);toast('匯出失敗：'+(e.message||e))}}finally{S=real}}
 
-/* ---------- 檢查更新：掃描 GitHub repo 根目錄的檔名，找同名稱、版本號更大的檔案 ----------
+/* ---------- GitHub 檢查更新（畫面上的按鈕叫「檢查更新」）：掃描 GitHub repo 根目錄的檔名，找同名稱、版本號更大的檔案 ----------
    檔名格式容許：名稱_v8.html／名稱_V05.html／名稱V34.html（v 大小寫皆可、底線可有可無、版本號可補 0）
    舊版請搬進子資料夾（例如 archive/），只掃描根目錄。 */
 const UPD={raw:'https://raw.githubusercontent.com/1061005ttl-lab/tool/main/',api:'https://api.github.com/repos/1061005ttl-lab/tool/contents/',page:'https://github.com/1061005ttl-lab/tool',key:'人力調查表編輯工具',min:10};
