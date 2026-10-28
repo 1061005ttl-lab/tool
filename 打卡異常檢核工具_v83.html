@@ -1,0 +1,1273 @@
+<!--
+版本紀錄（只記在這裡，不放在網頁畫面上；改版時在最下面加一行，並同步更新六處版號，見下方開發紀錄「改版必做」。V69 起改為濃縮版，細節以程式與開發紀錄為準）
+V01-V08 初版與基礎規則：三類異常（時間性／衛星訊號／空間性）、套用儀表板排除規則（總公司、員編後綴、以工作規劃區間為準）、營業所/課補查（查無歸「處本部」）、拖曳／選資料夾上傳（各欄獨立、可累加、可移除）、門檻改公里、畫面人員只顯示姓名且營業所去「營業所」字尾（匯出保留完整）、營業處固定順序
+V09-V16 匯出與上傳：Excel 多分頁（原始資料各自獨立分頁，以序號對回）、匯出報表（PDF／靜態 HTML × 整份／一處／一所／一人 × 處→所→人對象樹，多份打包 ZIP）、可自選異常樣態、檔案放錯欄依表頭自動歸位、缺資料／區間不符提醒
+V17-V22 統計口徑與督導管理系統 v286 統一：欄序「樣態合計｜打卡筆數｜異常打卡筆數｜異常打卡率」；各樣態「≤ N 筆排除」輸入格（原稱容忍）
+V23-V34 內建說明書（📖）；PDF 引擎改 Canvas 直接畫頁（灰階索引 PNG＋隱形文字層，不需連網，解析度固定 1.4 倍）；V32 打卡異常⇄工作管理對應（離站＝工作完成日期、到站＝打卡時間，±1 秒，對不上整筆排除）；V34 刪除報表舊「判定說明」
+V35-V43 匯出報表強化：逐筆明細加離站時間、KPI 小卡顯示「≤ N 筆排除」、逐筆明細以營業處換頁、人員彙總獨立頁與小計／總計、附表「異常樣態判定標準」（取代舊判定說明）、畫面改米黃淺色系（移除深色模式）、衛星訊號異常店名排除依日期（SAT_CUT）、新增「四小時備查」（量販／即飲通路逾四小時，非異常）
+V44-V58 主畫面：全寬、截圖、四小時備查排除值、各樣態排除值預設（V46；人員樣態合計排除已刪）、店家排行、返回鈕、工具列分群組、原始資料檢視、業務員篩選、KPI 卡片區改版；對象樹納入只有四小時備查的人員（V49）
+V59-V68 精簡與整合：頂部版面精簡、逐筆明細補離站欄、離站／打卡時間全面檢核（V56／V62 修正）、PDF 店碼欄加寬、Excel 併入匯出對話框且預設只出 4 個結果分頁（V64／V65）、匯出對話框樣態分組與步驟編號、上傳區改暖色古銅金質感風（V68）
+V69 整理版（功能與畫面不變）：清除被後面規則覆蓋的 CSS 宣告 130 條、整條規則 36 條（含 5 條無對應元素的選擇器），合併兩個連續的 <style>，刪除未被呼叫的 tolNote()／xPlanArgs()／SL，精簡 JS 內長註解與本區、開發紀錄
+V70 內建說明書修訂（只改說明書文字，判定與功能不變）：補第六節定位偏移的室內點／室外點排除、標題與店家排行（補業務員篩選）、Excel 原始分頁（需勾選）與程式對齊；拿掉說明書內的版本字樣與開發者用語；新增第十四節（匯出怎麼用，含附表）與第十五節（業務員篩選、返回、截圖）
+V71 人員名稱對齊：打卡異常報表的「執行人員」有時開頭帶星號（例：*黃思涵-1151485），工作規劃沒有，導致對不回工作規劃而被整筆排除（九月資料漏 3 筆定位偏移）；讀入時兩邊的人員名稱一律先去掉開頭的「*」「＊」與空白，其餘判定不變
+V72 星號規則統一：「*」「＊」是系統事後追加，只要是人員欄位（工作規劃業務員、打卡異常執行人員、客戶資料／人員對照檔、原始資料檢視、打卡異常去重鍵）一律無視，視為「*黃思涵-1151485」＝「黃思涵-1151485」；共用函式 cs()，不再只處理開頭
+V73 修正匯出對話框在 PDF 格式卡住：V69 整理時誤刪 xPlanArgs()，但統計列 xSum() 在選 PDF 時仍呼叫它而報錯，造成「確認」統計不更新、匯出鈕停在停用（匯出完也卡住），改選別的格式再切回來才暫時恢復；改為以 xData()＋planPages() 預估頁數，並加 try/catch，預估失敗也不會卡住按鈕
+V74 匯出檔名智能化：檔名依匯出對話框當下的選項組成——對象（只選一人＝處_所_人；整個營業所＝處_所；整個營業處＝處；多處全選＝北部+高雄；全部＝整份；只選部分則加「N人」）、異常樣態（≤3 種列名稱以＋連接，>3 種寫「N類」，全選省略）、不含四小時備查／含原始資料分頁（Excel）、資料區間；多份打包的 ZIP 檔名同樣帶對象、樣態與區間，Excel 的 ZIP 用「明細」
+V75 ZIP 檔名不再帶「整份／一處一份／一所一份／一人一份」字樣，只寫工具版本、格式、對象、樣態與區間（使用者只要看得出這包有什麼內容）
+V76 匯出檔名結尾加「匯出YYYYMMDD_HHMM」（本機時間）：每次按匯出只取一次時間，同一批多份檔與 ZIP 共用同一個時間；時間接在 150 字截斷之後，不會被截掉
+V77 匯出時間格式改為純數字 YYMMDDhhmm（不帶「匯出」字樣，例：2610141530）
+V78 四小時備查新增處所：店名含營業處／營業所／商化所者（不看通路別），逾四小時與量販／即飲通路一樣改列備查、不列異常；說明書、報表附表、判定標準同步；與督導管理系統 v409 對齊
+V79 處所判定改「臨時優先」：店名含「臨時」者（客戶檔有「台中營業處-臨時點」「臨時點-臺南營業處」這類名稱）視為臨時點，不算處所，逾四小時仍列異常；說明書、報表附表、判定標準同步；與督導管理系統 v410 對齊
+V80 備查項統一稱「四小時備查」：畫面卡片、按鈕、說明書、報表附表、Excel 分頁、匯出檔名標記同步（群組仍叫「備查（非異常）」）；與督導管理系統 v411 對齊
+V81 營業所/課 查無者統一歸「其他」（原「處本部」）：ofc() 與匯出報表分組三處、說明書、判定標準同步；與督導管理系統 v416 對齊
+V83 開啟時自動到 GitHub（1061005ttl-lab/tool）檢查有無新版（比照人力調查表編輯工具）：頂端顯示更新提示條，可「直接下載」「略過此版」「稍後再說」；說明書旁新增「檢查更新」按鈕可立即重查；查不到（離線、被擋）時靜默略過，不影響使用；功能與判定規則不變
+V82 處所判定改為「店家型態屬其他類別」且店名含營業處／營業所／商化所（臨時優先不變）：不足一分、衛星訊號異常（10/12 前的店名排除）、同店連打、四小時備查四處同步；說明書、報表附表、判定標準同步；與督導管理系統 isOfficeLikeName 對齊
+-->
+<!DOCTYPE html>
+<!--
+================================================================
+打卡異常檢核工具｜開發紀錄（給後續 AI 助手／維護者先讀這一段）
+現行版本：V83（2026-10-28；V83：開啟時自動到 GitHub 檢查新版，頂端更新提示條＋「檢查更新」按鈕，做法同人力調查表編輯工具，檔名須為「打卡異常檢核工具_vNN.html」且放在 repo 根目錄；V82：處所判定要求店家型態屬「其他類別」（不在 CVS／連鎖超市／傳統通路／量販／即飲型態清單內）且店名含營業處／營業所／商化所，與督導管理系統 isOfficeLikeName 同口徑，新增 OTH_TY／isOth／orgT，套用於不足一分、衛星異常（10/12 前）、同店連打、四小時備查；V81：營業所/課查無者改歸「其他」（原歸「處本部」），與督導管理系統 v416 同口徑；V80：備查項統一稱「四小時備查」（畫面、說明書、報表、Excel 分頁同步）；V79：處所判定改臨時優先（店名含「臨時」者不算處所，逾四小時仍列異常）；V78：四小時備查新增處所（店名含營業處／營業所／商化所，逾四小時不列異常）；V77：匯出時間改成純 YYMMDDhhmm；V76：匯出檔名結尾加匯出時間；V75：ZIP 檔名拿掉「一處一份」等份數字樣；V74：匯出檔名隨對話框選項智能命名；V73：修正匯出對話框選 PDF 時統計／匯出鈕卡住（xSum 誤呼叫已刪的 xPlanArgs）；V72：所有人員欄位一律無視 * 號）
+改版必做：六處版號一起改——①檔名 ②<title> ③畫面 h1 的 #ver ④程式 const VER（匯出檔名用）⑤檔案最上方的「版本紀錄」註解（只記在那裡，不放在網頁畫面上）⑥本註解。使用者很在意版號，不要漏。
+================================================================
+【用途】督導／營業處檢核業務員（訪員）打卡異常。單檔 HTML、純前端、檔案只在瀏覽器內算、不上傳。異常分類與「督導管理系統_執行追蹤儀表板」保持一致；要改規則先對照該儀表板的 classifyCheckinAnomaly／classifyOverlap／isExcludedFromAbnormalAudit／GPS 偏移稽核。
+【輸入】三欄，各自可拖曳／選檔／選資料夾、可分次累加、可移除，頁面任何位置也可丟檔（SF＝檔案、RC＝解析快取；欄名用表頭偵測，不靠分頁名）。addFiles 依表頭判斷類型，放錯欄會自動歸位；判斷順序必須 f1→f2→f3（打卡異常報表也有「營業所/課」「執行人員」，不先判 f2 會被誤當客戶資料）；辨識不出者不採用並列出表頭（NEED／pickRows）。
+  ① 工作規劃＝「工作管理／工作列表」匯出（.csv／.xlsx）。欄：營業處、業務員(名-員編)、店家代碼、店家名稱、打卡時間、工作完成日期、是否衛星訊號異常、任務狀態、APP讀取狀態、工作ID（另可有「通路」開頭欄、含「型態」欄）。多分頁取「欄位吻合且列數最多」者。
+  ② 打卡異常＝系統「打卡異常」報表。欄：日期、類型(到站打卡/離站打卡)、打卡時間(★只有時分秒，要與「日期」合併)、店家、營業處、營業所/課、執行人員、錯誤距離(★單位固定公里，例 0.55公里)、客戶地址(目的地)、打卡地址(GPS)(含前導空白的「緯度 , 經度」)。
+  ③ 選填 營業所/課 對照：「使用者」檔（欄 人員名稱）或「客戶資料／客戶管理」檔（欄 執行人員），合併成同一欄、自動判別；客戶資料同一人多個所時取筆數最多者。
+【使用者明定的規則（不可擅改）】
+  1 永遠排除總公司（營業處含「總公司」）；另排除 APP 未讀、無店碼、無到站打卡時間、任務狀態非「完成」。2 只看「業務員」後綴為 -純數字(員編) 者（共用帳號、主任督導專用等皆排除）。3 資料以「工作規劃」時間為本體：打卡異常只取工作規劃日期區間內的列。4 營業所/課優先序：打卡異常檔自帶 → 使用者 → 客戶資料；都沒有或為空 → 「其他」。
+  5 店名含 營業處／營業所／商化所／臨時 者：不算「不足一分」；同店連打另排除臨時點與處所店名；衛星訊號異常的店名排除依日期（打卡日期早於 SAT_CUT＝2026-10-12 才排除這四類店名，當日起不排除；改 SAT_CUT 時說明書第五節與附表要同步）。
+  6 【V32 打卡異常⇄工作管理對應，很重要】打卡異常「離站打卡」的打卡時間＝工作管理「工作完成日期」；「到站打卡」的打卡時間＝工作管理「打卡時間」。以「執行人員＋對應時間（容許 ±1 秒）」回工作管理取店碼（acode()），店名只在同人±1 秒內有多筆時優先挑同名（等級後綴會變，不強制相同）。對不上＝該店沒有到站打卡 → 這筆打卡異常整筆排除（nAx，畫面統計列顯示筆數）。
+  7 【四小時備查】量販通路／即飲通路、以及店名含營業處／營業所／商化所者（V78 新增，不看通路別）的「逾四小時」不列異常，改列「四小時備查」；店名含「臨時」者一律視為臨時點、不算處所（客戶檔有「台中營業處-臨時點」「臨時點-臺南營業處」這類名稱），逾四小時仍列異常（refChan(o,c,n)：先看工作規劃「通路」開頭欄含「量販」或「即飲」；欄不存在或空白時退回店家型態比對；最後看店名 org() 且 !tmp()）。四小時備查不計入樣態合計／異常打卡筆數／異常率／分母，獨立於「逾四小時」勾選（報表不隨逾四小時連動），有自己的「≤ N 筆排除」。
+  8 各樣態「≤ N 筆排除」預設（const TOL）：不足一分10、逾四小時5、時間重疊10、隔三小時5、同店連打10、定位偏移10、臨時點異地離站5、四小時備查5，衛星訊號異常 0；人員該樣態筆數 ≤ N 就不顯示（畫面／Excel／報表一致；被隱藏筆數不計入異常打卡筆數，但打卡筆數分母不變）。⚠️「人員樣態合計 ≤ N 筆排除」已整個刪除，不要加回。門檻預設：定位偏移 0.5 公里、臨時點異地離站 0.4 公里。
+  9 整個畫面為米黃淺色系（投影用），不做深色模式；報表本身白底。匯出報表最下方不放舊的「判定說明」，只放白話附表（xMan()）。資料不能被蓋牌：只有四小時備查、沒有異常的人員也要在對象樹出現（xBuild 的 XS.ref）。
+【異常判定】analyze()：同日、同業務員、依打卡時間排序；間距類標在「後筆」。衛星訊號異常＝工作規劃欄為「是」｜不足一分＝0<停留<1 分鐘｜逾四小時＝停留≥4 小時（量販／即飲通路、營業處／營業所／商化所（店名含臨時者除外）改進備查）。間距＝後筆打卡－前筆完成；優先序：同店且間距<0＝同店誤建（非異常、不顯示不匯出，僅內部佔位）→ 跨店且間距<0＝時間重疊 → 間距≥3 小時＝隔三小時 → 同店且間距≥0＝同店連打。
+  空間性兩種不同情形：· 定位偏移＝一般店家，直接用打卡異常報表的「錯誤距離」≥門檻；排除臨時點（無登記地址）與店家型態為「室內點／室外點」者（型態取自工作規劃含「型態」的欄、依店碼對回，無型態資料時不排除）。· 臨時點異地離站＝僅限店名含「臨時」，同一人到站 GPS 與離站 GPS（haversine）相距≥門檻。
+【畫面】工具列依功能分三群組（篩選 .tf｜檢視 .tv｜輸出 .to）：篩選＝營業處／營業所／業務員（#sp，datalist，選項隨營業處／所連動）／搜尋；檢視＝m1 人員彙總、m2 逐筆明細、m4 店家排行（storeAgg，以店碼彙總）、m3 四小時備查、m5 原始資料（audList()：把原始列對回判定結果，供複驗）；輸出＝匯出、📸 截圖（shot()，html2canvas 擷取 main）。KPI 卡片分組（時間性／衛星訊號／空間性／備查（非異常）；最後一組內的卡片叫「四小時備查」），卡內有「≤ N 筆排除」輸入格。
+  從人員彙總／店家排行點進逐筆明細時用 drill(q) 並記錄 NAV，工具列出現「← 返回」#bk（Esc 同效）；m1～m4、備查卡、搜尋框會清掉 NAV。⚠️ m1～m4 的 className 由 modeUi() 整個覆寫成 on／空字串，不要在這些按鈕上加其他 class，樣式掛在群組選擇器上。
+  ⚠️主畫面（會被截圖的區域）的 CSS 不可用 color-mix()／color() 等 html2canvas 1.4.1 不支援的色彩函式，一律固定色或單色 var(--c)（匯出對話框內因截圖時隱藏，不受限）。
+  顯示規則：只有「畫面」的人員顯示姓名（nm() 去掉 -員編）、營業所/課去「營業所」字尾（ofs()）；匯出一律保留完整員編與「營業所」（使用者明定）。營業處依 BORD 排序（北部、桃處、臺中、嘉義、臺南、高雄、花蓮，台／臺視為同字）；只有單一營業處／營業所時隱藏篩選器；重算時保留原本選擇。
+【匯出】按鈕「匯出」→ 對話框，格式＝PDF／靜態 HTML／Excel；①格式 ②份數（整份／一處／一所／一人一份，多份打包 ZIP）③人員彙總排序（選填，xSumCmp）④異常樣態（預設帶入主畫面已選 KPI，沒選＝全選；含四小時備查勾選）⑤對象樹（處→所→人，葉＝(營業處,營業所,人員)；不受畫面篩選影響，用全部 res）⑥統計列與「匯出」。篩完沒有筆數的人員不產生報告。
+  報表：人員彙總自成頁（預設排序下加所小計／處小計／總計；單一營業處時以營業處為一級，不加處小計），逐筆明細以營業處為單位換頁（planPages 的 grp＝xGrp(rows)，跨頁標「（k/m）」「（續 k/m）」），多營業處時各處明細第一頁加該處人員彙總；四小時備查在附表前；最後一頁為白話附表「異常樣態判定標準」（xMan()，判定規則改動時要與 analyze() 和說明書同步；xSatEx() 依資料區間寫衛星訊號的店名排除）。KPI 小卡第三行顯示「≤ N 筆排除」。資料列由 xBuild／xData 產生（舊的 xPlanArgs 從未被呼叫，V69 已刪）。
+  PDF＝planPages() 依固定列高（XP；彙總列 22、明細列 28，說明／店家欄限 2 行）分頁，xDraw 以 Canvas 畫每頁（1122×794）→16 階灰階索引 PNG→自組 PDF＋隱形文字層；不用 html2canvas／jsPDF，不需連網；XQ.scale 固定 1.4（調高檔案暴增，使用者反映過太大）；預估 >150 頁會先問。改版面時 xDraw 欄寬／列高要和 XP 一起改；靜態 HTML 另用 RCSS（樣式全包在 .rp 底下，避免被畫面全域 th/td 污染），兩邊各自維護。
+  Excel：預設 4 個結果分頁（人員彙總（第一頁）／異常明細／店家排行／四小時備查）；勾「含原始資料」才加 5 個原始查詢分頁（以序號對回明細）；啟用壓縮。
+  需連網載入 cdnjs：SheetJS 0.18.5、JSZip 3.10.1（多份 ZIP 才需要）、html2canvas 1.4.1（截圖）。
+【內建說明書】標題右側「📖 說明書」，<details> 摺疊式純靜態文字，JS 在 </body> 前獨立 <script>；共十五節（第十四節匯出、第十五節畫面操作）。⚠️ 要和 analyze()、applyMin()、ofc() 同步，改規則時一起改。使用者明定：說明書面向一般使用者，不放版本字樣（Vxx）、函式名稱、網址參數等開發者內容，也不放「對回工作管理整筆排除」的技術說明；這些只寫在本開發紀錄。
+【踩過的坑】
+  - 打卡異常「執行人員」可能帶開頭星號（*名-員編），對回工作規劃是用整串名稱當鍵，必須先去掉開頭的 * 才對得上（V71；V72 改為全部人員欄位共用 cs()）。
+  - 打卡異常「打卡時間」只有時分秒 → tms2() 以「日期」補齊；Excel 序號用 (n-25569)*86400 當「牆上時間 UTC」，全程 UTC 方法取值，避免時區位移。
+  - CSV 以 UTF-8 解碼（TextDecoder）。xlsx 用 SheetJS dense 模式；27MB 檔可讀但慢。
+  - 拖曳檔案：檔案用 getAsFile()、只有資料夾才用 webkitGetAsEntry 展開，且 DataTransfer 必須在第一個 await 之前同步取完（否則 EncodingError 被靜默吞掉）。
+  - 這是「本機開啟的 HTML 檔」，不要改成線上發布頁（發布頁內的下載連結不能用，匯出會失效）；外部程式庫只允許 cdnjs。沒有地圖（Leaflet 載不進來），地圖欄位用 Google 地圖外連。
+  - 定位偏移／臨時點異地離站列的「打卡時間」要用對回的工作管理列的到站打卡時間，不可直接取打卡異常報表的時間（離站類型的列＝工作完成日期）。
+  - 清 CSS 時只掃 </head> 之前的 <style>：匯出報表的 RCSS 是 JS 範本字串裡的另一份樣式，不可併入判斷。
+【驗證方式】用 node＋xlsx 套件載入真實檔跑 analyze()（DOM 以 stub 取代）：九月資料約 5.2 千筆異常、無非員編後綴、無總公司。改 CSS 時可用 headless Chromium 對照改前改後的 computed style 與位置。
+【未決／可做】定位偏移改「每店每天只算一次」？空間性拆成兩個頁籤？營業所/課 查無者（約 78 筆，V81 起歸「其他」）是否要補名單？衛星訊號異常的 SAT_CUT 日期切點（儀表板沒有）是否要對齊？
+================================================================
+-->
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>打卡異常檢核工具 V83</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+:root{color-scheme:light;--bg:#f5edd8;--card:#fffaec;--tx:#3d3325;--mu:#7c6e58;--bd:#e0d3b4;--ac:#8f5f14;--hd:#efe4c8;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.5 "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
+main{margin:0 auto;}h1{font-size:1.25rem;margin:0 0 4px}.mu{color:var(--mu);font-size:.8rem}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;}
+.up{display:grid;}
+.up label{font-weight:600;}.up input{width:100%}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+input,select,button{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:5px 8px}
+button{cursor:pointer}button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+input[type=number]{width:80px}
+.kg{display:flex;}.kpis{display:flex;}
+.kpi{border-left-width:5px;cursor:pointer;}
+.kpi b{font-size:1.1rem}.kpi input.tl::placeholder{color:var(--mu);opacity:.5}.kpi span{font-size:.75rem;color:var(--mu)}
+.tw{overflow-x:auto;}table{border-collapse:collapse;width:100%;font-size:.82rem}
+th,td{border-bottom:1px solid var(--bd);padding:5px 8px;text-align:left;white-space:nowrap}th{background:var(--hd);position:sticky;top:0}
+td.n{text-align:right}tr.cl{cursor:pointer}.tag{color:#fff;border-radius:10px;padding:1px 8px;font-size:.75rem}
+a{color:var(--ac)}.drop{border-radius:8px;color:var(--mu)}.dz.over .drop{border-color:var(--ac);}.fl div{display:flex;gap:6px}.fl a{cursor:pointer;color:#dc2626}details{margin:6px 0}
+.mask{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;display:flex;align-items:center;justify-content:center;padding:16px}
+.dlg{background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:12px;padding:14px 16px;width:min(780px,100%);max-height:92vh;overflow:auto}
+.dlg h2{margin:0 0 6px;font-size:1.05rem}.xr{flex-wrap:wrap;margin:8px 0}.xr>b{min-width:64px}.xr label{cursor:pointer}
+.xt{border:1px solid var(--bd);overflow:auto;}
+.xn{display:flex;align-items:center;gap:4px;white-space:nowrap}
+.xn .tg{width:16px;text-align:center;cursor:pointer;user-select:none;color:var(--mu)}.xn label{cursor:pointer;display:flex;gap:4px;align-items:center}
+dialog.dl{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);margin:0;border:1px solid var(--bd);border-radius:12px;padding:16px 18px;width:min(420px,90vw);max-height:80vh;background:var(--card);color:var(--tx);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+dialog.dl::backdrop{background:rgba(0,0,0,.55)}dialog.dl h2{margin:0 0 8px;font-size:1rem}.dl .dh{color:var(--mu);font-size:.78rem;margin-bottom:10px}
+.dl .dq{display:flex;gap:6px;margin-bottom:10px}.dl .df{display:block;margin-bottom:10px;font-size:.85rem}.dl .df input{display:block;width:100%;margin-top:3px}
+.dl .dc{display:flex;flex-direction:column;gap:6px;border:1px solid var(--bd);border-radius:8px;padding:8px 10px;margin-bottom:12px;max-height:240px;overflow:auto}.dl .dc label{display:flex;gap:6px;align-items:center;cursor:pointer}
+.dl .da{display:flex;justify-content:flex-end;gap:8px}.dl .da .go{background:var(--ac);color:#fff;border-color:var(--ac)}
+/* V16 上傳欄高光＋匯出對話框 */
+
+.up label{display:flex;align-items:center;gap:8px}.lt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+
+
+@keyframes ping{0%{box-shadow:0 0 0 0 var(--okb)}100%{box-shadow:0 0 0 16px transparent}}
+.bd{display:inline-flex;align-items:center;gap:4px;font-size:.72rem;font-weight:600;line-height:1.2;border-radius:99px;padding:2px 10px 2px 7px;border:1px solid transparent;white-space:nowrap}.bd:empty{display:none}
+.bd.no{padding-left:10px}
+.bd svg{flex:none}
+.fl .fn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fl .rc{white-space:nowrap}
+#fx>div{font-size:.82rem;margin-top:4px;color:var(--am)}#fx>div::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--am);margin-right:8px;vertical-align:middle}
+.xdlg{display:flex;flex-direction:column;padding:0;overflow:hidden;box-shadow:0 28px 80px -24px rgba(0,0,0,.65)}
+.xdlg input[type=checkbox],.xdlg input[type=radio]{accent-color:var(--ac)}
+.xhd{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:18px 22px 14px;border-bottom:1px solid var(--bd)}.xhd h2{margin:0 0 2px;font-size:1.2rem}
+.xcl{border:0;background:transparent;color:var(--mu);width:34px;height:34px;border-radius:9px;font-size:1rem;padding:0}.xcl:hover{background:var(--hd);color:var(--tx)}
+.xbd{flex:1;min-height:0;display:flex;flex-direction:column;gap:14px;padding:16px 22px;overflow:hidden}
+.xsec{margin-bottom:22px}
+.xst{display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:700;font-size:.82rem;color:var(--mu);letter-spacing:.06em;margin-bottom:8px}.xtools{display:flex;gap:6px;flex-wrap:wrap}
+.mini{padding:2px 11px;font-size:.78rem;border-radius:8px;font-weight:500}
+.seg{display:flex;gap:4px;padding:4px;background:var(--card);border:1px solid var(--bd);border-radius:11px}
+.seg label{position:relative;cursor:pointer;display:block;flex:1}.seg input{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;cursor:pointer}
+.seg span{display:block;text-align:center;padding:7px 8px;border-radius:8px;font-weight:600;color:var(--mu);transition:background .15s,color .15s}
+.seg input:checked+span{background:var(--ac);color:#fff;box-shadow:0 4px 12px -4px var(--ac)}.seg input:focus-visible+span{outline:2px solid var(--ac);outline-offset:2px}
+.xhint{margin-top:8px;line-height:1.5}
+.kh{font-size:.78rem;color:var(--mu);margin:12px 0 6px}
+.ck{position:relative;cursor:pointer;display:inline-block}.ck input{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;cursor:pointer}
+.ck span{display:inline-flex;align-items:center;gap:7px;padding:4px 12px;border-radius:99px;border:1px solid var(--bd);background:var(--card);color:var(--mu);font-size:.85rem;transition:all .15s}
+.ck i{width:8px;height:8px;border-radius:50%;background:var(--c);opacity:.4}
+.ck input:checked+span{color:var(--tx);border-color:var(--c);background:color-mix(in srgb,var(--c) 15%,var(--card))}.ck input:checked+span i{opacity:1}
+.ck input:focus-visible+span{outline:2px solid var(--ac);outline-offset:2px}
+.xmain{display:flex;flex-direction:column;min-width:0;min-height:0;gap:8px}.xmain .xst{margin:0}.xmain #xq{flex:1;max-width:420px}
+.xtp{display:grid;grid-template-columns:auto auto 1fr;gap:12px 28px;align-items:end}.xtp .xsec,.xcs{margin:0}.xtp .xst{margin-bottom:6px}
+.xtp .seg span{padding:6px 14px;white-space:nowrap}.xso{display:flex;gap:8px;align-items:center}.xso select{flex:1;min-width:150px;padding:8px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);font:inherit}
+.xcr{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}.xcr .xst{margin:0}.xcr .kg2{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}.xcr .kh{margin:0;white-space:nowrap}.xcr .ck span{padding:3px 11px}
+.xpk{display:grid;grid-template-columns:minmax(150px,.8fr) minmax(0,1.5fr) minmax(0,1.5fr);gap:10px;height:clamp(230px,38vh,400px);min-height:0}
+.xpn{display:flex;flex-direction:column;min-height:0;border:1px solid var(--bd);border-radius:12px;overflow:hidden;background:var(--card)}
+.xph{padding:7px 12px;font-size:.78rem;font-weight:700;color:var(--mu);letter-spacing:.05em;background:var(--hd);border-bottom:1px solid var(--bd)}
+.xpl{flex:1;min-height:0;overflow:auto;scrollbar-width:none;padding:6px;align-content:start}.xpl::-webkit-scrollbar{display:none}
+.xpl.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:2px 6px}
+.xr{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:8px;cursor:pointer;white-space:nowrap;min-width:0}.xr:hover{background:var(--hd)}
+.xr.act{background:color-mix(in srgb,var(--ac) 14%,var(--card));box-shadow:inset 3px 0 0 var(--ac)}
+.xr .xl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}.xr .xc{color:var(--mu);font-size:.74rem}.xr input{margin:0;flex:none}
+.xe{color:var(--mu);padding:20px;text-align:center}
+.xt{flex:1;min-height:0;max-height:none;margin:0;border-radius:12px;padding:6px 8px}
+.xn{padding:4px 6px;border-radius:7px}.xn:hover{background:var(--hd)}
+.xft{display:flex;align-items:center;gap:16px;padding:12px 22px;border-top:1px solid var(--bd);background:var(--card)}
+.xsum{flex:1;display:flex;flex-wrap:wrap;gap:8px;align-items:center;color:var(--mu);min-height:32px}
+.sv{display:inline-flex;align-items:baseline;gap:4px;padding:3px 13px;border-radius:99px;background:var(--hd);border:1px solid var(--bd);font-size:.82rem;color:var(--mu)}.sv b{font-size:1.05rem;color:var(--tx)}
+.xact{display:flex;gap:8px}.xact button{padding:8px 24px;border-radius:10px;font-weight:600}.xact button:disabled{opacity:.45;cursor:not-allowed}
+#xp{width:100%;height:5px;display:block}
+@media (max-width:860px){.xbd{overflow:auto}.xtp{grid-template-columns:1fr}.xpk{grid-template-columns:1fr;height:auto}.xpn{max-height:200px}.xdlg{height:96vh}.xft{flex-wrap:wrap}}
+/* V38 匯出報表對話框：滿版＋字級放大 */
+#xd{padding:0}
+.xdlg{width:100vw;max-width:none;height:100vh;max-height:none;border-radius:0;font-size:17px}
+.xdlg .mu{font-size:1rem}
+.xdlg .xcl{font-size:1.3rem}
+
+.xdlg .xst{font-size:1.05rem}.xdlg .mini{font-size:1rem;}
+.xdlg .seg span,.xdlg .xtp .seg span{font-size:1.1rem;}
+.xdlg .xso select{font-size:1.1rem;}
+.xdlg .ck span,.xdlg .xcr .ck span{font-size:1.05rem;}.xdlg .kh{font-size:1rem}
+.xdlg .xmain{flex:1;min-height:0}.xdlg .xmain #xq{font-size:1.1rem;max-width:520px}
+.xdlg .xpk{height:auto;flex:1;min-height:0}
+.xdlg .xph{font-size:1.05rem;}
+.xdlg .xpl.g{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.xdlg .xr{padding:9px 12px;font-size:1.15rem;gap:10px}.xdlg .xr .xc{font-size:.95rem}.xdlg .xr input{width:18px;height:18px}
+
+.xdlg .sv{font-size:1.05rem;}.xdlg .sv b{font-size:1.4rem}
+.xdlg .xact button{font-size:1.2rem;}
+@media (max-width:860px){.xdlg .xpk{flex:none;height:auto}}
+.kpi.rf{border-left-style:dashed;border-left-color:#9a8c70;}.kpi.rf .tlr span{font-size:.72rem}
+/* V47 UI 縮距＋格線 */
+
+
+.kpi .tlr{margin-top:1px}
+#tb{border:1px solid var(--bd)}#tb th,#tb td{border:1px solid var(--bd);padding:3px 8px}#tb th.n{text-align:right}#tb tbody tr:hover td,#tb tr.cl:hover td{background:var(--hd)}
+/* V44 主畫面全寬、不換行、無內部滾軸 */
+main{max-width:none;}
+#kp{overflow-x:auto}.kpis{flex-wrap:nowrap}
+.tw{max-height:none;overflow:visible}
+/* V52 工具列分群組 */
+.tbar{gap:10px 14px;align-items:stretch}
+.tbg{position:relative;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--bd);border-radius:10px;background:#f6ecd2}
+.tbg::before{content:attr(data-l);flex:none;margin-right:6px;padding-right:10px;border-right:1px solid var(--bd);font-size:.72rem;font-weight:700;letter-spacing:.12em;color:var(--mu);white-space:nowrap}
+.tf input{min-width:190px}
+.tv{gap:0}
+.tv button{border-radius:0;margin-left:-1px;padding:6px 16px;font-weight:600;position:relative}
+.tv button:first-of-type{border-radius:8px 0 0 8px;margin-left:0}.tv button:last-of-type{border-radius:0 8px 8px 0}
+.tv button:hover:not(.on){background:var(--hd)}.tv button.on{z-index:1;box-shadow:0 2px 8px -3px var(--ac)}
+.to button{background:transparent;border-color:var(--ac);color:var(--ac);font-weight:600;padding:6px 14px}
+.to button:hover:not(:disabled){background:var(--ac);color:#fff}
+.tbar #ct{align-self:center;margin-left:auto}
+/* V58 KPI 卡片區（固定色／單色 var(--c)；不可用 color-mix，截圖 html2canvas 不支援） */
+.kg{align-items:stretch}
+.kg>div{background:#f8efd6;border:1px solid var(--bd);border-radius:12px;}
+.gh{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.gh b{letter-spacing:.04em}
+.gs{font-size:.72rem;font-weight:600;color:var(--mu);background:#efe2bd;border-radius:99px;padding:0 9px}
+
+.kpi{--c:#9a8c70;display:flex;flex-direction:column;padding:0;border:1px solid var(--bd);border-top:4px solid var(--c);border-radius:10px;background:#fffdf6;overflow:hidden;transition:transform .12s,box-shadow .12s}
+.kpi .kt{display:flex;align-items:center;}
+.kpi .kt i{width:8px;height:8px;border-radius:50%;background:var(--c);flex:none}
+.kpi .kn{font-weight:700;color:var(--tx)}
+.kpi .kv{display:flex;}
+.kpi .kv b{line-height:1.15;font-weight:800;color:var(--tx)}
+.kpi .ku{font-size:.75rem;color:var(--mu)}
+.kpi .kpp{margin-left:auto;font-size:.72rem;font-weight:600;color:var(--mu);background:#f1e7c9;border-radius:99px;padding:1px 8px}
+.kpi.z .kv b{color:#b9ad8f;font-weight:600}.kpi.z .kpp{opacity:.6}
+.kpi .tlr{display:flex;align-items:center;justify-content:center;border-top:1px solid var(--bd);color:var(--mu)}
+.kpi input.tl{font-weight:700;text-align:center;border:1px solid var(--bd);border-radius:6px;background:#fff}
+.kpi:hover{transform:translateY(-1px);box-shadow:0 6px 14px -8px rgba(60,45,20,.45)}
+.kpi.on{outline:none;background:#fff;box-shadow:0 0 0 2px var(--c),0 8px 18px -10px var(--c)}
+.kpi.on .kn::after{content:" ✓";color:var(--c)}
+.kpi.rf{border-style:dashed;border-top-width:4px;background:#fbf6e8}
+/* V59 頂部版面精簡 */
+main{padding:10px 16px}
+.card{padding:6px 10px;margin:6px 0}
+.up{grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 12px}
+.up label{margin-bottom:1px;font-size:.9rem}
+.drop{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:nowrap;white-space:nowrap;padding:3px 8px;font-size:.8rem;text-align:left}
+.drop button{padding:1px 9px;font-size:.78rem}
+.fl div{font-size:.78rem}
+.kg{width:100%;gap:8px;flex-wrap:nowrap}
+.kg>div{flex:1 1 auto;min-width:min-content;padding:4px 6px 6px}
+.gh{margin:0 2px 4px;font-size:.78rem}
+.kpis{gap:5px}
+.kpi{flex:1 1 150px;min-width:150px;gap:0;white-space:nowrap}
+.kpi .kt{padding:5px 8px 0;gap:5px}
+.kpi .kn{font-size:.8rem}
+.kpi .kv{align-items:center;padding:0 8px 6px;gap:3px}
+.kpi .kv b{font-size:1.45rem}
+.kpi .tlr{margin:0 0 0 auto;padding:0;background:none;border:0;gap:3px;font-size:.72rem}
+.kpi input.tl{width:38px;padding:1px;font-size:.85rem}
+.up input[type=number]{width:64px;padding:2px 6px}
+@media (max-width:900px){.up{grid-template-columns:1fr}}
+#atabs{display:inline-flex}#atabs button{border-radius:0;margin-left:-1px;padding:5px 14px;font-weight:600}#atabs button:first-child{border-radius:8px 0 0 8px;margin-left:0}#atabs button:last-child{border-radius:0 8px 8px 0}#atabs button.on{z-index:1}
+/* V65 匯出對話框素雅化：去掉樣態色點與色塊，單一中性色；統計膠囊改純文字 */
+.xdlg .ck span{background:transparent;border-radius:7px;border-color:var(--bd);color:var(--mu)}
+.xdlg .ck i{display:none}
+.xdlg .ck input:checked+span{background:#fff;border-color:var(--ac);color:var(--tx);font-weight:600}
+.xdlg .ck input:checked+span::before{content:"✓";color:var(--ac);margin-right:5px;font-weight:700}
+.xdlg .seg span{border:1px solid transparent}
+.xdlg .seg input:checked+span{background:#fff;color:var(--ac);border-color:var(--ac);box-shadow:none}
+.xdlg .sv{background:none;border:0;border-radius:0}
+.xdlg .sv+.sv::before{content:"·";margin:0 10px 0 6px;color:var(--bd)}
+/* V66 異常樣態分組：每類一個有框群組（標題＋分隔線＋樣態），「其他」放備查／原始資料，全選／全不選靠右 */
+.xdlg .xcr{align-items:stretch}
+.xdlg .xcr .xst{align-self:center}
+.xdlg .xcr .kg2{display:inline-flex;align-items:center;flex-wrap:wrap;}
+.xdlg .xcr .kh{margin:0 4px 0 0;padding-right:12px;border-right:1px solid var(--bd);color:var(--mu);font-weight:700;letter-spacing:.06em;white-space:nowrap}
+.xdlg .xcr .kg2 .ck span{border-color:transparent;}
+.xdlg .xcr .kg2 .ck input:checked+span{border-color:var(--ac)}
+.xdlg .xcr .xtools{margin-left:0;align-self:center}
+/* V67 匯出對話框操作步驟編號：①格式 ②份數 ③排序（選填） ④異常樣態 ⑤對象 ⑥確認統計→按「匯出」；每個區塊標題旁附一句白話提示 */
+.sn{color:var(--ac);font-weight:800;font-style:normal;margin-right:6px}
+.xst small{font-weight:400;font-size:.8em;letter-spacing:0;color:var(--mu);margin-left:10px;white-space:nowrap}
+.xdlg .xcr .xst{white-space:nowrap}
+.xlb{font-weight:700;font-size:1.05rem;color:var(--mu);white-space:nowrap}
+.xhn{color:var(--mu);font-size:.95rem;white-space:nowrap}
+@media (max-width:1100px){.xhn{display:none}}
+/* 壓縮上半部垂直間距，讓⑤對象清單吃到最大高度、整個視窗不出現捲軸 */
+.xdlg .xhd{padding:12px 36px 8px}.xdlg .xhd h2{font-size:1.4rem;margin:0}.xdlg .xhd .mu{font-size:.9rem;margin-top:2px}
+.xdlg .xcl{width:36px;height:36px}
+.xdlg .xbd{padding:10px 36px;gap:10px;overflow:hidden}
+.xdlg .xtp{gap:6px 28px}.xdlg .xtp .xst{margin-bottom:4px}
+.xdlg .seg span,.xdlg .xtp .seg span{padding:5px 18px}
+.xdlg .xso select{padding:6px 10px}
+.xdlg .ck span,.xdlg .xcr .ck span{padding:3px 14px}
+
+.xdlg .mini{padding:3px 14px}
+.xdlg .xmain{gap:6px}.xdlg .xmain #xq{padding:5px 14px}
+.xdlg .xph{padding:7px 16px}
+.xdlg .xhint{margin-top:2px;font-size:.88rem;line-height:1.3}
+.xdlg .xft{padding:8px 36px}.xdlg .sv{padding:2px 14px}.xdlg .xact button{padding:8px 34px}
+.xdlg .xmain #xq{margin-left:auto;flex:none;width:min(420px,32vw)}
+/* 異常樣態：群組分野＋已選／未選一眼可辨（未選＝虛線空框＋空方格＋灰字；已選＝實線主色框＋淡黃底＋實心✓方格＋黑粗字） */
+.xdlg .xcr{gap:8px 20px}
+.xdlg .xcr .kg2{padding:4px 8px 4px 4px;border:2px solid #cbb78a;border-radius:12px;background:#fffdf4;gap:8px}
+.xdlg .xcr .kg2 .kh{align-self:stretch;display:flex;align-items:center;margin:0;padding:0 14px;border:0;border-radius:8px;background:#ead9ae;color:#000;font-weight:800;letter-spacing:.08em}
+.xdlg .xcr .kg2 .ck span{display:inline-flex;align-items:center;gap:0;padding:4px 14px 4px 10px;border:2px dashed #bfae88;border-radius:8px;background:transparent;color:#6b5f4a;font-weight:500}
+.xdlg .xcr .kg2 .ck span::before{content:"";display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-right:9px;border:2px solid #b3a17a;border-radius:4px;background:#fff;color:#fff;font-size:13px;font-weight:900;line-height:1;box-sizing:border-box}
+.xdlg .xcr .kg2 .ck:hover span{border-color:var(--ac);background:#fff6df}
+.xdlg .xcr .kg2 .ck input:checked+span{border:2px solid var(--ac);background:#f7e7c2;color:#000;font-weight:700}
+.xdlg .xcr .kg2 .ck input:checked+span::before{content:"✓";margin-right:9px;border-color:var(--ac);background:var(--ac);color:#fff}
+/* 匯出對話框的標題、編號、提示文字一律黑色 */
+.xdlg .sn,.xdlg .xst,.xdlg .xst small,.xdlg .xlb,.xdlg .xhn,.xdlg .kh,.xdlg .xhint,.xdlg .xhd .mu,.xdlg .xcr .kh{color:#000}
+.xdlg .xtp{grid-template-columns:auto auto minmax(0,1fr)}.xdlg .xso{flex-wrap:wrap}.xdlg .xso select{min-width:200px}
+/* V68 上傳區（①工作規劃／②打卡異常／③人員客戶資料）改質感漸層風：已載入＝流動的古銅→金→赤陶漸層邊框＋柔光＋掃光；徽章為漸層實心膠囊；缺檔＝赤陶色虛線呼吸；拖入＝金色光暈。取代原本的綠色（--ok 系列改古銅金） */
+:root{--ok:#8f5f14;--okb:rgba(143,95,20,.42);--okg:rgba(201,154,59,.12);--am:#a8501f;--amb:rgba(184,92,45,.45);--amg:rgba(205,125,70,.10);--g1:#8f5f14;--g2:#c99a3b;--g3:#c47a4e}
+.drop{position:relative;overflow:hidden;border:2px dashed #d3bf95;background:#fffaf0;transition:border-color .25s,background .25s,box-shadow .25s,transform .25s}
+.dz:not(.has):hover .drop{border-color:var(--g2);background:linear-gradient(120deg,rgba(201,154,59,.08),rgba(196,122,78,.08))}
+.dz.over .drop{border:2px solid var(--g2);background:linear-gradient(120deg,rgba(201,154,59,.16),rgba(196,122,78,.12));box-shadow:0 0 0 4px rgba(201,154,59,.22),0 12px 30px -12px rgba(143,95,20,.55);transform:translateY(-1px)}
+.dz.has .drop{border:2px solid transparent;background:linear-gradient(#fffaf0,#fffaf0) padding-box,linear-gradient(110deg,var(--g1),var(--g2),var(--g3),#e6c47a,var(--g1)) border-box;background-size:100% 100%,300% 100%;box-shadow:0 10px 26px -14px rgba(143,95,20,.55),0 0 0 1px rgba(143,95,20,.04);animation:flow 7s linear infinite}
+.dz.has .drop::after{content:"";position:absolute;top:0;bottom:0;left:0;width:45%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.6),transparent);transform:translateX(-130%) skewX(-18deg);animation:sheen 4.2s ease-in-out infinite;pointer-events:none}
+.dz.miss .drop{border:2px dashed var(--amb);background:linear-gradient(145deg,var(--amg),transparent 70%);animation:breathe 2.4s ease-in-out infinite}
+.dz.hit .drop{animation:pop .9s cubic-bezier(.2,.8,.2,1),flow 7s linear infinite}
+.bd.ok{color:#fff;border-color:transparent;background:linear-gradient(110deg,var(--g1),var(--g2) 60%,#d9a85c);box-shadow:0 4px 12px -4px rgba(143,95,20,.6);letter-spacing:.03em}
+.bd.no{color:#fff;border-color:transparent;background:linear-gradient(110deg,#c2703a,#a8501f);box-shadow:0 4px 12px -4px rgba(168,80,31,.55)}
+@keyframes flow{from{background-position:0 0,0 0}to{background-position:0 0,300% 0}}
+@keyframes sheen{0%,55%{transform:translateX(-130%) skewX(-18deg)}100%{transform:translateX(330%) skewX(-18deg)}}
+@keyframes breathe{0%,100%{box-shadow:0 0 0 0 rgba(184,92,45,0)}50%{box-shadow:0 0 0 5px rgba(184,92,45,.14)}}
+@keyframes pop{0%{transform:scale(.985);box-shadow:0 0 0 0 rgba(201,154,59,.6)}45%{transform:scale(1.012)}100%{transform:scale(1);box-shadow:0 0 0 18px rgba(196,122,78,0)}}
+@media (prefers-reduced-motion:reduce){.dz .drop,.dz .drop::after{animation:none!important}}
+
+
+.hrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 4px}.hrow h1{margin:0}
+#mbtn{font-weight:600;padding:4px 12px;border-radius:999px;border-color:var(--ac);color:var(--ac);cursor:pointer}
+dialog.dl.man{width:calc(100vw - 24px)!important;max-width:none!important;height:calc(100vh - 24px)!important;max-height:none!important;padding:0;overflow:hidden}
+dialog.dl.man[open]{display:flex;flex-direction:column}
+.man .mh{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 18px 10px;border-bottom:1px solid var(--bd)}
+.man .mh h2{margin:0;font-size:1.05rem}.man .mh .mu{margin-top:2px}
+.man .mx{border:0;background:none;font-size:1.1rem;cursor:pointer;color:var(--mu);padding:2px 6px}
+.man .mb{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:10px 22px 18px}
+.man details{border:1px solid var(--bd);border-radius:8px;margin:8px 0;background:var(--card)}
+.man summary{cursor:pointer;padding:9px 12px;font-weight:600;list-style:none;display:flex;align-items:center;gap:8px}
+.man summary::-webkit-details-marker{display:none}
+.man summary::before{content:"\25B8";color:var(--mu);transition:transform .15s}
+.man details[open]>summary::before{transform:rotate(90deg)}
+.man details[open]>summary{border-bottom:1px solid var(--bd)}
+.man .ds{padding:10px 20px 16px;font-size:.96rem;line-height:1.75}
+.man .ds p{margin:6px 0}.man .ds ul{margin:6px 0;padding-left:20px}.man .ds li{margin:2px 0}
+.man table{width:100%;border-collapse:collapse;margin:8px 0;font-size:.93rem}
+.man th,.man td{border:1px solid var(--bd);padding:6px 10px;text-align:left;vertical-align:top;white-space:normal;word-break:break-word}.man th{position:static}
+.man th{background:var(--hd)}
+.man .tg{display:inline-block;padding:0 8px;border-radius:999px;font-size:.74rem;font-weight:700;margin-right:4px;white-space:nowrap}
+.man .tg.in{background:rgba(22,163,74,.15);color:#15803d}.man .tg.out{background:rgba(220,38,38,.14);color:#b91c1c}
+.man code{background:var(--hd);border-radius:4px;padding:0 4px;font-size:.82em}
+.man .ok{color:#15803d;font-weight:600}.man .no{color:#b91c1c;font-weight:600}
+.man .dt{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:baseline}
+#upd{display:none;align-items:center;gap:10px;flex-wrap:wrap;background:#fff2cc;border:1px solid var(--ac);border-radius:8px;padding:8px 12px;margin:0 0 8px;font-size:13px}#upd.on{display:flex}#upd .t{flex:1 1 300px}#upd button.p{background:var(--ac);color:#fff;border-color:var(--ac);font-weight:600}
+#ubtn{padding:4px 12px;border-radius:999px;cursor:pointer}
+@media print{#mbtn,#ubtn,#upd{display:none}}
+</style>
+</head><body><main>
+<div id="upd"></div>
+<div class="hrow"><h1>🕵️ 打卡異常檢核工具 <span id="ver">V83</span></h1><button type="button" id="mbtn" title="點擊開啟說明書：全部異常樣態怎麼判定">📖 說明書</button><button type="button" id="ubtn" title="立即到 GitHub 查有沒有新版">檢查更新</button><span class="mu">🔒 檔案只在瀏覽器內計算，不上傳</span></div>
+
+<div class="card up">
+ <div class="dz" data-slot="f1"><label><span class="lt">① <a id="dl-task" href="#" target="_blank" rel="noopener" onclick="dlOpenDate('task');return false" title="點擊選擇下載區間，開新分頁直接下載工作管理匯出">工作規劃</a></span><span class="bd"></span></label>
+  <div class="drop"><span class="dt2">📥 拖曳檔案／資料夾到此</span><button type="button" data-pick="f">選檔案</button> <button type="button" data-pick="d">選資料夾</button> <button type="button" data-pick="c">清除</button></div>
+  <input type="file" multiple hidden accept=".xlsx,.xls,.csv"><input type="file" webkitdirectory hidden>
+  <div class="fl mu"></div></div>
+ <div class="dz" data-slot="f2"><label><span class="lt">② <a id="dl-checkin" href="#" target="_blank" rel="noopener" onclick="dlOpenDate('checkin');return false" title="點擊選擇下載區間，開新分頁直接下載打卡異常報表">打卡異常</a></span><span class="bd"></span></label>
+  <div class="drop"><span class="dt2">📥 拖曳檔案／資料夾到此</span><button type="button" data-pick="f">選檔案</button> <button type="button" data-pick="d">選資料夾</button> <button type="button" data-pick="c">清除</button></div>
+  <input type="file" multiple hidden accept=".xlsx,.xls,.csv"><input type="file" webkitdirectory hidden>
+  <div class="fl mu"></div></div>
+ <div class="dz" data-slot="f3"><label title="選填：補足營業所/課對照（使用者檔或客戶資料檔皆可）"><span class="lt">③ 人員／<a id="dl-cust" href="#" target="_blank" rel="noopener" onclick="dlOpenCust();return false" title="點擊選擇通路後下載客戶資料">客戶資料</a>（選填）</span><span class="bd"></span></label>
+  <div class="drop"><span class="dt2">📥 拖曳檔案／資料夾到此</span><button type="button" data-pick="f">選檔案</button> <button type="button" data-pick="d">選資料夾</button> <button type="button" data-pick="c">清除</button></div>
+  <input type="file" multiple hidden accept=".xlsx,.xls,.csv"><input type="file" webkitdirectory hidden>
+  <div class="fl mu"></div></div>
+ <div class="row" style="grid-column:1/-1;white-space:nowrap">定位偏移 ≥ <input id="tOff" type="number" value="0.5" min="0" step="0.1" title="用打卡異常報表的「錯誤距離」；報表約 0.4 公里起算，填 0＝報表全收"> 公里　臨時點異地離站 ≥ <input id="tFar" type="number" value="0.4" min="0.05" step="0.05" title="到站與離站 GPS 直線距離，本工具自行計算"> 公里　<span id="tolx" class="mu"></span> <span id="st" class="mu"></span></div>
+ <div id="fx" style="grid-column:1/-1"></div>
+</div>
+<div id="out" style="display:none">
+ <div class="card"><div id="kp"></div></div>
+ <div class="card">
+  <div class="row tbar"><div class="tbg tf" data-l="篩選"><select id="br"></select><select id="of"></select><input id="sp" list="spl" placeholder="業務員（可選可輸入）" autocomplete="off" style="width:170px" title="選擇或輸入業務員姓名；清空＝全部"><datalist id="spl"></datalist><button id="bk" type="button" style="display:none;font-weight:700;background:var(--ac);color:#fff;border-color:var(--ac)" title="返回上一層（Esc）"></button><input id="q" placeholder="搜尋人員／店家／店碼" size="22"></div>
+   <div class="tbg tv" data-l="檢視"><button id="m1" class="on">人員彙總</button><button id="m2">逐筆明細</button><button id="m4" title="不分人員，看哪些店家最常發生異常樣態">店家排行</button><button id="m3" title="量販通路、即飲通路、營業處／營業所／商化所逾四小時（非異常，僅供檢視）">四小時備查</button><button id="m5" title="逐列查看載入的原始資料，以及每列被判定為納入／未納入／命中哪個樣態，供複驗比對">原始資料</button></div><div class="tbg to" data-l="輸出"><button id="xr" title="匯出 PDF／靜態 HTML／Excel（可挑格式、異常樣態、營業處／所／人員）">匯出</button><button id="shot" type="button" title="把主畫面截圖並複製到剪貼簿（可直接貼到 Line／Teams／Word）">📸 截圖</button></div><span id="ct" class="mu"></span></div>
+  <div id="au" class="row" style="display:none;margin-top:8px;gap:8px 14px"><b>原始資料查詢</b><span id="atabs"></span><select id="ast"><option value="">全部判定</option><option value="out">未納入</option><option value="ok">納入・無異常</option><option value="hit">有異常（顯示中）</option><option value="hid">有異常（排除值隱藏）</option><option value="ref">四小時備查</option></select><span class="mu">點任一列展開該筆全部原始欄位；受上方營業處／營業所／搜尋篩選</span><div id="asum" class="mu" style="flex-basis:100%;line-height:1.7"></div></div>
+  <div class="tw" style="margin-top:8px"><table id="tb"></table></div>
+ </div>
+ </div>
+</main>
+<div id="xd" class="mask" style="display:none"><div class="dlg xdlg">
+ <div class="xhd"><div><h2>匯出</h2><div class="mu">挑選格式、異常樣態與對象，一次產出 PDF、靜態 HTML 或 Excel</div></div><button type="button" class="xcl" id="xc2" title="關閉">✕</button></div>
+ <div class="xbd">
+  <div class="xtp">
+   <section class="xsec"><div class="xst"><span><b class="sn">①</b>檔案格式<small>選一種</small></span></div>
+    <div class="seg"><label><input type="radio" name="xf" value="pdf" checked><span>PDF</span></label><label><input type="radio" name="xf" value="html"><span>靜態 HTML</span></label><label><input type="radio" name="xf" value="xlsx"><span>Excel</span></label></div></section>
+   <section class="xsec"><div class="xst"><span><b class="sn">②</b>份數<small>依⑤的對象拆份</small></span></div>
+    <div class="seg" title="份數依「所選對象」切分：例如只勾某處底下的部分營業所，再選「一處一份」，該份就只含已勾選的部分。多份時自動打包成 ZIP。"><label><input type="radio" name="xm" value="all" checked><span>整份</span></label><label><input type="radio" name="xm" value="b"><span>一處一份</span></label><label><input type="radio" name="xm" value="o"><span>一所一份</span></label><label><input type="radio" name="xm" value="p"><span>一人一份</span></label></div></section>
+   <section class="xsec"><div class="xst"><span><b class="sn">③</b>人員彙總排序<small>選填，只影響彙總表</small></span></div>
+    <div class="xso" title="選了欄位後，彙總表會跨營業處／所整體排序（同值再依營業處、營業所、人員）。只影響「人員彙總」，逐筆明細順序不變；單人報告沒有彙總表。"><select id="xo"><option value="">預設（處→所→樣態合計）</option><option value="t">樣態合計</option><option value="den">打卡筆數</option><option value="u">異常打卡筆數</option><option value="rate">異常打卡率</option><option value="s">人員姓名</option></select>
+     <div class="seg"><label><input type="radio" name="xdir" value="desc" checked><span>大→小 Z→A</span></label><label><input type="radio" name="xdir" value="asc"><span>小→大 A→Z</span></label></div></div></section>
+  </div>
+  <section class="xsec xcs" id="xk"></section>
+  <section class="xmain">
+   <div class="xst"><span><b class="sn">⑤</b>對象<small>點營業處／所看下層，勾選要匯出的人</small></span><span class="xtools"><button type="button" class="mini" id="xa" title="勾選下方全部營業處／所／人員">全選對象</button><button type="button" class="mini" id="xn" title="取消下方全部營業處／所／人員">全不選對象</button></span><input id="xq" placeholder="搜尋營業處／所／人員" autocomplete="off"></div>
+   <div id="xt" class="xpk">
+    <div class="xpn"><div class="xph"><span>營業處</span></div><div class="xpl" id="pb1"></div></div>
+    <div class="xpn"><div class="xph"><span id="pbh2">營業所／課</span></div><div class="xpl g" id="pb2"></div></div>
+    <div class="xpn"><div class="xph"><span id="pbh3">人員</span></div><div class="xpl g" id="pb3"></div></div>
+   </div>
+   <div class="mu xhint">點營業處／營業所看底下內容；勾選框可整批勾選。份數依「所選對象」切分，多份自動打包 ZIP。</div>
+  </section>
+ </div>
+ <progress id="xp" value="0" max="1" style="display:none"></progress>
+ <div class="xft"><span class="xlb"><b class="sn">⑥</b>確認</span><div id="xs" class="xsum"></div><span class="xhn">核對左側數字，無誤請按「匯出」→</span><div class="xact"><button type="button" id="xc">關閉</button><button type="button" id="xg" class="on">匯出</button></div></div>
+</div></div>
+<dialog id="dl-date" class="dl"><h2 id="dl-date-t">選擇下載區間</h2><div class="dh">選好起訖日期後按「下載」，會開新分頁直接下載該區間的資料。</div>
+<div class="dq"><button type="button" onclick="dlQuick(0)">本月</button><button type="button" onclick="dlQuick(-1)">上月</button></div>
+<label class="df">起始日期 <input type="date" id="dl-s"></label><label class="df">結束日期 <input type="date" id="dl-e"></label>
+<div class="da"><button type="button" onclick="document.getElementById('dl-date').close()">取消</button><button type="button" class="go" onclick="dlGoDate()">⬇️ 下載</button></div></dialog>
+<dialog id="dl-cd" class="dl"><h2>🏪 客戶資料 — 選擇通路</h2><div class="dh">勾選需要的通路後按「下載」，會開新分頁直接下載。</div><div class="dc" id="dl-cl"></div>
+<div class="da"><button type="button" onclick="document.getElementById('dl-cd').close()">取消</button><button type="button" class="go" onclick="dlGoCust()">⬇️ 下載</button></div></dialog>
+<dialog id="man" class="dl man">
+<div class="mh"><div><h2>📖 說明書：全部異常樣態怎麼判定</h2><div class="mu">共 8 個樣態（時間性 5、衛星訊號 1、空間性 2）。點標題展開／收合；資料只在瀏覽器內計算，說明依本工具現行的判定邏輯整理。</div></div><button type="button" class="mx" id="mclose" title="關閉">✕</button></div>
+<div class="mb">
+
+<details open><summary>前言</summary><div class="ds">
+<ul>
+<li>本說明書的「正面表列」＝納入條件、「負面表列」＝排除條件。</li>
+<li><b>通路別不參與八個異常樣態的判定</b>，僅「逾四小時」有一項例外：量販通路、即飲通路，或處所（店家型態屬其他類別、店名含營業處／營業所／商化所；店名含「臨時」者除外）者改列「四小時備查」，不列為異常（見第三節、第八節）。</li>
+<li>前六個樣態只需要<b>工作規劃</b>；「定位偏移」「臨時點異地離站」另需要<b>打卡異常報表</b>。</li></ul>
+<table><tr><th>樣態</th><th>分組</th><th>一句話判定</th><th>資料來源</th><th>店名排除</th></tr>
+<tr><td><i class="dt" style="background:#d97706"></i>不足一分</td><td>時間性</td><td>0 ＜ 停留 ＜ 60 秒</td><td>工作規劃</td><td>處所（其他類別型態且店名含營業處／營業所／商化所）、臨時</td></tr>
+<tr><td><i class="dt" style="background:#dc2626"></i>逾四小時</td><td>時間性</td><td>停留 ≥ 4 小時</td><td>工作規劃</td><td>量販通路、即飲通路、處所（其他類別型態且店名含營業處／營業所／商化所）者改列四小時備查（店名含臨時者除外）</td></tr>
+<tr><td><i class="dt" style="background:#9333ea"></i>時間重疊</td><td>時間性</td><td>同日同人、跨店，後筆打卡早於前筆完成</td><td>工作規劃</td><td>無</td></tr>
+<tr><td><i class="dt" style="background:#0891b2"></i>隔三小時</td><td>時間性</td><td>同日同人，後筆打卡 − 前筆完成 ≥ 3 小時</td><td>工作規劃</td><td>無</td></tr>
+<tr><td><i class="dt" style="background:#ea580c"></i>同店連打</td><td>時間性</td><td>同日同人、同店連續，間距 0～3 小時內</td><td>工作規劃</td><td>臨時、營業處／所</td></tr>
+<tr><td><i class="dt" style="background:#2563eb"></i>衛星訊號異常</td><td>衛星訊號</td><td>工作規劃「是否衛星訊號異常」＝是</td><td>工作規劃</td><td>2026-10-12 起無；此日前：處所（其他類別型態且店名含營業處／營業所／商化所）、臨時</td></tr>
+<tr><td><i class="dt" style="background:#7c3aed"></i>定位偏移</td><td>空間性</td><td>打卡異常報表「錯誤距離」≥ 門檻（預設 0.5 公里）</td><td>打卡異常報表</td><td>臨時；店家型態為室內點／室外點</td></tr>
+<tr><td><i class="dt" style="background:#be185d"></i>臨時點異地離站</td><td>空間性</td><td>臨時點到站與離站 GPS 相距 ≥ 門檻（預設 0.4 公里）</td><td>打卡異常報表</td><td>只限臨時點（一般店家不算）</td></tr></table>
+</div></details>
+
+<details><summary>一、共同門檻</summary><div class="ds">
+<p><b>A．工作規劃來源的六個樣態</b>（不足一分、逾四小時、時間重疊、隔三小時、同店連打、衛星訊號異常）：每一列先過這一關；沒過的整列不進入稽核，也不計入「打卡筆數」，也不會被當成「前一筆」。</p>
+<table><tr><th style="width:80px">表列</th><th>條件</th><th>判斷方式</th></tr>
+<tr><td><span class="tg in">納入</span></td><td>對象是業務員員編</td><td>「業務員」欄名稱後綴為 <code>-純數字</code>（員編）</td></tr>
+<tr><td><span class="tg in">納入</span></td><td>有店家代碼</td><td>「店家代碼」不為空</td></tr>
+<tr><td><span class="tg in">納入</span></td><td>有到站打卡時間</td><td>「打卡時間」可解析成日期時間</td></tr>
+<tr><td><span class="tg out">排除</span></td><td>總公司</td><td>營業處含「總公司」</td></tr>
+<tr><td><span class="tg out">排除</span></td><td>APP 未讀</td><td>「APP讀取狀態」有值且不是「已讀」（空白視為通過）</td></tr>
+<tr><td><span class="tg out">排除</span></td><td>任務未完成</td><td>「任務狀態」有值且不是「完成」（空白視為通過）</td></tr>
+<tr><td><span class="tg out">排除</span></td><td>共用帳號、主任督導專用等</td><td>業務員欄沒有「-員編」後綴</td></tr></table>
+<p><b>B．打卡異常報表來源的兩個樣態</b>（定位偏移、臨時點異地離站）：</p>
+<table><tr><th style="width:80px">表列</th><th>條件</th><th>判斷方式</th></tr>
+<tr><td><span class="tg in">納入</span></td><td>對象是業務員員編</td><td>「執行人員」（或「業務員」）後綴為 <code>-純數字</code></td></tr>
+<tr><td><span class="tg in">納入</span></td><td>有打卡時間</td><td>報表的「日期」與只有時分秒的「打卡時間」合併後可解析</td></tr>
+<tr><td><span class="tg in">納入</span></td><td>日期在工作規劃區間內</td><td>資料以工作規劃為本體，區間外的列不採用</td></tr>
+<tr><td><span class="tg out">排除</span></td><td>總公司</td><td>營業處含「總公司」</td></tr></table>
+<ul>
+<li>沒放工作規劃：不會產生任何結果；沒放打卡異常報表：定位偏移、臨時點異地離站會是 0，<b>不代表沒有異常</b>。</li>
+<li>打卡異常報表日期只涵蓋工作規劃區間的一部分時，區間外的日子兩個空間性樣態會偏少（畫面有提醒）。</li></ul>
+</div></details>
+
+<details><summary><i class="dt" style="background:#d97706"></i>二、不足一分</summary><div class="ds">
+<p><b>定義：0 ＜ 停留 ＜ 60 秒</b>；停留 ＝ 工作完成日期 − 打卡時間（到站）。</p>
+<p><span class="tg in">納入</span><b>正面表列</b></p>
+<ul><li>通過共同門檻 A</li><li>「工作完成日期」有值</li><li>停留大於 0 秒且小於 60 秒</li></ul>
+<p><span class="tg out">排除</span><b>負面表列</b></p>
+<table><tr><th>排除條件</th><th>說明</th></tr>
+<tr><td>店家型態屬其他類別，且店名含「營業處」「營業所」「商化所」</td><td>處所（型態為 CVS、連鎖超市、傳統通路、量販、即飲者不算）</td></tr>
+<tr><td>店名含「臨時」</td><td>臨時點</td></tr>
+<tr><td>停留剛好 0 秒、或為負值、或完成日期空白</td><td>條件是「大於 0」，算不出或不為正都不算</td></tr></table>
+</div></details>
+
+<details><summary><i class="dt" style="background:#dc2626"></i>三、逾四小時</summary><div class="ds">
+<p><b>定義：停留 ≥ 4 小時（14,400 秒）</b>；剛好 4:00:00 也算。</p>
+<p><span class="tg in">納入</span><b>正面表列</b></p>
+<ul><li>通過共同門檻 A</li><li>「工作完成日期」有值</li><li>停留大於或等於 4 小時</li></ul>
+<p><span class="tg out">排除</span><b>負面表列</b></p>
+<ul><li>臨時點停留超過四小時，仍會列入（這是和「不足一分」最大的差別）。店名含「臨時」者一律視為臨時點，即使同時含營業處、營業所（例如「台中營業處-臨時點」），也不算處所，仍列逾四小時異常。</li><li><b>通路例外</b>：通路別為<b>量販通路、即飲通路</b>，或<b>處所</b>（店家型態屬其他類別，且店名含營業處、營業所、商化所，不含「臨時」）者，逾四小時<b>改列「四小時備查」</b>，不列為異常，也不計入樣態合計、異常打卡筆數、異常打卡率（見第八節）。</li></ul>
+</div></details>
+
+<details><summary><i class="dt" style="background:#9333ea"></i>四、時間重疊／隔三小時／同店連打（間距類）</summary><div class="ds">
+<p>三者都是拿「這一筆」和「前一筆」比較，<b>標在後筆</b>。</p>
+<p><span class="tg in">納入</span><b>共同的前提（正面表列）</b></p>
+<ul>
+<li>通過共同門檻 A（沒通過的列不會被當成前一筆）</li>
+<li>前後兩筆是<b>同一位業務員</b>、<b>同一天</b>（以打卡時間的日期為準）</li>
+<li>前一筆有「工作完成日期」</li>
+<li>前一筆＝同一人依打卡時間排序後緊接在前的那一筆</li></ul>
+<p><b>間距 ＝ 後筆打卡時間 − 前筆完成時間。</b>依下表<b>由上往下，命中第一條就停</b>：</p>
+<table><tr><th style="width:44px">順序</th><th>條件</th><th>結果</th></tr>
+<tr><td>1</td><td>間距 ＜ 0，且<b>同店</b>（店家代碼相同）</td><td>「同店誤建」：<b>不是異常、不顯示不匯出</b>，只是佔位，避免被後面兩條誤標</td></tr>
+<tr><td>2</td><td>間距 ＜ 0，且<b>跨店</b></td><td><b>時間重疊</b></td></tr>
+<tr><td>3</td><td>間距 ≥ 3 小時（同店跨店皆可）</td><td><b>隔三小時</b></td></tr>
+<tr><td>4</td><td>0 ≤ 間距 ＜ 3 小時，且同店，且不是臨時點（店名含「臨時」）或處所（其他類別型態且店名含「營業處」「營業所」「商化所」）</td><td><b>同店連打</b></td></tr>
+<tr><td>—</td><td>其他（例如跨店、間距 0～3 小時）</td><td>正常，不標</td></tr></table>
+<p><span class="tg out">排除</span><b>負面表列</b></p>
+<ul>
+<li><b>時間重疊、隔三小時：沒有店名排除。</b></li>
+<li><b>同店連打：</b>店名含「臨時」或處所類（店家型態屬其他類別、店名含營業處／營業所／商化所）不算。</li></ul>
+</div></details>
+
+<details><summary><i class="dt" style="background:#2563eb"></i>五、衛星訊號異常</summary><div class="ds">
+<p><b>定義：工作規劃「是否衛星訊號異常」欄的值＝「是」。</b></p>
+<p><span class="tg in">納入</span><b>正面表列</b></p>
+<ul><li>通過共同門檻 A</li><li>「是否衛星訊號異常」＝「是」</li></ul>
+<p><span class="tg out">排除</span><b>負面表列</b></p>
+<ul><li><b>2026-10-12（含）起：無額外排除</b>，處所／臨時點亦列入</li><li>2026-10-12 以前的資料：處所（店家型態屬其他類別、店名含「營業處」「營業所」「商化所」）或店名含「臨時」者不算</li></ul>
+</div></details>
+
+<details><summary><i class="dt" style="background:#7c3aed"></i>六、空間性：定位偏移／臨時點異地離站</summary><div class="ds">
+<p>空間性有兩種「不同」的情形，來源都是<b>打卡異常報表</b>，需通過共同門檻 B。</p>
+<p><b>7-1　定位偏移</b>：一般店家，打卡 GPS 離店家登記地址太遠。</p>
+<p><span class="tg in">納入</span><b>正面表列</b></p>
+<ul><li>報表「錯誤距離」（單位：公里）≥ 門檻；畫面可調，預設 <b>0.5 公里</b>，填 0＝報表的列全收</li><li>到站、離站兩種類型的列都會檢查</li></ul>
+<p><span class="tg out">排除</span><b>負面表列</b></p>
+<ul><li>店名含「臨時」（臨時點沒有登記地址）</li><li>店家型態為「室內點」「室外點」（型態取自工作規劃含「型態」的欄；查不到型態資料時不排除）</li><li>沒有「錯誤距離」數值的列</li></ul>
+<p><b>7-2　臨時點異地離站</b>：同一人在臨時點，到站 GPS 與離站 GPS 不在同一處。</p>
+<p><span class="tg in">納入</span><b>正面表列</b></p>
+<ul>
+<li>店名含「臨時」</li>
+<li>同一人、同一店名，先有「到站」列、之後有「離站」列，兩者都有 GPS 座標</li>
+<li>兩點直線距離（本工具自行計算）≥ 門檻；畫面可調，預設 <b>0.4 公里</b>；標在離站那一列</li></ul>
+<p><span class="tg out">排除</span><b>負面表列</b></p>
+<ul><li>非臨時店（一般店家不算，交給定位偏移）</li><li>只有到站沒有離站、或任一邊沒有 GPS</li></ul>
+</div></details>
+
+<details><summary>七、對象與通路別</summary><div class="ds">
+<table><tr><th>項目</th><th>取法</th></tr>
+<tr><td>人員</td><td>「業務員」（含員編）；畫面只顯示姓名，匯出一律保留員編</td></tr>
+<tr><td>營業處</td><td>「營業處」欄，去掉「營業處」字尾</td></tr>
+<tr><td>營業所／課（工作規劃來源的六個樣態）</td><td>使用者檔 → 客戶資料檔（同一人多個所時取筆數最多者）→ 都沒有就歸「其他」</td></tr>
+<tr><td>營業所／課（打卡異常來源的兩個樣態）</td><td>打卡異常報表自帶 → 使用者檔 → 客戶資料檔 → 「其他」</td></tr>
+<tr><td>匯出對象樹</td><td>營業處 → 營業所 → 人員；份數可選整份、一處一份、一所一份、一人一份</td></tr></table>
+<p><b>通路別</b></p>
+<ul>
+<li>八個樣態的判定，除「逾四小時」外<b>沒有通路別的判斷</b>；「逾四小時」於量販通路、即飲通路、處所（店家型態屬其他類別、店名含營業處／營業所／商化所，店名含臨時者除外）者改列四小時備查（見第八節）。</li>
+<li>通路別只出現在「客戶資料」下載視窗：傳統通路、即飲通路、室內外點、菸酒專、CVS通路、連鎖超市通路、量販通路、其他類別（預設勾選除「室內外點」以外的七類）。</li>
+<li>客戶資料只用來補「人員 → 營業所／課」對照，所以通路勾選不同，<b>只可能影響某人被歸在哪個營業所，不會改變任何樣態的筆數</b>（四小時備查的認定取自工作規劃本身的通路別、店家型態或店名，與客戶資料無關）。</li></ul>
+</div></details>
+
+<details><summary>八、四小時備查（非異常）</summary><div class="ds">
+<p><b>定義：</b>通路別為<b>量販通路、即飲通路</b>，或<b>處所</b>（店家型態屬其他類別，且店名含營業處、營業所、商化所，不含「臨時」）者，且停留 ≥ 4 小時（與「逾四小時」同門檻）的工作規劃紀錄。這類紀錄<b>不列為異常</b>，另放「四小時備查」供大家檢視。</p>
+<p><span class="tg in">納入</span><b>正面表列</b></p>
+<ul><li>通過共同門檻 A、「工作完成日期」有值、停留大於或等於 4 小時</li>
+<li>通路別認定（依序）：①工作規劃含「通路」欄、且該列有值 → 值含「量販」或「即飲」才算；②沒有通路欄、或該列空白 → 改看「店家型態」，為<b>家樂福量販店、愛買、大全聯、即飲通路</b>者才算；③<b>店家型態屬其他類別、且店名含「營業處」「營業所」「商化所」者（處所），不看通路別，一律算</b>；但店名含「臨時」者視為臨時點，不算（例：「台中營業處-臨時點」「臨時點-臺南營業處」仍列逾四小時異常）</li></ul>
+<p><span class="tg out">不計入</span><b>與異常統計的關係</b></p>
+<ul>
+<li>四小時備查<b>不計入</b>樣態合計、異常打卡筆數、異常打卡率；也不影響打卡筆數（分母）。</li>
+<li>這類紀錄不會同時出現在「逾四小時」異常；其餘樣態（例如同一筆同時有「時間重疊」）照常判定。</li>
+<li>四小時備查卡內有自己的「≤ N 筆排除」：某人員的四小時備查筆數 ≤ N 就不顯示（預設 5；填 0＝全顯示）；畫面、備查檢視、Excel 分頁、匯出報表一致。不受異常樣態的各樣態排除值影響。</li></ul>
+<p><b>呈現位置</b></p>
+<ul>
+<li>畫面：異常卡片旁有虛線的「🗂 備查（非異常）」群組，內有「四小時備查」卡片，點擊切換至備查檢視（受營業處、營業所、搜尋篩選），再點一次回人員彙總；另有「四小時備查」按鈕。</li>
+<li>匯出 Excel：新增「四小時備查」分頁。</li>
+<li>匯出報表（PDF／靜態 HTML）：於「附表」前新增「四小時備查（非異常認定）」；匯出視窗可勾選是否含四小時備查。對象樹也會列出「只有四小時備查、沒有任何異常」的人員（可勾選、可一人一份）；這類人不出現在人員彙總（彙總只算有異常的人），只出現在四小時備查段。</li></ul>
+</div></details>
+
+<details><summary>九、判定後的「顯示排除」</summary><div class="ds">
+<p>這一項<b>不是</b>異常判定本身，而是決定「要不要顯示這個人的這個樣態」。</p>
+<table><tr><th>設定</th><th>預設</th><th>規則</th></tr>
+<tr><td>各樣態排除值（卡片內「≤ N 筆排除」）</td><td>不足一分 10、逾四小時 5、時間重疊 10、隔三小時 5、同店連打 10、定位偏移 10、臨時點異地離站 5；四小時備查 5；衛星訊號異常 0（全部顯示）</td><td>某人員在<b>某個樣態</b>的筆數 ≤ N，就不顯示該人員的該樣態；填 0（或留白）＝全部顯示</td></tr></table>
+<ul>
+<li>被隱藏的筆數不計入「異常打卡筆數」，但分母「打卡筆數」不變。</li>
+<li>畫面上的營業處、營業所、業務員、搜尋只影響畫面；匯出報表使用全部結果，內容由匯出視窗的「異常樣態」與「對象」勾選決定。</li></ul>
+</div></details>
+
+<details><summary>十、統計欄位怎麼算</summary><div class="ds">
+<ul>
+<li><b>樣態合計</b>：該人員各樣態筆數相加；一筆打卡同時命中兩個樣態算兩筆（有多異常）。</li>
+<li><b>打卡筆數</b>：該人員通過共同門檻 A 的工作規劃筆數（分母）。</li>
+<li><b>異常打卡筆數</b>：有任一樣態的不重複打卡筆數；一筆打卡不論命中幾個樣態只算 1 筆（有沒有異常）；空間性樣態以「人員＋日期＋店名」對回同一次拜訪的工作規劃列。</li>
+<li><b>異常打卡率</b>：異常打卡筆數 ÷ 打卡筆數。</li></ul>
+</div></details>
+
+<details><summary>十一、計算範例</summary><div class="ds">
+<p>業務員「王小明-12345」某日工作規劃（皆為已讀、完成、有店碼）：</p>
+<table><tr><th>#</th><th>店名</th><th>到站</th><th>完成</th><th>停留</th><th>間距（對前筆）</th><th>結果</th></tr>
+<tr><td>1</td><td>全家甲店</td><td>09:00:00</td><td>09:00:40</td><td>40 秒</td><td>—</td><td>不足一分</td></tr>
+<tr><td>2</td><td>7-11 乙店</td><td>09:00:20</td><td>09:50:00</td><td>49 分 40 秒</td><td>−20 秒（跨店）</td><td>時間重疊</td></tr>
+<tr><td>3</td><td>7-11 乙店</td><td>10:00:00</td><td>10:20:00</td><td>20 分</td><td>+10 分（同店）</td><td>同店連打</td></tr>
+<tr><td>4</td><td>某某營業所</td><td>14:00:00</td><td>14:00:30</td><td>30 秒</td><td>+3 小時 40 分</td><td>隔三小時（不足一分因處所店名不計）</td></tr>
+<tr><td>5</td><td>臨時－丙店</td><td>15:00:00</td><td>19:30:00</td><td>4 小時 30 分</td><td>+59 分 30 秒（跨店）</td><td>逾四小時（逾四小時不排除臨時點）</td></tr></table>
+<p>這 5 筆打卡各命中 1 個樣態：樣態合計 5、異常打卡筆數 5。以上為套用排除值之前的結果；預設排除值下，某人某樣態筆數 ≤ 預設值者畫面不顯示。</p>
+</div></details>
+
+<details><summary>十二、店家排行（不分人員）</summary><div class="ds">
+<p>看「哪些店家最常發生異常樣態」，不分人員。按主畫面的「店家排行」進入。</p>
+<ul>
+<li>以<b>店家代碼</b>為單位彙總；同一店碼名稱不同時，顯示出現最多的店名。</li>
+<li>欄位：各樣態筆數、<b>樣態合計</b>（各樣態相加）、<b>異常打卡筆數</b>（不重複打卡）、<b>涉及人數</b>（該店發生異常的不同人員）、<b>打卡筆數</b>（該店納入稽核的工作規劃筆數）、<b>異常打卡率</b>＝異常打卡筆數 ÷ 打卡筆數。</li>
+<li>預設依樣態合計大→小；點表頭可改排序（再點一次反向）；點店家列可看該店逐筆明細。</li>
+<li>受營業處、營業所、業務員、搜尋與上方樣態卡片篩選；已套用各樣態「≤ N 筆排除」（排除是以「人員＋樣態」判定，所以被隱藏的筆數不會計入店家）。四小時備查不計入。</li>
+<li>畫面最多顯示前 500 家；匯出 Excel 的「店家排行」分頁含全部。</li></ul></div></details><details><summary>十三、原始資料查詢（複驗用）</summary><div class="ds"><p>逐列列出載入的「工作規劃」與「打卡異常」原始資料，並標示每一列被工具怎麼處理，方便拿原始檔與產出結果對帳。按主畫面的「原始資料」進入；匯入了幾種資料就有幾個小頁籤（工作規劃、打卡異常、人員／客戶資料），各自獨立檢視。</p><table><tr><th>判定</th><th>意義</th></tr><tr><td>未納入</td><td>沒通過共同門檻，列出原因（依序取第一個符合者）。工作規劃：非員編後綴、無店家代碼、無到站打卡時間、總公司、APP 未讀、任務未完成；打卡異常：非員編後綴、打卡時間無法解析、總公司、日期不在工作規劃區間、無到站打卡（對不回工作管理）</td></tr><tr><td>納入・無異常</td><td>納入稽核（計入打卡筆數）但沒命中任何樣態；工作規劃列顯示停留時間，打卡異常列顯示錯誤距離</td></tr><tr><td>有異常</td><td>命中一個以上樣態，說明欄列出每個樣態與判定依據（含同一次拜訪對回的定位偏移、臨時點異地離站）</td></tr><tr><td>有異常（排除值隱藏）</td><td>命中樣態，但該人員該樣態筆數 ≤「≤ N 筆排除」而未顯示於統計</td></tr><tr><td>四小時備查</td><td>量販／即飲通路、營業處／營業所／商化所逾四小時，非異常</td></tr></table><ul><li>「人員／客戶資料」小頁籤：逐列顯示對照檔的原始列，標示是否被採用為營業所/課對照（使用者檔優先，其次客戶資料檔中該人筆數最多者），未採用者列出原因。</li><li>上方對帳統計：各來源「納入＋未納入＝總列數」，並列出未納入的原因分布。</li><li>點任一列可展開該筆的全部原始欄位；說明欄的「被引用為……之前筆／到站配對」表示這列雖無異常，但被其他筆的間距類或臨時點判定當作比對對象。</li><li>受營業處、營業所、業務員、搜尋篩選；畫面最多 1500 列；匯出 Excel 時需在匯出視窗勾選「含原始資料分頁」才會附上，依小頁籤各一個分頁（原始查詢_工作規劃／打卡異常／人員客戶）含全部。</li></ul>
+</div></details>
+
+<details><summary>十四、匯出怎麼用</summary><div class="ds">
+<p>按工具列「匯出」開啟對話框，由上而下依序設定：</p>
+<table><tr><th style="width:130px">步驟</th><th>說明</th></tr>
+<tr><td>① 檔案格式</td><td>PDF、靜態 HTML（用瀏覽器開啟，可直接列印）、Excel，三選一</td></tr>
+<tr><td>② 份數</td><td>整份、一處一份、一所一份、一人一份；依⑤所選的對象切分，多份會自動打包成 ZIP</td></tr>
+<tr><td>③ 人員彙總排序（選填）</td><td>可依樣態合計、打卡筆數、異常打卡筆數、異常打卡率、人員姓名排序，並選大→小或小→大；只影響人員彙總表。不選＝預設（營業處 → 營業所 → 樣態合計）</td></tr>
+<tr><td>④ 異常樣態</td><td>勾選要放進匯出檔的樣態，預設帶入主畫面已選的樣態卡片（沒選＝全部）。人員彙總欄位、逐筆明細、小卡與對象的筆數都只算勾選的樣態；篩完沒有筆數的人員不會產生報告。可另勾選是否含四小時備查、含原始資料分頁（原始資料分頁僅 Excel 使用）</td></tr>
+<tr><td>⑤ 對象</td><td>點營業處、營業所／課看下一層，勾選要匯出的人員，勾選框可整批勾選；也有「全選對象」「全不選對象」。匯出不受主畫面的營業處、營業所、業務員、搜尋篩選影響，一律使用全部結果</td></tr>
+<tr><td>⑥ 確認</td><td>核對統計數字，無誤後按「匯出」</td></tr></table>
+<p><b>PDF／靜態 HTML 報表的內容</b></p>
+<ul>
+<li><b>人員彙總</b>自成一頁：樣態合計、打卡筆數、異常打卡筆數、異常打卡率；預設排序下會加「小計」，最後加「總計」。</li>
+<li><b>逐筆明細</b>以營業處為單位換頁；匯出含多個營業處時，每個營業處的明細第一頁上方會先附該處的人員彙總。</li>
+<li><b>四小時備查</b>（有勾選時）：放在附表之前，內容見第八節。</li>
+<li>每張樣態小卡會標示「≤ N 筆排除」（N 為該樣態目前的排除值，0＝全顯示）。</li>
+<li>PDF 內的文字可選取、搜尋；預估超過 150 頁時會先詢問是否繼續。</li></ul>
+<p><b>最後一頁：附表「異常樣態判定標準」</b>（僅 PDF／靜態 HTML，Excel 沒有）</p>
+<ul>
+<li>三欄：樣態名稱、列入異常之條件、不列入之例外情形。</li>
+<li>只列出④有勾選的樣態，另加一列「各樣態共同適用」（納入稽核與不納入稽核的對象）；有勾選含四小時備查時，會多一列「四小時備查（非異常）」。</li>
+<li>定位偏移、臨時點異地離站的公里數，取畫面上目前設定的門檻；衛星訊號異常的店名排除，依報表資料的日期自動寫明。</li></ul>
+<p><b>Excel 的分頁</b>：預設 4 個結果分頁——人員彙總（第一頁）、異常明細、店家排行、四小時備查；勾選「含原始資料分頁」才會再附上原始查詢分頁（見第十三節）。</p>
+</div></details>
+
+<details><summary>十五、畫面操作：業務員篩選、返回、截圖</summary><div class="ds">
+<ul>
+<li><b>業務員篩選</b>：工具列「篩選」群組的「業務員」欄，可從下拉選單挑，也可直接輸入姓名；選項會隨所選的營業處、營業所／課連動；清空＝全部。它和營業處、營業所、搜尋一起作用於人員彙總、逐筆明細、店家排行、四小時備查、原始資料，不影響匯出。</li>
+<li><b>← 返回</b>：從人員彙總或店家排行點某一列進入逐筆明細後，工具列會出現醒目的「← 返回人員彙總」或「← 返回店家排行」鈕，按 Esc 鍵效果相同；返回時會還原進入前的搜尋字串。</li>
+<li><b>📸 截圖</b>：把主畫面目前顯示的內容（包含完整表格）轉成圖片複製到剪貼簿，可直接貼到簡報或訊息；若瀏覽器不允許寫入剪貼簿，會改存成 PNG 檔。表格很長時畫質會自動縮小，建議先篩選縮小範圍。截圖元件需連網載入。</li></ul>
+</div></details>
+
+</div>
+</dialog>
+<script>
+const CATS=[['不足一分','#d97706'],['逾四小時','#dc2626'],['時間重疊','#9333ea'],['隔三小時','#0891b2'],['同店連打','#ea580c'],['衛星訊號異常','#2563eb'],['定位偏移','#7c3aed'],['臨時點異地離站','#be185d']];
+const VER='V83';
+const SAT_CUT='2026-10-12'; /* 衛星訊號異常的店名排除只適用此日期「以前」（打卡日期 < SAT_CUT 才排除營業處／營業所／商化所／臨時；當日起不排除）。改日期時，說明書第五節與表格同步 */
+const GRP=[['⏱ 時間性','停留與前後筆時間關係（以工作規劃時間為準）',5],['🛰 衛星訊號','工作規劃標記「是否衛星訊號異常」＝是',1],['📍 空間性','定位偏移＝一般店家，打卡 GPS 離店家登記地址太遠｜臨時點異地離站＝僅臨時點（無登記地址），同人到站與離站 GPS 不在同一處',2]];
+const DEF={'逾四小時':'停留≥4 小時；量販通路、即飲通路、營業處／營業所／商化所（店名含臨時者除外）改列「四小時備查」，不計入本卡','定位偏移':'來源：打卡異常「錯誤距離」（公里）≥門檻；排除臨時點、店家型態為室內點／室外點者','臨時點異地離站':'僅臨時點；到站 GPS 與離站 GPS 相距≥門檻'};
+const COL=Object.fromEntries(CATS);
+let AP=[],AAx=[],PF3=[],AU={tab:''},NAV=null,DEN={},DENS={},SS={k:'t',d:-1},resAll=[],refAll=[],refRes=[],span='',nA=0,nAx=0,plan=[],anom=[],users={},cust={},res=[],sel=new Set(),mode=1;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const tms=v=>{if(v==null||v==='')return null;if(typeof v==='number')return Math.round((v-25569)*864e2)*1000;
+ if(v instanceof Date)return v.getTime()-v.getTimezoneOffset()*6e4;
+ const m=String(v).match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})[ T]+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+ return m?Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5],+(m[6]||0)):null};
+const iso=ms=>new Date(ms).toISOString(),day=ms=>iso(ms).slice(0,10),hm=ms=>iso(ms).slice(11,19),dt=ms=>iso(ms).slice(0,19).replace('T',' ');
+const fmt=ms=>{const s=Math.round(ms/1000);return Math.floor(s/3600)+':'+String(Math.floor(s%3600/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
+const gps=v=>{const m=String(v??'').match(/(-?\d+\.\d+)\s*[,，]\s*(-?\d+\.\d+)/);if(!m)return null;const a=+m[1],b=+m[2];return(a||b)?[a,b]:null};
+const dist=v=>{const m=String(v??'').replace(/,/g,'').match(/([\d.]+)\s*(公里|km|KM)?/);return m?Math.round(+m[1]*(m[2]?1000:1)):null};
+const hav=(p,q)=>{const r=Math.PI/180,x=(q[0]-p[0])*r,y=(q[1]-p[1])*r,a=Math.sin(x/2)**2+Math.cos(p[0]*r)*Math.cos(q[0]*r)*Math.sin(y/2)**2;return Math.round(12742000*Math.asin(Math.sqrt(a)))};
+const tmp=n=>/臨時/.test(n),org=n=>/營業處|營業所|商化所/.test(n);
+/* V82 處所＝店家型態屬「其他類別」（不在 CVS／連鎖超市／傳統通路／量販／即飲 五通路的型態清單內）且店名含營業處／營業所／商化所；與督導管理系統 logChannelLabel()＋isOfficeLikeName() 同口徑。型態取自工作規劃含「型態」的欄、依店碼對回；查無型態＝視為其他類別（與儀表板相同）。 */
+const OTH_TY=new Set(['OK','全家','統一','萊爾富','全聯社','美廉社','家樂福超市','814','傳統通路','利來福','北海道','喜互惠','喜美超市','大九九','大港','寶家','小北百貨','楓康超市','統冠','自由聯盟','菸酒專','輕鬆購','家樂福量販店','大潤發','愛買','大買家','大全聯','即飲通路']);
+const isOth=t=>{t=String(t||'').trim();return !(OTH_TY.has(t)||t.includes('陌開'))};
+const orgT=(o,c,n)=>org(n)&&isOth(xTv(o)||xTypeMap()[c]||'');
+const cs=s=>String(s??'').replace(/[*＊]/g,'').trim(),code=s=>{const m=String(s||'').trim().match(/-(\d+)$/);return m?m[1]:''};
+const nm=s=>String(s??'').replace(/-\d+$/,''),ofs=o=>{const t=String(o??'').replace(/營業所$/,'');return t||String(o??'')};
+const ofc=(c,o)=>(o&&String(o).trim())||users[c]||cust[c]||'其他';
+const tms2=o=>{const t=o['打卡時間'];let r=tms(t);if(r!=null&&typeof t!=='number'&&String(t).match(/\d{4}/))return r;
+ const d=tms(String(o['日期']||'')+' 00:00');if(d==null)return null;
+ if(typeof t==='number'&&t<1)return d+Math.round(t*864e2)*1000;
+ const m=String(t).match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);return m?d+((+m[1])*3600+(+m[2])*60+(+(m[3]||0)))*1000:null};
+
+const SF={f1:[],f2:[],f3:[]},RC=new Map(),fk=f=>f.name+'|'+f.size+'|'+f.lastModified;
+async function readFile(f,need,slot){const ck=slot+fk(f);if(RC.has(ck))return RC.get(ck);const r=await readFile0(f,need);RC.set(ck,r);return r}
+async function parseWb(f){const buf=await f.arrayBuffer();return /\.csv$/i.test(f.name)?XLSX.read(new TextDecoder('utf-8').decode(buf),{type:'string',raw:true,dense:true}):XLSX.read(buf,{type:'array',dense:true})}
+function pickRows(wb,need){let best=null;
+ for(const n of wb.SheetNames){
+  const rows=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:''});
+  for(let i=0;i<Math.min(15,rows.length);i++){
+   const h=rows[i].map(x=>String(x).trim());
+   if(typeof need==='function'?need(h):need.every(k=>h.includes(k))){
+    if(!best||rows.length>best.len)best={len:rows.length,rows:rows.slice(i+1).map(r=>{const o={};h.forEach((k,j)=>{if(k&&!(k in o))o[k]=r[j]});return o})};
+    break}}}
+ return best?best.rows:null}
+async function readFile0(f,need){return pickRows(await parseWb(f),need)}
+const NEED={f1:['打卡時間','工作完成日期','店家代碼'],f2:['打卡時間','打卡地址(GPS)'],f3:h=>h.includes('營業所/課')&&(h.includes('人員名稱')||h.includes('執行人員'))};
+const hdrs=wb=>{const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:''});for(const r of rows.slice(0,15)){const h=r.map(x=>String(x).trim()).filter(Boolean);if(h.length>=2)return h.slice(0,8)}return[]};
+async function load(files,need,key,slot){
+ const out=[],seen=new Set(),bad=[];
+ for(const f of files){const rows=await readFile(f,need,slot);if(!rows){bad.push(f.name);continue}
+  for(const o of rows){const k=key(o);if(k){if(seen.has(k))continue;seen.add(k)}out.push(o)}}
+ return{out,bad}}
+async function onFiles(){await onFiles0();fxRender(true)}
+async function onFiles0(){
+ $('st').textContent='讀取中…';const warn=[];let info='';
+ try{
+  const r1=await load(SF.f1,NEED.f1,o=>o['工作ID']?'id'+o['工作ID']:'','f1');plan=r1.out;if(r1.bad.length)warn.push('找不到工作規劃欄位：'+r1.bad.join('、'));
+  const r2=await load(SF.f2,NEED.f2,o=>[cs(o['執行人員']||o['業務員']),o['日期'],o['打卡時間'],o['類型'],o['店家']].join('|'),'f2');anom=r2.out;if(r2.bad.length)warn.push('找不到打卡異常欄位：'+r2.bad.join('、'));
+  const r3=await load(SF.f3,NEED.f3,()=>'','f3');PF3=r3.out;users={};cust={};const t={};
+  r3.out.forEach(o=>{const f=String(o['營業所/課']||'').trim();if('人員名稱'in o){const c=code(cs(o['人員名稱']));if(c&&f&&!users[c])users[c]=f}else{const c=code(cs(o['執行人員']));if(c&&f){(t[c]=t[c]||{})[f]=(t[c][f]||0)+1}}});
+  for(const c in t)cust[c]=Object.entries(t[c]).sort((a,b)=>b[1]-a[1])[0][0];
+  if(SF.f3.length)info=`對照：使用者 ${Object.keys(users).length}／客戶資料 ${Object.keys(cust).length} 人`;if(r3.bad.length)warn.push('找不到人員欄位：'+r3.bad.join('、'));
+ }catch(e){warn.push('讀檔失敗：'+e.message)}
+ if(plan.length||anom.length){analyze();$('st').textContent=`工作規劃 ${plan.length.toLocaleString()} 筆（${span||'—'}）｜打卡異常 採用 ${nA.toLocaleString()}／${anom.length.toLocaleString()} 筆`+(nAx?`（${nAx} 筆無到站打卡已排除）`:'')+(info?'｜'+info:'')+(warn.length?'｜⚠️ '+warn.join('；'):'')}
+ else{res=[];resAll=[];refAll=[];span='';$('out').style.display='none';$('st').textContent=warn.length?'⚠️ '+warn.join('；'):'請先匯入檔案'}}
+const okf=f=>/\.(xlsx|xls|csv)$/i.test(f.name)&&!/^~\$/.test(f.name);
+let NOTE={unk:[]};
+const CK='<svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function renderFl(){const any=SF.f1.length+SF.f2.length+SF.f3.length>0;document.querySelectorAll('.dz').forEach(z=>{const sl=z.dataset.slot,n=SF[sl].length,miss=!n&&sl!=='f3'&&any,bd=z.querySelector('.bd');
+ z.classList.toggle('has',n>0);z.classList.toggle('miss',miss);
+ bd.innerHTML=n?CK+n+' 檔':miss?'未放':'';bd.className='bd'+(n?' ok':miss?' no':'');
+ z.querySelector('.fl').innerHTML=SF[sl].map((f,i)=>{const r=RC.get(sl+fk(f));return`<div><span class="fn" title="${esc(f.name)}">📄 ${esc(f.name)}</span>${r?`<span class="mu rc">${r.length.toLocaleString()} 列</span>`:''}<a data-rm="${i}" title="移除">✕</a></div>`}).join('');
+ z.querySelectorAll('[data-rm]').forEach(a=>a.onclick=()=>{SF[sl].splice(+a.dataset.rm,1);renderFl();onFiles()})});fxRender(false)}
+function fxRender(rng){const h=[],w=NOTE.unk.map(u=>`無法辨識「${esc(u.n)}」，未採用。`+(u.h.length?'表頭：'+esc(u.h.join('、')):'找不到表頭列')+'（需為工作規劃、打卡異常、使用者或客戶資料匯出檔）');
+ const a=SF.f1.length,b=SF.f2.length;
+ if(a&&!b)w.push('② 尚未放入打卡異常報表：定位偏移、臨時點異地離站會是 0，不代表沒有異常');
+ if(!a&&b)w.push('① 尚未放入工作規劃：它是比對的基準，沒有它不會產生結果');
+ if(rng&&a&&b&&span&&anom.length){const[s0,s1]=span.split('～'),ad=anom.map(o=>tms(String(o['日期']||'')+' 00:00')).filter(x=>x!=null).map(day);
+  if(ad.length){const a0=ad.reduce((x,y)=>x<y?x:y),a1=ad.reduce((x,y)=>x>y?x:y);
+   if(!(nA+nAx))w.push(`打卡異常（${a0}～${a1}）與工作規劃區間（${s0}～${s1}）沒有重疊，一筆都沒採用`);
+   else if(a0>s0||a1<s1)w.push(`打卡異常只涵蓋 ${a0}～${a1}，工作規劃區間是 ${s0}～${s1}；區間外的日子沒有打卡異常資料，定位偏移、臨時點異地離站會偏少`)}}
+ $('fx').innerHTML=h.map(x=>`<div class="fxo">${x}</div>`).join('')+w.map(x=>`<div class="fxw">${x}</div>`).join('')}
+const flash=k=>{const z=document.querySelector(`.dz[data-slot="${k}"]`);z.classList.remove('hit');void z.offsetWidth;z.classList.add('hit');setTimeout(()=>z.classList.remove('hit'),1600)};
+async function addFiles(sl,files){const ok=files.filter(okf);
+ if(!ok.length){$('st').textContent='⚠️ 沒有可讀的檔案（只收 .xlsx／.xls／.csv）';return}
+ NOTE={unk:[]};let n=0;const has=f=>Object.values(SF).some(a=>a.some(x=>fk(x)===fk(f)));
+ if(typeof XLSX==='undefined'){for(const f of ok)if(!has(f)){SF[sl].push(f);n++}renderFl();if(n)onFiles();return}
+ $('st').textContent='辨識檔案中…';
+ for(const f of ok){if(has(f))continue;let s=null,h=[];
+  try{const wb=await parseWb(f);for(const k of['f1','f2','f3']){const r=pickRows(wb,NEED[k]);if(r){s={k,rows:r};break}}if(!s)h=hdrs(wb)}catch(e){}
+  if(!s){NOTE.unk.push({n:f.name,h});continue}
+  RC.set(s.k+fk(f),s.rows);SF[s.k].push(f);n++;
+  flash(s.k)}
+ renderFl();if(n)onFiles();else $('st').textContent=NOTE.unk.length?'':'這些檔案都已經放進來了'}
+async function walk(en,out){if(en.isFile){await new Promise(r=>en.file(f=>{out.push(f);r()},()=>r()))}
+ else if(en.isDirectory){const rd=en.createReader();let ch;do{ch=await new Promise(r=>rd.readEntries(r,()=>r([])));for(const c of ch)await walk(c,out)}while(ch.length)}}
+function analyze(){
+ const T=($('tOff').value===''?0.4:+$('tOff').value)*1000,T2=(+$('tFar').value||0.3)*1000;res=[];refAll=[];
+ const add=(cat,o)=>res.push({cat,...o});
+ const RP=plan.map((o,ix)=>{const s=cs(o['業務員']||o['執行人員']),c=code(s);return{s,k:c,b:String(o['營業處']||'').replace(/營業處$/,''),c:String(o['店家代碼']||'').trim(),n:String(o['店家名稱']||'').trim(),i:tms(o['打卡時間']),e:tms(o['工作完成日期']),sat:String(o['是否衛星訊號異常']||'').trim()==='是',st:o['任務狀態'],rd:o['APP讀取狀態'],o:ofc(c,''),raw:o,ix:ix+1}})
+;
+ RP.forEach(r=>{r.why=!r.k?'非員編後綴（共用帳號等）':!r.c?'無店家代碼':r.i==null?'無到站打卡時間':/總公司/.test(r.b)?'總公司':!(r.rd==null||r.rd===''||r.rd==='已讀')?'APP 未讀':!(r.st==null||r.st===''||r.st==='完成')?'任務未完成':''});AP=RP;
+ const P=RP.filter(r=>!r.why).sort((a,b)=>a.s<b.s?-1:a.s>b.s?1:a.i-b.i);
+ const dmin=P.length?day(Math.min(...P.map(r=>r.i))):'',dmax=P.length?day(Math.max(...P.map(r=>r.i))):'';
+ span=P.length?`${dmin}～${dmax}`:'';
+DEN={};DENS={};const VU=new Map();P.forEach((r,k)=>{r.pk=k;DEN[r.s]=(DEN[r.s]||0)+1;DENS[r.c]=(DENS[r.c]||0)+1;const q=r.s+'|'+day(r.i)+'|'+r.n;if(!VU.has(q))VU.set(q,k)});
+P.forEach((r,k)=>{const p=P[k-1],base={s:r.s,b:r.b,o:r.o,d:day(r.i),n:r.n,c:r.c,i:r.i,e:r.e,lv:r.e,w:r.raw,u:k};
+  if(r.sat&&(day(r.i)>=SAT_CUT||(!orgT(r.raw,r.c,r.n)&&!tmp(r.n))))add('衛星訊號異常',{...base,x:'系統標記衛星訊號異常'});
+  if(r.e!=null){const st=r.e-r.i;if(st>0&&st<6e4&&!orgT(r.raw,r.c,r.n)&&!tmp(r.n))add('不足一分',{...base,x:'停留 '+fmt(st)});if(st>=144e5){const rc=refChan(r.raw,r.c,r.n);if(rc)refAll.push({...base,cat:'逾四小時',ch:rc,sy:fmt(st),x:'停留 '+fmt(st)});else add('逾四小時',{...base,x:'停留 '+fmt(st)})}}
+  if(p&&p.s===r.s&&p.e!=null&&day(p.i)===day(r.i)){
+   const gap=r.i-p.e,same=p.c===r.c;let c=null;
+   if(gap<0)c=same?'同店誤建':'時間重疊';else if(gap>=108e5)c='隔三小時';else if(same&&!tmp(r.n)&&!orgT(r.raw,r.c,r.n))c='同店連打';
+   if(c&&c!=='同店誤建')add(c,{...base,pw:p.raw,x:`前筆 ${p.n}（離站 ${hm(p.e)}）→ 間距 ${gap<0?'-':''}${fmt(Math.abs(gap))}`})}});
+ const PI={},CN={};P.forEach(r=>{const k=r.s+'|'+day(r.i);(PI[k]=PI[k]||[]).push(r);(CN[r.n]=CN[r.n]||new Set()).add(r.c)});
+ /* 店碼回「工作管理」對應（規則 8）：離站打卡時間＝工作完成日期、到站打卡時間＝打卡時間，同人 ±1 秒；店名只在同人有多筆時優先挑同名；對不到＝沒有到站打卡，整筆排除（nAx 筆）。 */
+ const PP={};let ACV=null,ACI=null;P.forEach(r=>{(PP[r.s]=PP[r.s]||[]).push(r)});
+ const acode=r=>{const L=PP[r.s];if(!L)return'';const lv=/離/.test(r.t);let b=null,bd=0,bs=false;
+  L.forEach(p=>{const t=lv?p.e:p.i;if(t==null)return;const d=Math.abs(t-r.i);if(d>1000)return;const s=p.n===r.n;if(!b||(s&&!bs)||(s===bs&&d<bd)){b=p;bd=d;bs=s}});
+  ACV=b?b.e:null;ACI=b?b.i:null;return b?b.c:''};
+ const AA=anom.map((o,ix)=>{const s=cs(o['執行人員']||o['業務員']),c=code(s);return{s,k:c,b:String(o['營業處']||'').replace(/營業處$/,''),o:ofc(c,o['營業所/課']),n:String(o['店家']||o['店家名稱']||'').trim(),t:String(o['類型']||''),i:tms2(o),g:gps(o['打卡地址(GPS)']),d:dist(o['錯誤距離']),raw:o,ix:ix+1}})
+;
+ AA.forEach(r=>{r.why=!r.k?'非員編後綴（共用帳號等）':r.i==null?'打卡時間無法解析':/總公司/.test(r.b)?'總公司':!(span&&day(r.i)>=dmin&&day(r.i)<=dmax)?'日期不在工作規劃區間':''});AAx=AA;
+ const A=AA.filter(r=>!r.why).sort((a,b)=>a.s<b.s?-1:a.s>b.s?1:a.i-b.i);
+ const A2=[];A.forEach(r=>{const c=acode(r);if(c){r.c=c;r.lv=ACV;r.pi=ACI;A2.push(r)}else r.why='無到站打卡（對不回工作管理）'});nAx=A.length-A2.length;nA=A2.length;
+ const open={};
+ A2.forEach(r=>{const vq=r.s+'|'+day(r.i)+'|'+r.n,base={s:r.s,b:r.b,o:r.o,d:day(r.i),n:r.n,c:r.c,i:r.pi!=null?r.pi:r.i,e:null,lv:r.lv,g:r.g,a:r.raw,u:VU.has(vq)?VU.get(vq):'v|'+vq},key=r.s+'|'+r.n;
+  if(r.d!=null&&r.d>=T&&!tmp(r.n)&&!/室[內外]點/.test(xTv(r.raw)||xTypeMap()[base.c]||''))add('定位偏移',{...base,x:`${r.t||'打卡'}距登記地址 ${(r.d/1000).toFixed(2)} 公里`});
+  if(/到/.test(r.t))open[key]=r;
+  else if(/離/.test(r.t)){const a=open[key];delete open[key];
+   if(a&&a.g&&r.g&&tmp(r.n)){const m=hav(a.g,r.g);if(m>=T2)add('臨時點異地離站',{...base,g:r.g,pa:a.raw,x:`到站(${hm(a.i)})與離站 GPS 相距 ${(m/1000).toFixed(2)} 公里`})}}});
+ resAll=res;applyMin();buildSel();$('out').style.display='block';view()}
+/* V43 四小時備查：量販通路／即飲通路；V78 起加處所（店名含營業處／營業所／商化所，不看通路別）；V79 臨時優先（店名含「臨時」是臨時點，不算處所）。判定順序：①工作規劃「通路」開頭欄含量販／即飲 ②沒有該欄或該列空白才退回店家型態 ③店名為處所且不含臨時 */
+const REF_TY=/家樂福量販店|愛買|大全聯|即飲通路/;
+function refChan(o,c,n){let v='';for(const k in o){if(/^通路/.test(String(k).trim())){const t=String(o[k]??'').trim();if(t){v=t;break}}}
+ if(v&&/量販|即飲/.test(v))return v;
+ const t=xTv(o)||xTypeMap()[c]||'';if(!v&&REF_TY.test(t))return t;return orgT(o,c,n)&&!tmp(n)?'營業處／營業所／商化所':''}
+const BORD=['北部','桃處','臺中','嘉義','臺南','高雄','花蓮'];
+function bOrd(b){const n=String(b).replace(/台/g,'臺');let i=BORD.findIndex(k=>n.includes(k)||k.includes(n));
+ if(i<0){const m=BORD.map((k,j)=>k[0]===n[0]?j:-1).filter(j=>j>=0);if(m.length===1)i=m[0]}return i<0?99:i}
+const TOL={'不足一分':10,'逾四小時':5,'時間重疊':10,'隔三小時':5,'同店連打':10,'定位偏移':10,'臨時點異地離站':5,'四小時備查':5};function tolVals(){const o={};CATS.forEach(([c])=>{o[c]=TOL[c]||0});return o}
+
+function applyMin(){const TL=tolVals(),cc={};
+ resAll.forEach(r=>{const k=r.s+'|'+r.cat;cc[k]=(cc[k]||0)+1});
+ const a=resAll.filter(r=>cc[r.s+'|'+r.cat]>TL[r.cat]),hid=resAll.length-a.length;
+ res=a;
+ const RT=TOL['四小時備查']||0,rc={};refAll.forEach(r=>rc[r.s]=(rc[r.s]||0)+1);refRes=refAll.filter(r=>rc[r.s]>RT);
+ const tx=$('tolx');if(tx)tx.textContent=hid?`（排除隱藏 ${hid.toLocaleString()} 筆）`:''}
+function buildSel(){const pb=$('br').value,po=$('of').value;
+ const bs=[...new Set(res.map(r=>r.b).filter(Boolean))].sort((a,b)=>bOrd(a)-bOrd(b)||(a<b?-1:a>b?1:0));
+ $('br').innerHTML='<option value="">全部營業處</option>'+bs.map(b=>`<option>${esc(b)}</option>`).join('');
+ $('br').style.display=bs.length>1?'':'none';$('br').value=bs.includes(pb)?pb:'';buildOf(po)}
+let SPM={};
+function curP(){return SPM[($('sp').value||'').trim()]||''}
+function buildSp(){const b=$('br').value,of=$('of').value,cur=curP(),m=new Map();
+ const add=r=>{if(r.s&&(!b||r.b===b)&&(!of||r.o===of)&&!m.has(r.s))m.set(r.s,1)};
+ res.forEach(add);refRes.forEach(add);AP.forEach(r=>{if(r.k)add(r)});AAx.forEach(r=>{if(r.k)add(r)});
+ const L=[...m.keys()].sort((a,c)=>a<c?-1:a>c?1:0),cn={};L.forEach(x=>cn[nm(x)]=(cn[nm(x)]||0)+1);
+ SPM={};L.forEach(x=>{SPM[cn[nm(x)]>1?x:nm(x)]=x});
+ $('spl').innerHTML=Object.keys(SPM).map(k=>`<option value="${esc(k)}">`).join('');
+ const k=Object.keys(SPM).find(x=>SPM[x]===cur);$('sp').value=k||'';
+ $('sp').style.display=L.length>1?'':'none'}
+function buildOf(po){const b=$('br').value,bo={};
+ res.forEach(r=>{if(r.o&&(!b||r.b===b)){const k=bOrd(r.b);if(!(r.o in bo)||k<bo[r.o])bo[r.o]=k}});
+ const os=Object.keys(bo).sort((a,c)=>bo[a]-bo[c]||(a<c?-1:a>c?1:0));
+ $('of').innerHTML='<option value="">全部營業所/課</option>'+os.map(o=>`<option value="${esc(o)}">${esc(ofs(o))}</option>`).join('');
+ $('of').style.display=os.length>1?'':'none';$('of').value=os.includes(po)?po:'';buildSp()}
+
+function view(){
+ const q=$('q').value.trim(),b=$('br').value,of=$('of').value;
+ const p=curP(),base=res.filter(r=>(!p||r.s===p)&&(!b||r.b===b)&&(!of||r.o===of)&&(!q||(r.s+r.n+r.c).includes(q)));
+ const refB=refRes.filter(r=>(!p||r.s===p)&&(!b||r.b===b)&&(!of||r.o===of)&&(!q||(r.s+r.n+r.c).includes(q)));window._ref=refB;
+ let ci=0;$('kp').innerHTML='<div class="kg">'+GRP.map(([t,d,n])=>{const cs=CATS.slice(ci,ci+n);ci+=n;return`<div title="${esc(d)}" style="flex:${n} 1 auto"><div class="gh"><b>${t}</b><span class="gs">${cs.reduce((a,[c])=>a+base.filter(r=>r.cat===c).length,0)} 筆</span></div><div class="kpis">`+cs.map(([c,col])=>{const x=base.filter(r=>r.cat===c);return`<div class="kpi ${sel.has(c)?'on':''}${x.length?'':' z'}" title="${esc(DEF[c]||'')}" style="--c:${col}" data-c="${c}"><div class="kt"><i></i><span class="kn">${c}</span><span class="kpp">${new Set(x.map(r=>r.s)).size} 人</span></div><div class="kv"><b>${x.length}</b><span class="ku">筆</span><div class="tlr"><span>≤</span><input class="tl" data-t="${c}" type="number" min="0" step="1" placeholder="0" value="${TOL[c]||''}" onclick="event.stopPropagation()" title="人員在「${c}」的筆數 ≤ 此值就不顯示；0＝全顯示"><span>排除</span></div></div></div>`}).join('')+'</div></div>'}).join('')+'<div title="量販通路、即飲通路、營業處／營業所／商化所逾四小時：非異常，僅供檢視，不計入任何異常統計"><div class="gh"><b>🗂 備查（非異常）</b><span class="gs">'+refB.length+' 筆</span></div><div class="kpis"><div class="kpi rf'+(mode===3?' on':'')+(refB.length?'':' z')+'" id="rfk" style="--c:#9a8c70"><div class="kt"><i></i><span class="kn">四小時備查</span><span class="kpp">'+new Set(refB.map(r=>r.s)).size+' 人</span></div><div class="kv"><b>'+refB.length+'</b><span class="ku">筆</span><div class="tlr"><span>≤</span><input class="tl" data-t="四小時備查" type="number" min="0" step="1" placeholder="0" value="'+(TOL['四小時備查']||'')+'" onclick="event.stopPropagation()" title="人員的四小時備查筆數 ≤ 此值就不顯示；0＝全顯示。四小時備查不計入任何異常統計"><span>排除</span></div></div></div></div></div></div>';
+ $('rfk').onclick=()=>{NAV=null;mode=mode===3?1:3;modeUi();view()};
+ document.querySelectorAll('.kpi:not(.rf)').forEach(e=>e.onclick=()=>{const c=e.dataset.c;sel.has(c)?sel.delete(c):sel.add(c);view()});
+ document.querySelectorAll('input.tl').forEach(e=>e.onchange=()=>{const c=e.dataset.t,v=Math.max(0,Math.floor(+e.value||0));TOL[c]=v;applyMin();buildSel();view();const n=document.querySelector('input.tl[data-t="'+c+'"]');if(n)n.focus()});
+ const rows=base.filter(r=>!sel.size||sel.has(r.cat));window._rows=rows;
+ if(mode===1){
+  const m={};rows.forEach(r=>{const o=m[r.s]||(m[r.s]={s:r.s,b:r.b,f:r.o,t:0,u:new Set()});o[r.cat]=(o[r.cat]||0)+1;o.t++;o.u.add(r.u)});
+  const L=Object.values(m).sort((a,b)=>b.t-a.t);
+  $('tb').innerHTML='<tr><th class="n">排名</th><th>營業處</th><th>營業所/課</th><th>人員</th>'+CATS.map(c=>`<th class="n">${c[0]}</th>`).join('')+'<th class="n" title="各樣態筆數相加；一筆打卡命中兩個樣態算兩筆（看有多異常）">樣態合計</th><th class="n" title="該人納入稽核的打卡總筆數（異常打卡率的分母）">打卡筆數</th><th class="n" title="有任一樣態的不重複打卡筆數；一筆打卡不論命中幾個樣態只算 1 筆（看有沒有異常）">異常打卡筆數</th><th class="n" title="異常打卡筆數 ÷ 打卡筆數">異常打卡率</th></tr>'+L.map((o,i)=>`<tr class="cl" data-s="${esc(o.s)}"><td class="n">${i+1}</td><td>${esc(o.b)}</td><td>${esc(ofs(o.f))}</td><td>${esc(nm(o.s))}</td>${CATS.map(c=>`<td class="n">${o[c[0]]||''}</td>`).join('')}<td class="n"><b>${o.t}</b></td><td class="n">${DEN[o.s]||''}</td><td class="n">${o.u.size}</td><td class="n">${DEN[o.s]?(o.u.size/DEN[o.s]*100).toFixed(1)+'%':'–'}</td></tr>`).join('');
+  document.querySelectorAll('tr.cl').forEach(e=>e.onclick=()=>drill(e.dataset.s.split('-')[0]));
+  $('ct').textContent=L.length+' 人（點人員看明細）'}
+ else if(mode===5){
+  const AV=[['工作規劃',AP.length],['打卡異常',AAx.length],['人員／客戶資料',PF3.length]].filter(x=>x[1]>0);
+  if(!AV.some(x=>x[0]===AU.tab))AU.tab=AV.length?AV[0][0]:'';
+  const tab=AU.tab,f3=tab==='人員／客戶資料';
+  $('atabs').innerHTML=AV.map(([n,c])=>`<button type="button" class="${n===tab?'on':''}" data-t="${n}">${n}（${c.toLocaleString()} 列）</button>`).join('');
+  document.querySelectorAll('#atabs button').forEach(e=>e.onclick=()=>{AU.tab=e.dataset.t;view()});
+  const op=f3?[['','全部判定'],['out','未採用'],['ok','採用']]:[['','全部判定'],['out','未納入'],['ok','納入・無異常'],['hit','有異常（顯示中）'],['hid','有異常（排除值隱藏）'],['ref','四小時備查']],cur=$('ast').value;
+  $('ast').innerHTML=op.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('');$('ast').value=op.some(o=>o[0]===cur)?cur:'';
+  const FL=!tab?[]:f3?audF3():audList(tab),ft=$('ast').value,AL=ft?FL.filter(r=>r.k===ft):FL,L=AL.slice(0,1500);window._AL=L;
+  const stc={out:'#9a8c70',ok:'#059669',hit:'#dc2626',hid:'#b45309',ref:'#6b7280'},stl=f3?{out:'未採用',ok:'採用'}:{out:'未納入',ok:'納入・無異常',hit:'有異常',hid:'有異常（排除值隱藏）',ref:'四小時備查'};
+  const sm={};FL.forEach(r=>{const o=sm[r.src]||(sm[r.src]={n:0,k:{},w:{}});o.n++;o.k[r.k]=(o.k[r.k]||0)+1;if(r.why)o.w[r.why]=(o.w[r.why]||0)+1});
+  $('asum').innerHTML=Object.entries(sm).map(([s,o])=>f3?`<b>${s}</b> ${o.n.toLocaleString()} 列：採用 ${o.k.ok||0}｜未採用 ${o.k.out||0}`:`<b>${s}</b> ${o.n.toLocaleString()} 列：納入 ${(o.n-(o.k.out||0)).toLocaleString()}（有異常 ${o.k.hit||0}／排除值隱藏 ${o.k.hid||0}／備查 ${o.k.ref||0}／無異常 ${o.k.ok||0}）｜未納入 ${o.k.out||0}`+(o.k.out?'（'+Object.entries(o.w).map(([w,n])=>w+' '+n).join('、')+'）':'')).join('<br>')||'沒有符合的原始資料';
+  const cs=f3?7:14;
+  $('tb').innerHTML=(f3?'<tr><th class="n">序號</th><th>來源檔</th><th class="n">原始列序</th><th>人員</th><th>營業所/課</th><th>判定</th><th>說明</th></tr>':'<tr><th class="n">序號</th><th>來源</th><th class="n">原始列序</th><th>營業處</th><th>營業所/課</th><th>人員</th><th>日期</th><th>類型</th><th>店家</th><th>店碼</th><th>打卡時間</th><th>離站／完成</th><th>判定</th><th>命中樣態／說明</th></tr>')+L.map((r,i)=>f3?`<tr class="cl au" data-i="${i}"><td class="n">${i+1}</td><td>${r.src}</td><td class="n">${r.ix}</td><td>${esc(r.s)}</td><td>${esc(r.o)}</td><td><span class="tag" style="background:${stc[r.k]}">${stl[r.k]}</span></td><td style="white-space:normal;min-width:260px">${esc(r.txt)}</td></tr>`:`<tr class="cl au" data-i="${i}"><td class="n">${i+1}</td><td>${r.src}</td><td class="n">${r.ix}</td><td>${esc(r.b)}</td><td>${esc(ofs(r.o))}</td><td>${esc(r.s)}</td><td>${r.d}</td><td>${esc(r.t)}</td><td>${esc(r.n)}</td><td>${esc(r.c)}</td><td>${r.i!=null?hm(r.i):''}</td><td>${r.e!=null?hm(r.e):''}</td><td><span class="tag" style="background:${stc[r.k]}">${stl[r.k]}</span></td><td style="white-space:normal;min-width:260px">${esc(r.txt)}</td></tr>`).join('');
+  document.querySelectorAll('tr.au').forEach(e=>e.onclick=()=>{const n=e.nextElementSibling;if(n&&n.classList.contains('ad')){n.remove();return}const a=window._AL[+e.dataset.i],t=document.createElement('tr');t.className='ad';
+   t.innerHTML='<td colspan="'+cs+'" style="white-space:normal;background:var(--hd)"><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:2px 18px">'+Object.keys(a.raw).filter(k=>!/^(批次刪除|管理|密碼)$/.test(k)).map(k=>`<div><span class="mu">${esc(k)}</span>　${esc(fv(a.raw[k],k))}</div>`).join('')+'</div></td>';e.after(t)});
+  $('ct').textContent=`${tab||'原始資料'} ${AL.length.toLocaleString()} 列`+(AL.length>1500?'（畫面僅顯示前 1500 列，完整請匯出 Excel）':'')}
+ else if(mode===4){
+  const SA=storeSort(storeAgg(rows)),L=SA.slice(0,500),ar=k=>SS.k===k?(SS.d<0?' ▼':' ▲'):'',th=(k,t,n,tip)=>`<th class="${n?'n':''}" data-sk="${k}" style="cursor:pointer" title="${tip||'點擊排序'}">${t}${ar(k)}</th>`;
+  $('tb').innerHTML='<tr><th class="n">排名</th><th>店家</th><th>店碼</th><th>店家型態</th><th>營業處</th>'+CATS.map(c=>th(c[0],c[0],1)).join('')+th('t','樣態合計',1,'各樣態筆數相加')+th('u','異常打卡筆數',1,'該店有任一樣態的不重複打卡筆數')+th('p','涉及人數',1,'該店發生異常的不同人員數')+th('den','打卡筆數',1,'該店納入稽核的打卡總筆數（異常打卡率的分母）')+th('rate','異常打卡率',1,'異常打卡筆數 ÷ 打卡筆數')+'</tr>'+L.map((o,i)=>`<tr class="cl cs" data-c="${esc(o.c)}"><td class="n">${i+1}</td><td>${esc(o.n)}</td><td>${esc(o.c)}</td><td>${esc(o.ty)}</td><td>${esc(o.b)}</td>${CATS.map(c=>`<td class="n">${o.cnt[c[0]]||''}</td>`).join('')}<td class="n"><b>${o.t}</b></td><td class="n">${o.u}</td><td class="n">${o.p}</td><td class="n">${o.den||''}</td><td class="n">${o.den?(o.rate*100).toFixed(1)+'%':'–'}</td></tr>`).join('');
+  document.querySelectorAll('th[data-sk]').forEach(e=>e.onclick=()=>{const k=e.dataset.sk;SS=SS.k===k?{k,d:-SS.d}:{k,d:-1};view()});
+  document.querySelectorAll('tr.cs').forEach(e=>e.onclick=()=>drill(e.dataset.c));
+  $('ct').textContent=`${SA.length} 家店（點表頭排序、點店家看逐筆明細）`+(SA.length>500?'（畫面僅顯示前 500 家，完整請匯出 Excel）':'')}
+ else if(mode===3){
+  const L=[...refB].sort((a,b)=>a.s<b.s?-1:a.s>b.s?1:a.i-b.i).slice(0,1500);
+  $('tb').innerHTML='<tr><th class="n">序號</th><th>營業處</th><th>營業所/課</th><th>人員</th><th>通路／型態</th><th>日期</th><th>店家</th><th>店碼</th><th>打卡</th><th>離站</th><th>停留</th></tr>'+L.map((r,i)=>`<tr><td class="n">${i+1}</td><td>${esc(r.b)}</td><td>${esc(ofs(r.o))}</td><td>${esc(nm(r.s))}</td><td>${esc(r.ch)}</td><td>${r.d}</td><td>${esc(r.n)}</td><td>${esc(r.c)}</td><td>${hm(r.i)}</td><td>${r.e!=null?hm(r.e):''}</td><td>${r.sy}</td></tr>`).join('');
+  $('ct').textContent=`四小時備查（非異常）${refB.length} 筆／${new Set(refB.map(r=>r.s)).size} 人`+(refB.length>1500?'（畫面僅顯示前 1500 筆，完整請匯出）':'')}
+ else{
+  const L=[...rows].sort((a,b)=>a.s<b.s?-1:a.s>b.s?1:a.i-b.i).slice(0,1500);
+  $('tb').innerHTML='<tr><th class="n">序號</th><th>類別</th><th>營業處</th><th>營業所/課</th><th>人員</th><th>日期</th><th>打卡</th><th>離站</th><th>店家</th><th>店碼</th><th>說明</th><th>地圖</th></tr>'+L.map((r,i)=>`<tr><td class="n">${i+1}</td><td><span class="tag" style="background:${COL[r.cat]}">${r.cat}</span></td><td>${esc(r.b)}</td><td>${esc(ofs(r.o))}</td><td>${esc(nm(r.s))}</td><td>${r.d}</td><td>${hm(r.i)}</td><td>${r.lv!=null?hm(r.lv):''}</td><td>${esc(r.n)}</td><td>${esc(r.c)}</td><td>${esc(r.x)}</td><td>${r.g?`<a target="_blank" rel="noopener" href="https://www.google.com/maps?q=${r.g[0]},${r.g[1]}">開啟</a>`:''}</td></tr>`).join('');
+  $('ct').textContent=`${rows.length} 筆`+(rows.length>1500?'（畫面僅顯示前 1500 筆，完整請匯出）':'')}}
+function fv(v,k){if(typeof v==='number'&&/時間|日期/.test(k)){if(v>20000&&v<80000)return dt(tms(v));if(v>0&&v<1&&/時間/.test(k)){const t=Math.round(v*86400),p=n=>String(n).padStart(2,'0');return p(t/3600|0)+':'+p(t%3600/60|0)+':'+p(t%60)}}return v==null?'':String(v)}
+/* V55 原始資料查詢：把載入的每一列原始資料對回判定結果。k＝out 未納入／ok 納入無異常／hit 有異常／hid 有異常但被排除值隱藏／ref 四小時備查。ign＝true 時不套「來源」下拉（Excel 匯出用） */
+function audList(fs,pset){
+ const b=$('br').value,of=$('of').value,q=$('q').value.trim(),p=curP();
+ const rs=new Set(res),rr=new Set(refRes),uM=new Map(),aM=new Map(),cM=new Map(),fM=new Map(),pu=(m,k,v)=>{if(!m.has(k))m.set(k,[]);m.get(k).push(v)};
+ resAll.forEach(r=>{pu(uM,r.u,r);if(r.a)pu(aM,r.a,r);if(r.pa)pu(cM,r.pa,r);if(r.pw)pu(cM,r.pw,r)});refAll.forEach(r=>pu(fM,r.u,r));
+ const ok=r=>pset?(pset===true||pset.has(r.s)):((!p||r.s===p)&&(!b||r.b===b)&&(!of||r.o===of)&&(!q||(r.s+r.n+(r.c||'')).includes(q))),out=[];
+ const jd=(hits,refs,cites,dflt)=>{const vis=hits.filter(h=>rs.has(h)),p=[];
+  hits.forEach(h=>p.push(h.cat+(rs.has(h)?'':'（因排除值未顯示）')+'：'+h.x));
+  refs.forEach(h=>p.push('四小時備查：'+h.ch+'逾四小時（'+h.sy+'）'+(rr.has(h)?'':'（因排除值未顯示）')));
+  if(!p.length&&dflt)p.push(dflt);
+  cites.slice(0,3).forEach(h=>p.push('被引用為「'+h.cat+'」之前筆／到站配對（'+nm(h.s)+'　'+h.n+'）'));
+  return{k:vis.length?'hit':hits.length?'hid':refs.length?'ref':'ok',txt:p.join('；')}};
+ if(!fs||fs==='工作規劃')AP.forEach(r=>{if(!ok(r))return;
+  const e={src:'工作規劃',ix:r.ix,b:r.b,o:r.o,s:r.s,d:r.i!=null?day(r.i):'',t:'',n:r.n,c:r.c,i:r.i,e:r.e,why:r.why,raw:r.raw};
+  if(r.why)Object.assign(e,{k:'out',txt:'未納入：'+r.why});
+  else Object.assign(e,jd(uM.get(r.pk)||[],fM.get(r.pk)||[],cM.get(r.raw)||[],r.e!=null?'停留 '+fmt(r.e-r.i):'無離站時間'));
+  out.push(e)});
+ if(!fs||fs==='打卡異常')AAx.forEach(r=>{if(!ok(r))return;
+  const e={src:'打卡異常',ix:r.ix,b:r.b,o:r.o,s:r.s,d:r.i!=null?day(r.i):'',t:r.t,n:r.n,c:r.c||'',i:r.pi!=null?r.pi:r.i,e:r.why?null:r.lv,why:r.why,raw:r.raw};
+  if(r.why)Object.assign(e,{k:'out',txt:'未納入：'+r.why});
+  else Object.assign(e,jd(aM.get(r.raw)||[],[],cM.get(r.raw)||[],r.d!=null?'錯誤距離 '+(r.d/1000).toFixed(2)+' 公里（未達判定）':'無錯誤距離數值'));
+  out.push(e)});
+ return out}
+function audF3(pset){const q=$('q').value.trim(),p=curP(),out=[];
+ PF3.forEach((o,ix)=>{const isU='人員名稱' in o,s=cs(isU?o['人員名稱']:o['執行人員']),f=String(o['營業所/課']||'').trim(),c=code(s);
+  if(pset){if(pset!==true&&!pset.has(s))return}else{if(q&&!(s+f).includes(q))return;if(p&&s!==p)return}
+  let k='out',txt='';
+  if(!c)txt='未採用：人員沒有員編後綴';
+  else if(!f)txt='未採用：營業所/課空白';
+  else if(isU){if(users[c]===f){k='ok';txt='採用：人員對照營業所/課（使用者檔）'}else txt='未採用：同一人重複出現，已取第一筆（'+ofs(users[c])+'）'}
+  else if(users[c])txt='未採用：該人已由使用者檔對照（'+ofs(users[c])+'）';
+  else if(cust[c]===f){k='ok';txt='採用：客戶資料中該人筆數最多的營業所/課'}
+  else txt='未採用：同一人有多個營業所/課，已取筆數最多者（'+ofs(cust[c])+'）';
+  out.push({src:isU?'使用者檔':'客戶資料檔',ix:ix+1,s,o:f,k,txt,why:k==='out'?txt.replace(/^未採用：/,'').replace(/（.*$/,''):'',raw:o})});return out}
+function storeAgg(rows){const m={},tm=xTypeMap();
+ rows.forEach(r=>{const o=m[r.c]||(m[r.c]={c:r.c,nm:{},b:new Set(),p:new Set(),u:new Set(),t:0,cnt:{}});o.nm[r.n]=(o.nm[r.n]||0)+1;o.b.add(r.b);o.p.add(r.s);o.u.add(r.u);o.t++;o.cnt[r.cat]=(o.cnt[r.cat]||0)+1});
+ return Object.values(m).map(o=>{const n=Object.entries(o.nm).sort((a,b)=>b[1]-a[1])[0][0],den=DENS[o.c]||0;return{c:o.c,n,ty:tm[o.c]||'',b:[...o.b].filter(Boolean).join('、'),p:o.p.size,u:o.u.size,t:o.t,den,rate:den?o.u.size/den:-1,cnt:o.cnt}})}
+function storeSort(L){const k=SS.k,v=o=>k in o?o[k]:(o.cnt[k]||0);return L.sort((a,b)=>SS.d*(v(a)-v(b))||b.t-a.t||(a.c<b.c?-1:1))}
+function drill(q){NAV={m:mode,q:$('q').value};$('q').value=q;mode=2;modeUi();view();window.scrollTo(0,0)}
+function goBack(){if(!NAV)return;const n=NAV;NAV=null;$('q').value=n.q;mode=n.m;modeUi();view()}
+function modeUi(){const bk=$('bk');if(bk){bk.style.display=NAV&&mode===2?'':'none';if(NAV)bk.textContent='← 返回'+({1:'人員彙總',4:'店家排行'}[NAV.m]||'上一層')}$('m4').className=mode===4?'on':'';$('m1').className=mode===1?'on':'';$('m2').className=mode===2?'on':'';$('m3').className=mode===3?'on':'';$('m5').className=mode===5?'on':'';$('au').style.display=mode===5?'':'none'}
+$('m4').onclick=()=>{NAV=null;mode=4;modeUi();view()};$('m5').onclick=()=>{NAV=null;mode=5;modeUi();view()};$('ast').onchange=()=>view();
+$('m1').onclick=()=>{NAV=null;mode=1;modeUi();view()};$('m2').onclick=()=>{NAV=null;mode=2;modeUi();view()};$('m3').onclick=()=>{NAV=null;mode=3;modeUi();view()};
+$('bk').onclick=goBack;$('q').oninput=()=>{NAV=null;view()};document.addEventListener('keydown',e=>{if(e.key==='Escape'&&NAV&&mode===2&&$('xd').style.display==='none'&&!document.querySelector('dialog[open]')&&!/INPUT|SELECT|TEXTAREA/.test((document.activeElement||{}).tagName||''))goBack()});$('br').onchange=()=>{buildOf('');view()};$('of').onchange=()=>{buildSp();view()};$('sp').oninput=()=>{const v=($('sp').value||'').trim();if(!v||SPM[v])view()};
+document.querySelectorAll('.dz').forEach(z=>{const sl=z.dataset.slot,[fi,di]=z.querySelectorAll('input');
+ z.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{const k=b.dataset.pick;if(k==='f')fi.click();else if(k==='d')di.click();else{SF[sl]=[];renderFl();onFiles()}});
+ fi.onchange=di.onchange=e=>{addFiles(sl,[...e.target.files]);e.target.value=''};
+ z.ondragover=e=>{e.preventDefault();z.classList.add('over')};z.ondragleave=e=>{if(!z.contains(e.relatedTarget))z.classList.remove('over')};
+ z.ondrop=async e=>{e.preventDefault();z.classList.remove('over');addFiles(sl,await dropFiles(e))}});
+async function dropFiles(e){
+ // 必須同步取完：await 之後 DataTransfer 就失效。檔案直接用 getAsFile()，只有資料夾才走 webkitGetAsEntry 展開
+ const out=[],ens=[];
+ for(const i of [...(e.dataTransfer.items||[])]){if(i.kind!=='file')continue;const f=i.getAsFile(),en=i.webkitGetAsEntry&&i.webkitGetAsEntry();
+  if(en&&en.isDirectory)ens.push(en);else if(f)out.push(f);else if(en)ens.push(en)}
+ if(!out.length&&!ens.length)out.push(...e.dataTransfer.files);
+ for(const en of ens)await walk(en,out);return out}
+window.addEventListener('drop',e=>{if(e.target.closest&&e.target.closest('.dz'))return;if(e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files.length)dropFiles(e).then(o=>addFiles('f1',o))});
+['dragover','drop'].forEach(ev=>window.addEventListener(ev,e=>e.preventDefault()));
+$('tOff').onchange=$('tFar').onchange=()=>{if(plan.length||anom.length)analyze()};
+
+function xlsxBook(rows0,ref0,pset,wr){
+ const rows=[...rows0].sort((x,y)=>bOrd(x.b)-bOrd(y.b)||(x.o<y.o?-1:x.o>y.o?1:0)||(x.s<y.s?-1:x.s>y.s?1:0)||x.i-y.i);
+ const SKIP=/^(批次刪除|管理|密碼)$/,p2=n=>String(n).padStart(2,'0');
+ const rv=(v,k)=>{if(typeof v==='number'&&/時間|日期/.test(k)){if(v>20000&&v<80000)return dt(tms(v));if(v>0&&v<1&&/時間/.test(k)){const t=Math.round(v*86400);return p2(t/3600|0)+':'+p2(t%3600/60|0)+':'+p2(t%60)}}return v??''};
+ const main=[['序號','類別','營業處','營業所/課','人員','日期','打卡時間','離站時間','店家','店碼','說明','GPS']].concat(rows.map((r,n)=>[n+1,r.cat,r.b,r.o,r.s,r.d,dt(r.i),r.lv!=null?dt(r.lv):'',r.n,r.c,r.x,r.g?r.g.join(','):'']));
+ const raw=grp=>{const keys=[],seen=new Set();
+  rows.forEach(r=>grp.forEach(([f])=>{if(r[f])for(const k in r[f])if(!SKIP.test(k)&&!seen.has(k)){seen.add(k);keys.push(k)}}));
+  const out=[['序號','角色'].concat(keys)];
+  rows.forEach((r,n)=>grp.forEach(([f,role])=>{if(r[f])out.push([n+1,role].concat(keys.map(k=>rv(r[f][k],k))))}));return out};
+ const rf=[...ref0].sort((x,y)=>bOrd(x.b)-bOrd(y.b)||(x.o<y.o?-1:x.o>y.o?1:0)||(x.s<y.s?-1:x.s>y.s?1:0)||x.i-y.i);
+ const refS=[['序號','營業處','營業所/課','人員','通路／型態','日期','店家','店碼','打卡時間','離站時間','停留','備註']].concat(rf.map((r,n)=>[n+1,r.b,r.o,r.s,r.ch,r.d,r.n,r.c,dt(r.i),r.e!=null?dt(r.e):'',r.sy,'非異常，供檢視']));
+ const sm=new Map();rows.forEach(r=>{let o=sm.get(r.s);if(!o){o={b:r.b,o:r.o,s:r.s,cnt:{},t:0,us:new Set(),den:DEN[r.s]||0};sm.set(r.s,o)}o.cnt[r.cat]=(o.cnt[r.cat]||0)+1;o.t++;o.us.add(r.u)});
+ const sl=[...sm.values()].map(o=>({...o,u:o.us.size})).sort(xSumCmp());
+ const sumS=[['序號','營業處','營業所/課','人員'].concat(CATS.map(c=>c[0]),['樣態合計','打卡筆數','異常打卡筆數','異常打卡率'])].concat(sl.map((o,i)=>[i+1,o.b,o.o,o.s].concat(CATS.map(c=>o.cnt[c[0]]||''),[o.t,o.den||'',o.u,o.den?+(o.u/o.den*100).toFixed(1)+'%':'–'])));
+ const storeSheet=[['排名','店家','店碼','店家型態','營業處'].concat(CATS.map(c=>c[0]),['樣態合計','異常打卡筆數','涉及人數','打卡筆數','異常打卡率'])].concat(storeSort(storeAgg(rows)).map((o,i)=>[i+1,o.n,o.c,o.ty,o.b].concat(CATS.map(c=>o.cnt[c[0]]||''),[o.t,o.u,o.p,o.den||'',o.den?+(o.rate*100).toFixed(1)+'%':'–'])));
+ const aSt={out:'未納入',ok:'納入・無異常',hit:'有異常',hid:'有異常（排除值隱藏）',ref:'四小時備查'};
+ const audHd=['序號','來源','原始列序','營業處','營業所/課','人員','日期','類型','店家','店碼','打卡時間','離站／完成','判定','說明'],audRow=(r,n)=>[n+1,r.src,r.ix,r.b,r.o,r.s,r.d,r.t,r.n,r.c,r.i!=null?dt(r.i):'',r.e!=null?dt(r.e):'',aSt[r.k],r.txt];
+ const audSheets=[];
+ if(wr&&AP.length)audSheets.push(['原始查詢_工作規劃',[audHd].concat(audList('工作規劃',pset).map(audRow))]);
+ if(wr&&AAx.length)audSheets.push(['原始查詢_打卡異常',[audHd].concat(audList('打卡異常',pset).map(audRow))]);
+ if(wr&&PF3.length)audSheets.push(['原始查詢_人員客戶',[['序號','來源檔','原始列序','人員','營業所/課','判定','說明']].concat(audF3(pset).map((r,n)=>[n+1,r.src,r.ix,r.s,r.o,r.k==='ok'?'採用':'未採用',r.txt]))]);
+ const wb=XLSX.utils.book_new();
+ [['人員彙總',sumS],['異常明細',main],['店家排行',storeSheet],...(XS.ref?[['四小時備查',refS]]:[]),...audSheets,...(wr?[['原始_工作規劃',raw([['w','本筆規劃'],['pw','前筆規劃']])],['原始_打卡異常',raw([['a','本筆打卡異常'],['pa','到站打卡異常']])]]:[])].forEach(([n,a])=>{
+  const ws=XLSX.utils.aoa_to_sheet(a);
+  ws['!cols']=a[0].map((_,j)=>({wch:Math.min(40,Math.max(6,...a.slice(0,200).map(r=>String(r[j]??'').length*1.6)))}));
+  ws['!autofilter']={ref:ws['!ref']};XLSX.utils.book_append_sheet(wb,ws,n)});
+ return wb}
+function xXlsx(g,d){const all=g.leaves.length===XT.flatMap(xLv).length,wb=xlsxBook(d.rows,d.ref,all?true:new Set(g.leaves.map(p=>p.s)),XS.raw);
+ return new Blob([XLSX.write(wb,{type:'array',bookType:'xlsx',compression:true})],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}
+
+
+/* ===== 匯出報表（V10）：PDF／靜態 HTML × 整份／一處／一所／一人 ===== */
+const XS={chk:new Set(),open:new Set(),cats:new Set(),known:new Set(),ref:true,raw:false,q:'',busy:false,stop:false},XP={BODY:696,TITLE:140,SH:30,TH:24,RS:22,RD:26,RM:30};
+let XT=[],XM={};
+const XID=new Map(),xid=(p,k)=>{const key=p+k;if(!XID.has(key))XID.set(key,p+XID.size);return XID.get(key)};
+const xCats=()=>CATS.filter(([c])=>XS.cats.has(c)),xCatTag=()=>XS.cats.size===CATS.length?'':'_'+(XS.cats.size<=3?CATS.map(c=>c[0]).filter(c=>XS.cats.has(c)).join('+'):XS.cats.size+'類'),
+ xExTag=fmt=>(XS.ref?'':'_不含四小時備查')+(fmt==='xlsx'&&XS.raw?'_含原始資料':''),
+ xScope=L=>{const all=XT.flatMap(xLv),bs=[...new Set(L.map(p=>p.b))],os=new Set(L.map(p=>p.b+'\u0001'+p.o)),full=f=>{const t=all.filter(f).length;return t>0&&L.filter(f).length===t};
+  if(L.length===1)return[L[0].b,L[0].o,L[0].s];if(L.length===all.length)return['整份'];
+  if(bs.length===1){const b=bs[0];if(os.size===1){const o=L[0].o;return full(p=>p.b===b&&p.o===o)?[b,o]:[b,o,L.length+'人']}return full(p=>p.b===b)?[b]:[b,os.size+'所'+L.length+'人']}
+  return bs.length<=3&&bs.every(b=>full(p=>p.b===b))?[bs.join('+')]:[bs.length+'處'+L.length+'人']};
+const XB=b=>b||'（未標營業處）',xv=n=>document.querySelector('input[name='+n+']:checked').value;
+const xLv=n=>n.rows?[n]:n.ps?n.ps:n.os.flatMap(o=>o.ps);
+const xVis=p=>{const q=XS.q.trim();return !q||(p.b+p.o+p.s).includes(q)};
+const XW={'不足一分':58,'逾四小時':58,'時間重疊':58,'隔三小時':58,'同店連打':58,'衛星訊號異常':78,'定位偏移':58,'臨時點異地離站':92};
+const RCSS=`.rp{font:12px/1.4 "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;color:#1f2937;background:#fff;text-align:left}
+.rp h1{font-size:20px;line-height:28px;margin:0 0 2px;color:#111827}.rp .meta{color:#6b7280;font-size:11px;line-height:15px}
+.rp .kp{display:flex;gap:6px;margin:10px 0}.rp .k{border:1px solid #e5e7eb;border-left:4px solid #999;border-radius:6px;padding:3px 8px;flex:1;white-space:nowrap;background:#fff}
+.rp .k b{font-size:15px}.rp .k span{color:#6b7280;font-size:10px}
+.rp .sh{font-weight:700;font-size:13px;height:30px;line-height:30px;color:#111827}
+.rp table{border-collapse:collapse;width:100%;font-size:11px;margin:0}
+.rp th{background:#f3f4f6;text-align:left;padding:0 6px;height:24px;border-bottom:1px solid #d1d5db;white-space:nowrap;position:static;font-weight:700;color:#374151}
+.rp td{padding:0 6px;border-bottom:1px solid #e5e7eb;text-align:left;white-space:nowrap;color:#1f2937}
+.rp td.n,.rp th.n{text-align:right}.rp td.gp,.rp th.gp{padding-left:22px}
+.rp .fx{table-layout:fixed}.rp .fx td,.rp .fx th{overflow:hidden}
+.rp .fx tr.sr td{height:21px}.rp .fx tr.dr td{height:25px}
+.rp td.w{white-space:normal;word-break:break-all;line-height:12px}.rp .fx td.w div{max-height:24px;overflow:hidden}
+.rp a{color:#2563eb}
+.rp .k .th{line-height:13px;white-space:normal}.rp td.mw{white-space:normal;line-height:17px;vertical-align:top;padding-top:4px;padding-bottom:4px}.rp .mt tr{break-inside:avoid}.rp tr.st td{font-weight:700;background:#eceff3}.rp tr.tt td{background:#dde1e8}
+.rp.pg{width:1122px;height:794px;box-sizing:border-box;padding:18px 18px 0;position:relative;overflow:hidden}
+.rp .ph{height:26px;display:flex;justify-content:space-between;font-size:11px;color:#6b7280;border-bottom:1px solid #e5e7eb}
+.rp .pb{height:700px;overflow:hidden}.rp .pf{position:absolute;left:18px;right:18px;bottom:16px;display:flex;justify-content:space-between;font-size:10px;color:#6b7280}`;
+function planPages(nSum,grp,nMan,nRef){const pages=[];let cur={secs:[]},free=XP.BODY-XP.TITLE;
+ const nxt=()=>{pages.push(cur);cur={secs:[]};free=XP.BODY};
+ const sec=(kind,n,rh,off,b,tot,gi)=>{let i=0;while(i<n){if(free<XP.SH+XP.TH+rh)nxt();
+   const k=Math.min(n-i,Math.floor((free-XP.SH-XP.TH)/rh));cur.secs.push({kind,from:off+i,to:off+i+k,cont:i>0,b,tot,gi});free-=XP.SH+XP.TH+k*rh;i+=k;if(i<n)nxt()}};
+ if(nSum>0)sec('sum',nSum,XP.RS,0,null,0,-1);
+ let off=0;grp.forEach((g,gi)=>{if((gi>0||nSum>0)&&cur.secs.length)nxt();
+  if(g.ns>0)sec('gsum',g.ns,XP.RS,0,g.b,0,gi);
+  sec('det',g.n,XP.RD,off,g.b,g.n,gi);off+=g.n});
+ if(nRef>0){if(cur.secs.length)nxt();sec('ref',nRef,XP.RD,0,null,0,-2)}
+ if(nMan>0){if(cur.secs.length)nxt();cur.secs.push({kind:'man'})}
+ pages.push(cur);
+ const cn={},sn={};pages.forEach(p=>p.secs.forEach(x=>{if(x.kind==='det')cn[x.gi]=(cn[x.gi]||0)+1}));
+ pages.forEach(p=>p.secs.forEach(x=>{if(x.kind==='det'){sn[x.gi]=(sn[x.gi]||0)+1;x.k=sn[x.gi];x.m=cn[x.gi]}}));
+ return pages}
+function xBuild(){const m=new Map(),RM=new Map();refRes.forEach(r=>{const k=XB(r.b)+'\u0001'+(r.o||'其他')+'\u0001'+r.s;if(!RM.has(k))RM.set(k,[]);RM.get(k).push(r)});
+ res.forEach(r=>{if(!XS.cats.has(r.cat))return;const b=XB(r.b),o=r.o||'其他',k=r.s;if(!m.has(b))m.set(b,new Map());const om=m.get(b);if(!om.has(o))om.set(o,new Map());const pm=om.get(o);if(!pm.has(k))pm.set(k,[]);pm.get(k).push(r)});
+ if(XS.ref)refRes.forEach(r=>{const b=XB(r.b),o=r.o||'其他';if(!m.has(b))m.set(b,new Map());const om=m.get(b);if(!om.has(o))om.set(o,new Map());const pm=om.get(o);if(!pm.has(r.s))pm.set(r.s,[])});
+ XM={};XT=[...m].sort((a,c)=>bOrd(a[0])-bOrd(c[0])||(a[0]<c[0]?-1:a[0]>c[0]?1:0)).map(([b,om])=>{
+  const os=[...om].sort((a,c)=>a[0]<c[0]?-1:a[0]>c[0]?1:0).map(([o,pm])=>{
+   const ps=[...pm].sort((a,c)=>c[1].length-a[1].length||(a[0]<c[0]?-1:1)).map(([s,rows])=>{const P={id:xid('p',b+'\u0001'+o+'\u0001'+s),b,o,s,rows,ref:RM.get(b+'\u0001'+o+'\u0001'+s)||[]};XM[P.id]=P;return P});
+   const O={id:xid('o',b+'\u0001'+o),b,o,ps};XM[O.id]=O;return O});
+  const B={id:xid('b',b),b,os};XM[B.id]=B;return B})}
+function xRow(n,l,act){const lv=xLv(n).filter(xVis),c=lv.filter(p=>XS.chk.has(p.id)).length,all=lv.length>0&&c===lv.length,ind=c>0&&!all,cnt=lv.reduce((a,p)=>a+p.rows.length,0),rc=XS.ref?lv.reduce((a,p)=>a+p.ref.length,0):0;
+ const lab=l===1?n.b:l===2?ofs(n.o):nm(n.s),full=l===1?n.b:l===2?n.o:n.s,meta=(l===3?cnt+' 筆':lv.length+' 人／'+cnt+' 筆')+(rc?'／備查 '+rc:'');
+ return`<div class="xr${act?' act':''}" data-a="${n.id}" title="${esc(full)}"><input type="checkbox" data-k="${n.id}" ${all?'checked':''} ${ind?'data-ind="1"':''}><span class="xl">${esc(lab)}</span><span class="xc">${meta}</span></div>`}
+function xRender(){const Bs=XT.filter(B=>xLv(B).some(xVis)),B=Bs.find(b=>b.id===XS.pb)||Bs[0];XS.pb=B?B.id:null;
+ const Os=B?B.os.filter(O=>O.ps.some(xVis)):[],O=Os.find(o=>o.id===XS.po)||Os[0];XS.po=O?O.id:null;const Ps=O?O.ps.filter(xVis):[],em='<div class="xe">沒有符合的對象</div>';
+ $('pb1').innerHTML=Bs.map(b=>xRow(b,1,b===B)).join('')||em;
+ $('pb2').innerHTML=Os.map(o=>xRow(o,2,o===O)).join('')||(B?em:'');
+ $('pb3').innerHTML=Ps.map(p=>xRow(p,3,false)).join('')||(O?em:'');
+ $('pbh2').textContent=B?B.b+'　營業所／課':'營業所／課';$('pbh3').textContent=O?ofs(O.o)+'　人員':'人員';
+ $('xt').querySelectorAll('input[data-ind]').forEach(e=>e.indeterminate=true);xSum()}
+function xGroups(mode){const L=XT.flatMap(xLv).filter(p=>XS.chk.has(p.id)),m=new Map();
+ L.forEach(p=>{const k=mode==='all'?'all':mode==='b'?p.b:mode==='o'?p.b+'\u0001'+p.o:p.id;
+  if(!m.has(k))m.set(k,{parts:mode==='all'?['整份']:mode==='b'?[p.b]:mode==='o'?[p.b,p.o]:[p.b,p.o,p.s],leaves:[],rows:[],ref:[]});
+  const g=m.get(k);g.leaves.push(p);g.rows.push(...p.rows);g.ref.push(...p.ref)});return[...m.values()]}
+function xSum(){const mode=xv('xm'),fmt=xv('xf'),gs=xGroups(mode);let pg=0;
+ if(fmt==='pdf')try{gs.forEach(g=>{const d=xData(g);pg+=planPages(d.sum.length,d.grp,d.man.length,d.ref.length).length})}catch(e){pg=0;console.error('頁數預估失敗',e)}
+ xSum.pg=pg;if(!XS.busy){const np=gs.reduce((s,g)=>s+g.leaves.length,0),nr=gs.reduce((s,g)=>s+g.rows.length,0),nb=gs.reduce((s,g)=>s+(XS.ref?g.ref.length:0),0);
+  $('xs').innerHTML=gs.length?`<span class="sv"><b>${gs.length}</b> 份 ${{pdf:'PDF',html:'HTML',xlsx:'Excel'}[fmt]}</span><span class="sv"><b>${np.toLocaleString()}</b> 人</span><span class="sv"><b>${nr.toLocaleString()}</b> 筆異常</span>`+(nb?`<span class="sv"><b>${nb.toLocaleString()}</b> 筆備查</span>`:'')+(fmt==='pdf'?`<span class="sv"><b>${pg.toLocaleString()}</b> 頁</span>`:fmt==='xlsx'?`<span class="sv"><b>${3+(XS.ref?1:0)+(XS.raw?(AP.length?1:0)+(AAx.length?1:0)+(PF3.length?1:0)+2:0)}</b> 個工作表</span>`:'')+(gs.length>1?'<span class="sv">打包 ZIP</span>':''):`<span>${XS.cats.size?'尚未勾選任何對象':'尚未勾選任何異常樣態'}</span>`}
+ $('xg').disabled=!gs.length||XS.busy}
+function xSumCmp(){const k=$('xo').value,dir=xv('xdir')==='asc'?1:-1,base=(a,b)=>bOrd(a.b)-bOrd(b.b)||(a.o<b.o?-1:a.o>b.o?1:0)||(a.s<b.s?-1:a.s>b.s?1:0);
+ if(!k)return(a,b)=>bOrd(a.b)-bOrd(b.b)||(a.b<b.b?-1:a.b>b.b?1:0)||(a.o<b.o?-1:a.o>b.o?1:0)||b.t-a.t;
+ if(k==='s')return(a,b)=>dir*(a.s<b.s?-1:a.s>b.s?1:0)||base(a,b);
+ const v=k==='rate'?p=>p.den?p.u/p.den:null:p=>p[k];
+ return(a,b)=>{const x=v(a),y=v(b);if(x==null&&y==null)return base(a,b);if(x==null)return 1;if(y==null)return -1;return dir*(x-y)||base(a,b)}}
+
+function xGrp(rows){const m=new Map();rows.forEach(r=>{const b=XB(r.b);m.set(b,(m.get(b)||0)+1)});return[...m].sort((a,c)=>bOrd(a[0])-bOrd(c[0])||(a[0]<c[0]?-1:a[0]>c[0]?1:0)).map(([b,n])=>({b,n}))}
+function xThr(){const o=$('tOff').value===''?0.4:+$('tOff').value,f=+$('tFar').value||0.3;return{o,f}}
+function xThTxt(c){const t=xThr();return{'不足一分':'停留＜60 秒','逾四小時':'停留≥4 小時','時間重疊':'間距＜0 秒','隔三小時':'間距≥3 小時','同店連打':'間距＜3 小時','衛星訊號異常':'系統標記＝是','定位偏移':t.o>0?'≥'+t.o+' 公里':'報表全收','臨時點異地離站':'≥'+t.f+' 公里'}[c]||''}
+/* V37：報表末尾的白話簡表（只列勾選樣態＋共通一列）。判定規則改動時要與 analyze() 和內建說明書一起同步 */
+function xSatEx(nx){const sp=String(span||'').split('～'),a=sp[0],b=sp[1]||sp[0];if(b<SAT_CUT)return nx;if(a>=SAT_CUT)return'無';return SAT_CUT+' 起：無；此日前：'+nx}
+function xMan(){const t=xThr(),NX='處所（店家型態屬其他類別、店名含「營業處」「營業所」「商化所」）或店名含「臨時」者',M={
+ '不足一分':['自到站打卡至離站打卡未滿 1 分鐘',NX],
+ '逾四小時':['同一店家停留時間達 4 小時以上','通路別為量販通路、即飲通路，或處所（店家型態屬其他類別、店名含營業處、營業所、商化所，且不含「臨時」）者（改列「四小時備查」，不列為異常）；無通路別資料時，以店家型態為家樂福量販店、愛買、大全聯、即飲通路者認定'],
+ '時間重疊':['同日前後兩筆為不同店家，且後筆到站時間早於前筆離站時間','前後兩筆為同一店家者'],
+ '隔三小時':['同日前筆離站至後筆到站，間隔達 3 小時以上','無'],
+ '同店連打':['同日同一店家連續兩次打卡',NX+'；前筆離站至後筆到站間隔達 3 小時以上者，改列「隔三小時」'],
+ '衛星訊號異常':['工作規劃系統標記為衛星訊號異常',xSatEx(NX)],
+ '定位偏移':[t.o>0?`打卡位置與店家登記地址相距 ${t.o} 公里以上`:'打卡位置與店家登記地址有誤差者（未設門檻）','臨時點；店家型態為室內點、室外點者'],
+ '臨時點異地離站':[`臨時點到站位置與離站位置相距 ${t.f} 公里以上`,'非臨時點；缺到站或離站其中一筆者']};
+ const a=xCats().map(([c,col])=>[c,M[c][0],M[c][1],col]);
+ if(XS.ref)a.push(['四小時備查（非異常）','量販通路、即飲通路、營業處／營業所／商化所之逾四小時紀錄，供檢視使用','不列為異常，不計入樣態合計、異常打卡筆數及異常打卡率','#9a8c70']);
+ a.push(['各樣態共同適用','納入稽核：業務員具員編、任務狀態為完成、具店家代碼之打卡紀錄','不納入稽核：共用帳號（無員編）；任務未完成；無店家代碼者','#9ca3af']);return a}
+function xRefRows(g){if(!XS.ref)return[];const tm=xTypeMap();return[...g.ref].sort((a,b)=>bOrd(XB(a.b))-bOrd(XB(b.b))||(a.o<b.o?-1:a.o>b.o?1:0)||(a.s<b.s?-1:a.s>b.s?1:0)||a.i-b.i)}
+function xData(g){const rows=[...g.rows].sort((a,b)=>bOrd(XB(a.b))-bOrd(XB(b.b))||(XB(a.b)<XB(b.b)?-1:XB(a.b)>XB(b.b)?1:0)||(a.o<b.o?-1:a.o>b.o?1:0)||(a.s<b.s?-1:a.s>b.s?1:0)||a.i-b.i);
+ const tm=xTypeMap();rows.forEach(r=>{r.ty=xTv(r.w)||xTv(r.a)||xTv(r.pw)||tm[r.c]||''});
+ const bs=new Set(g.leaves.map(p=>p.b)),os=new Set(g.leaves.map(p=>p.b+'\u0001'+p.o)),L=g.leaves,t=new Date(),z=n=>String(n).padStart(2,'0');
+ const La=L.filter(p=>p.rows.length),sum0=La.length>1?La.map(p=>{const cnt={};p.rows.forEach(r=>cnt[r.cat]=(cnt[r.cat]||0)+1);return{b:p.b,o:p.o,s:p.s,cnt,t:p.rows.length,u:new Set(p.rows.map(r=>r.u)).size,den:DEN[p.s]||0}}).sort(xSumCmp()):[];
+ const grp=xGrp(rows),def=$('xo').value==='';
+ const agg=rs=>{const cnt={};rs.forEach(r=>cnt[r.cat]=(cnt[r.cat]||0)+1);const ps=new Set(rs.map(r=>r.s));let den=0;ps.forEach(k=>den+=DEN[k]||0);return{sub:1,cnt,t:rs.length,u:new Set(rs.map(r=>r.u)).size,den,np:ps.size}};
+ const mk=(rs,b,o,lab)=>{const a=agg(rs);a.b=b;a.o=o;a.s=lab?lab+'（'+a.np+' 人）':a.np+' 人';return a};
+ const rowsOf=(b,o)=>rows.filter(r=>XB(r.b)===b&&(o==null||r.o===o));
+ const asm=(list,withO,withB)=>{const out=[],multiO=new Set(list.map(o=>o.b+'\u0001'+o.o)).size>new Set(list.map(o=>o.b)).size;
+  list.forEach((o,i)=>{out.push(o);const nx=list[i+1],lastB=!nx||nx.b!==o.b;
+   if(withO&&multiO&&(lastB||nx.o!==o.o))out.push(mk(rowsOf(o.b,o.o),o.b,o.o,'所小計'));
+   if(lastB&&withB)out.push(mk(rowsOf(o.b),o.b,'','處小計'))});return out};
+ grp.forEach(x=>{const f=(La.length>1&&grp.length>1)?sum0.filter(o=>o.b===x.b):[];x.sum=def&&f.length?asm(f,true,true):f;x.ns=x.sum.length});
+ let sumAll=def&&sum0.length?(grp.length>1?asm(sum0,false,true):asm(sum0,true,false)):sum0;
+ if(sum0.length){const t=mk(rows,'總計','','');t.tot=1;sumAll=sumAll.concat([t])}
+ return{title:'打卡異常檢核報告',short:g.parts.join(' / '),span:span||'—',ver:VER,now:`${t.getFullYear()}-${z(t.getMonth()+1)}-${z(t.getDate())} ${z(t.getHours())}:${z(t.getMinutes())}`,
+  scope:`營業處：${bs.size===1?[...bs][0]:bs.size+' 處'}　｜　營業所/課：${os.size===1?L[0].o:os.size+' 所'}　｜　人員：${L.length===1?L[0].s:L.length+' 人'}　｜　樣態：${XS.cats.size===CATS.length?'全部':XS.cats.size+' 類'}`,
+  kpi:xCats().map(([c,col])=>{const x=rows.filter(r=>r.cat===c);const tv=tolVals()[c];return{c,col,n:x.length,p:new Set(x.map(r=>r.s)).size,th:'門檻 '+xThTxt(c),tl:'≤ '+tv+' 筆排除'}}),sum:sumAll,rows,grp:grp,ref:xRefRows(g),man:xMan()}}
+const xTitle=d=>`<h1>${esc(d.title)}</h1><div class="meta">${esc(d.scope)}<br>資料區間：${esc(d.span)}　產出：${d.now}　工具版本：${d.ver}</div><div class="kp">${d.kpi.map(k=>`<div class="k" style="border-left-color:${k.col}"><span>${k.c}</span><div><b>${k.n}</b><span>筆</span> <span>${k.p} 人</span></div><div class="th"><span>${esc(k.tl)}</span></div></div>`).join('')}</div>`;
+
+function xRk(){return['t','den','u','rate'].includes($('xo').value)?'排名':'序號'}
+function xSumTbl(rows,fx){let rk=0;return`<table class="${fx?'fx':''}">`+(fx?`<colgroup><col style="width:40px"><col style="width:60px"><col style="width:90px"><col style="width:112px">${xCats().map(([c])=>`<col style="width:${XW[c]}px">`).join('')}<col style="width:66px"><col style="width:66px"><col style="width:84px"><col style="width:72px"></colgroup>`:'')+`<thead><tr><th class="n">${xRk()}</th><th>營業處</th><th>營業所/課</th><th>人員</th>${xCats().map(([c])=>`<th class="n">${c}</th>`).join('')}<th class="n">樣態合計</th><th class="n">打卡筆數</th><th class="n">異常打卡筆數</th><th class="n">異常打卡率</th></tr></thead><tbody>`+rows.map(o=>`<tr class="sr${o.sub?' st':''}${o.tot?' tt':''}"><td class="n">${o.sub?'':++rk}</td><td>${esc(o.b)}</td><td>${esc(ofs(o.o))}</td><td>${esc(o.s)}</td>${xCats().map(([c])=>`<td class="n">${o.cnt[c]||''}</td>`).join('')}<td class="n"><b>${o.t}</b></td><td class="n">${o.den||''}</td><td class="n">${o.u}</td><td class="n">${o.den?(o.u/o.den*100).toFixed(1)+'%':'–'}</td></tr>`).join('')+'</tbody></table>'}
+function xDetTbl(rows,fx,links){return`<table class="${fx?'fx':''}">`+(fx?'<colgroup><col style="width:40px"><col style="width:86px"><col style="width:48px"><col style="width:52px"><col style="width:90px"><col style="width:122px"><col style="width:122px"><col style="width:72px"><col style="width:140px"><col style="width:84px"><col></colgroup>':'')+`<thead><tr><th class="n">序號</th><th>類別</th><th>營業處</th><th>營業所/課</th><th>人員</th><th>打卡時間</th><th>離站時間</th><th>店家型態</th><th>店家</th><th>店碼</th><th class="gp">說明</th>${links?'<th>地圖</th>':''}</tr></thead><tbody>`+rows.map((r,i)=>`<tr class="dr"><td class="n">${i+1}</td><td>${r.cat}</td><td>${esc(r.b)}</td><td>${esc(ofs(r.o))}</td><td>${esc(r.s)}</td><td>${dt(r.i)}</td><td>${r.lv!=null?dt(r.lv):''}</td><td class="w"><div>${esc(r.ty)}</div></td><td class="w"><div>${esc(r.n)}</div></td><td>${esc(r.c)}</td><td class="w gp"><div>${esc(r.x)}</div></td>${links?`<td>${r.g?`<a target="_blank" rel="noopener" href="https://www.google.com/maps?q=${r.g[0]},${r.g[1]}">開啟</a>`:''}</td>`:''}</tr>`).join('')+'</tbody></table>'}
+/* 店家型態（V25）：工作規劃／打卡異常原始列中欄名含「型態」（或店家類型／店家類別／店型）者；打卡異常來源的列再依店碼回工作規劃對 */
+const XTK=['店家類型','店家類別','店型','客戶類型'];
+function xTv(o){if(!o)return'';for(const k in o){if(/型態/.test(k)||XTK.includes(k)){const v=String(o[k]??'').trim();if(v)return v}}return''}
+function xTypeMap(){if(xTypeMap.k===plan)return xTypeMap.m;const m={};plan.forEach(o=>{const c=String(o['店家代碼']||'').trim();if(c&&!m[c]){const v=xTv(o);if(v)m[c]=v}});xTypeMap.k=plan;xTypeMap.m=m;return m}
+function xDetGrpHtml(d){let o=0;return d.grp.map((g,i)=>{const r=d.rows.slice(o,o+g.n);o+=g.n;return`<div class="sh sub${i||d.sum.length?' pgb':''}">營業處：${esc(g.b)}</div>`+(g.sum.length?'<div class="sh">人員彙總</div>'+xSumTbl(g.sum,false):'')+`<div class="sh">逐筆明細（${g.n} 筆）</div>`+xDetTbl(r,false,true)}).join('')}
+function xRefTbl(d){if(!d.ref.length)return'';return`<div class="sh pgb">四小時備查（非異常認定）（${d.ref.length} 筆）</div><div class="meta">量販通路、即飲通路、營業處／營業所／商化所之逾四小時紀錄，僅供檢視，不列為異常，亦不計入上列各項統計。</div><table><thead><tr><th class="n">序號</th><th>營業處</th><th>營業所/課</th><th>人員</th><th>通路／型態</th><th>店家</th><th>店碼</th><th>打卡時間</th><th>離站時間</th><th>停留</th></tr></thead><tbody>`+d.ref.map((r,i)=>`<tr class="dr"><td class="n">${i+1}</td><td>${esc(r.b)}</td><td>${esc(ofs(r.o))}</td><td>${esc(r.s)}</td><td>${esc(r.ch)}</td><td>${esc(r.n)}</td><td>${esc(r.c)}</td><td>${dt(r.i)}</td><td>${r.e!=null?dt(r.e):''}</td><td>${r.sy}</td></tr>`).join('')+'</tbody></table>'}
+function xManTbl(d){return'<div class="sh pgb">附表　異常樣態判定標準</div><table class="mt"><thead><tr><th style="width:130px">樣態名稱</th><th>列入異常之條件</th><th>不列入之例外情形</th></tr></thead><tbody>'+d.man.map(m=>`<tr><td class="mw" style="border-left:4px solid ${m[3]}"><b>${esc(m[0])}</b></td><td class="mw">${esc(m[1])}</td><td class="mw">${esc(m[2])}</td></tr>`).join('')+'</tbody></table>'}
+function xHtml(d){return`<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(d.title)}｜${esc(d.short)}</title><style>body{margin:0;background:#f4f5f7}${RCSS}.rp.doc{max-width:1200px;margin:0 auto;padding:16px 20px;background:#fff}.rp.doc .sh{margin-top:6px}.rp.doc td{padding:4px 6px}@page{size:A4 landscape;margin:10mm}@media print{.pgb{break-before:page}body{background:#fff}.rp.doc{max-width:none;padding:0}}</style></head><body><div class="rp doc">${xTitle(d)}${d.sum.length?'<div class="sh">人員彙總</div>'+xSumTbl(d.sum,false):''}${xDetGrpHtml(d)}${xRefTbl(d)}${xManTbl(d)}</div></body></html>`}
+/* PDF＝Canvas 直接畫頁（1122×794）→灰階索引 PNG→自組 PDF＋隱形文字層（可選取／搜尋），不需連網。改版面要同步改 XP（planPages 列高）與 xDraw 欄寬／列高。需 CompressionStream。 */
+const XQ={scale:1.4};
+let _crc=null;const crc32=u=>{if(!_crc){_crc=new Uint32Array(256);for(let n=0;n<256;n++){let k=n;for(let j=0;j<8;j++)k=k&1?0xEDB88320^(k>>>1):k>>>1;_crc[n]=k>>>0}}let c=-1;for(let i=0;i<u.length;i++)c=_crc[(c^u[i])&255]^(c>>>8);return(c^-1)>>>0};
+async function xDeflate(u){const cs=new CompressionStream('deflate'),w=cs.writable.getWriter();w.write(u);w.close();return new Uint8Array(await new Response(cs.readable).arrayBuffer())}
+/* 16 階灰階索引 PNG（4 bit）＋deflate。XQ.scale 固定 1.4：調高檔案暴增（≥1.5 約 2 倍、≥1.6 約 4～5 倍），使用者反映過太大，請勿調高。 */
+async function xPng(cv){const w=cv.width,h=cv.height,px=cv.getContext('2d').getImageData(0,0,w,h).data,rb=(w+1)>>1,raw=new Uint8Array((rb+1)*h);
+ for(let y=0,o=0;y<h;y++){raw[o++]=0;for(let x=0;x<w;x+=2){const i=(y*w+x)*4,a=(px[i]*77+px[i+1]*151+px[i+2]*28)>>12,j=i+4,b=x+1<w?(px[j]*77+px[j+1]*151+px[j+2]*28)>>12:15;raw[o++]=(a<<4)|b}}
+ const idat=await xDeflate(raw),pal=new Uint8Array(48);for(let i=0;i<16;i++)pal[i*3]=pal[i*3+1]=pal[i*3+2]=i*17;
+ const ch=(t,d)=>{const u=new Uint8Array(12+d.length),v=new DataView(u.buffer);v.setUint32(0,d.length);for(let i=0;i<4;i++)u[4+i]=t.charCodeAt(i);u.set(d,8);v.setUint32(8+d.length,crc32(u.subarray(4,8+d.length)));return u};
+ const ih=new Uint8Array(13),iv=new DataView(ih.buffer);iv.setUint32(0,w);iv.setUint32(4,h);ih[8]=4;ih[9]=3;
+ const parts=[new Uint8Array([137,80,78,71,13,10,26,10]),ch('IHDR',ih),ch('PLTE',pal),ch('IDAT',idat),ch('IEND',new Uint8Array(0))],out=new Uint8Array(parts.reduce((n,p)=>n+p.length,0));let q=0;parts.forEach(p=>{out.set(p,q);q+=p.length});return out}
+function xWrap(c,t,w,max){t=String(t==null?'':t);if(c.measureText(t).width<=w)return[t];const L=[];let cur='';for(const ch of t){const nx=cur+ch;if(cur&&c.measureText(nx).width>w){L.push(cur);cur=ch}else cur=nx}if(cur)L.push(cur);
+ if(L.length>max){L.length=max;let l=L[max-1];while(l.length>1&&c.measureText(l+'…').width>w)l=l.slice(0,-1);L[max-1]=l+'…'}return L}
+function xFit(c,t,w){t=String(t==null?'':t);if(c.measureText(t).width<=w)return t;while(t.length>1&&c.measureText(t+'…').width>w)t=t.slice(0,-1);return t+'…'}
+let XTX=[];
+function xDraw(d,pl,i){XTX=[];const p=pl[i],N=pl.length,W=1122,H=794,S=XQ.scale,cv=document.createElement('canvas');cv.width=Math.round(W*S);cv.height=Math.round(H*S);
+ const c=cv.getContext('2d');c.scale(S,S);c.fillStyle='#fff';c.fillRect(0,0,W,H);c.textBaseline='alphabetic';
+ const T=(t,x,y,f,col,al)=>{c.font=f+' '+XF;c.fillStyle=col;c.textAlign=al||'left';c.fillText(t,x,y);XTX.push([String(t),x,y,c.measureText(String(t)).width,parseFloat(/([\d.]+)px/.exec(f)[1]),al||'left'])},
+  sn=v=>(Math.round(v*S-.5)+.5)/S, // 線貼齊實際像素：S=1.4 時線落在像素中間會變兩排灰（反鋸齒），PNG 會肥一倍
+  LN=(x1,y1,x2,y2,col,w)=>{c.strokeStyle=col;c.lineWidth=Math.max(1,Math.round((w||1)*S))/S;c.beginPath();c.moveTo(x1===x2?sn(x1):x1,y1===y2?sn(y1):y1);c.lineTo(x2===x1?sn(x2):x2,y2===y1?sn(y2):y2);c.stroke()},
+  FR=(x,y,w,h,col)=>{const a=Math.round(x*S)/S,b=Math.round(y*S)/S,e=Math.round((x+w)*S)/S,f=Math.round((y+h)*S)/S;c.fillStyle=col;c.fillRect(a,b,e-a,f-b)},
+  RR=(x,y,w,h,r)=>{c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()};
+ const X0=18,CW=1086,TOP=18+26;
+ if(i){T(d.title+'｜'+d.short,X0,36,'11px','#6b7280');T(d.span,X0+CW,36,'11px','#6b7280','right')}
+ LN(X0,TOP-.5,X0+CW,TOP-.5,'#e5e7eb');
+ T('產出 '+d.now+'｜'+d.ver,X0,H-19,'10px','#6b7280');T('第 '+(i+1)+' / '+N+' 頁',X0+CW,H-19,'10px','#6b7280','right');
+ let y=TOP;
+ if(i===0){T(d.title,X0,y+22,'700 20px','#111827');T(d.scope,X0,y+42,'11px','#6b7280');
+  T(`資料區間：${d.span}　產出：${d.now}　工具版本：${d.ver}`,X0,y+57,'11px','#6b7280');
+  const n=d.kpi.length,kw=(CW-6*(n-1))/n,ky=y+70,kh=48;
+  d.kpi.forEach((k,j)=>{const kx=X0+j*(kw+6);c.save();RR(kx+.5,ky+.5,kw-1,kh-1,6);c.fillStyle='#fff';c.fill();c.strokeStyle='#e5e7eb';c.lineWidth=1;c.stroke();c.clip();FR(kx,ky,4,kh,k.col);c.restore();
+   T(k.c,kx+12,ky+14,'10px','#6b7280');c.font='700 15px '+XF;const nw=c.measureText(String(k.n)).width;T(String(k.n),kx+12,ky+31,'700 15px','#1f2937');T('筆',kx+12+nw+1,ky+31,'10px','#6b7280');
+   c.font='10px '+XF;const bw=c.measureText('筆').width;T(k.p+' 人',kx+12+nw+bw+7,ky+31,'10px','#6b7280');c.font='10px '+XF;T(xFit(c,k.tl,kw-16),kx+12,ky+43,'10px','#6b7280')});
+  y+=XP.TITLE}
+ let yy=y;
+ p.secs.forEach(s=>{
+  if(s.kind==='sum'||s.kind==='gsum'){T('人員彙總'+(s.kind==='gsum'?'｜'+s.b:'')+(s.cont?'（續）':''),X0,yy+20,'700 13px','#111827');yy+=XP.SH;
+   const cs=xCats(),heads=[xRk(),'營業處','營業所/課','人員',...cs.map(x=>x[0]),'樣態合計','打卡筆數','異常打卡筆數','異常打卡率'],w0=[40,60,90,112,...cs.map(([k])=>XW[k]),66,66,84,72],tt=w0.reduce((a,b)=>a+b,0),ws=w0.map(w=>w*CW/tt),xs=[X0];ws.forEach(w=>xs.push(xs[xs.length-1]+w));
+   const full=(s.kind==='gsum'?d.grp[s.gi].sum:d.sum),rows=full.slice(s.from,s.to),th=XP.TH,rh=XP.RS;let rk=full.slice(0,s.from).filter(o=>!o.sub).length;
+   FR(X0,yy,CW,th,'#f3f4f6');heads.forEach((h,k)=>{const num=k===0||k>=4;T(xFit(c,h,ws[k]-8),num?xs[k+1]-6:xs[k]+6,yy+16,'700 11px','#374151',num?'right':'left')});
+   LN(X0,yy+th-.75,X0+CW,yy+th-.75,'#9ca3af',1.5);
+   rows.forEach((o,r)=>{const ry=yy+th+r*rh;if(o.sub)FR(X0,ry,CW,rh,o.tot?'#dde1e8':'#e9ecf1');else if(r%2)FR(X0,ry,CW,rh,'#f7f8fa');const vals=[o.sub?'':++rk,o.b,ofs(o.o),o.s,...cs.map(([k])=>o.cnt[k]||''),o.t,o.den||'',o.u,o.den?(o.u/o.den*100).toFixed(1)+'%':'–'];
+    vals.forEach((v,k)=>{if(v===''||v==null)return;const num=k===0||k>=4,bold=k===4+cs.length||o.sub;c.font=(bold?'700 ':'')+'11px '+XF;T(xFit(c,v,ws[k]-10),num?xs[k+1]-6:xs[k]+6,ry+15,(bold?'700 ':'')+'11px','#1f2937',num?'right':'left')});
+    LN(X0,ry+rh-.5,X0+CW,ry+rh-.5,'#e5e7eb')});
+   {const bot=yy+th+rows.length*rh,st=new Set([4,4+cs.length]);for(let k=1;k<heads.length;k++)LN(xs[k]-.5,yy,xs[k]-.5,bot,st.has(k)?'#b8bec9':'#e3e6ea')}
+   yy+=th+rows.length*rh}
+  else if(s.kind==='ref'){T('四小時備查（非異常認定）（共 '+d.ref.length+' 筆）'+(s.cont?'（續）':'')+'｜量販通路、即飲通路、營業處／營業所／商化所逾四小時，僅供檢視，不列入異常統計',X0,yy+20,'700 13px','#111827');yy+=XP.SH;
+   const D=[['序號',40,(r,i)=>i+1],['營業處',56,r=>r.b],['營業所/課',64,r=>ofs(r.o)],['人員',104,r=>r.s],['通路／型態',100,r=>r.ch],['店家',0,r=>r.n,1],['店碼',100,r=>r.c],['打卡時間',122,r=>dt(r.i)],['離站時間',122,r=>r.e!=null?dt(r.e):''],['停留',70,r=>r.sy]],
+    fx=CW-D.reduce((a,k)=>a+k[1],0),ws=D.map(k=>k[1]||fx),xs=[X0];ws.forEach(w=>xs.push(xs[xs.length-1]+w));
+   FR(X0,yy,CW,XP.TH,'#f3f4f6');D.forEach((k,j)=>T(k[0],xs[j]+6,yy+16,'700 11px','#374151'));LN(X0,yy+XP.TH-.5,X0+CW,yy+XP.TH-.5,'#d1d5db');yy+=XP.TH;
+   d.ref.slice(s.from,s.to).forEach((r,ri)=>{
+    D.forEach((k,j)=>{const x=xs[j]+6,w=ws[j]-12,v=k[2](r,s.from+ri);c.font='11px '+XF;
+     if(k[3]){const Ls=xWrap(c,v,w,2);if(Ls.length===1)T(Ls[0],x,yy+17,'11px','#1f2937');else Ls.forEach((l,q)=>T(l,x,yy+11+q*12,'11px','#1f2937'))}
+     else T(xFit(c,v,w),x,yy+17,'11px','#1f2937')});
+    LN(X0,yy+XP.RD-.5,X0+CW,yy+XP.RD-.5,'#e5e7eb');yy+=XP.RD})}
+  else if(s.kind==='man'){T('附表　異常樣態判定標準',X0,yy+20,'700 13px','#111827');yy+=XP.SH;
+   const hs=['樣態名稱','列入異常之條件','不列入之例外情形'],ws=[120,483,483],xs=[X0,X0+120,X0+603];
+   FR(X0,yy,CW,XP.TH,'#f3f4f6');hs.forEach((h,j)=>T(h,xs[j]+8,yy+16,'700 11px','#374151'));LN(X0,yy+XP.TH-.5,X0+CW,yy+XP.TH-.5,'#d1d5db');yy+=XP.TH;
+   d.man.forEach((m,r)=>{if(r%2)FR(X0,yy,CW,XP.RM,'#f7f8fa');FR(X0,yy,3,XP.RM,m[3]);
+    c.font='700 11px '+XF;T(xFit(c,m[0],ws[0]-14),xs[0]+10,yy+19,'700 11px','#1f2937');
+    [1,2].forEach(j=>{c.font='11px '+XF;const Ls=xWrap(c,m[j],ws[j]-16,2);if(Ls.length===1)T(Ls[0],xs[j]+8,yy+19,'11px','#1f2937');else Ls.forEach((l,q)=>T(l,xs[j]+8,yy+13+q*12,'11px','#1f2937'))});
+    LN(X0,yy+XP.RM-.5,X0+CW,yy+XP.RM-.5,'#e5e7eb');yy+=XP.RM});
+   [1,2].forEach(j=>LN(xs[j]-.5,yy-d.man.length*XP.RM-XP.TH,xs[j]-.5,yy,'#e3e6ea'))}
+  else{T('逐筆明細｜'+s.b+'（'+s.tot+' 筆）'+(s.m>1?(s.cont?'（續 ':'（')+s.k+'/'+s.m+'）':''),X0,yy+20,'700 13px','#111827');yy+=XP.SH;
+   const g0=s.from-d.grp.slice(0,s.gi).reduce((a,g)=>a+g.n,0),D=[['序號',40,(r,i)=>i+1],['類別',88,r=>r.cat],['營業處',48,r=>r.b],['營業所/課',64,r=>ofs(r.o)],['人員',104,r=>r.s],['打卡時間',122,r=>dt(r.i)],['離站時間',122,r=>r.lv!=null?dt(r.lv):''],['店家型態',72,r=>r.ty,1],['店家',140,r=>r.n,1],['店碼',100,r=>r.c],['說明',0,r=>r.x,1,1]],
+    fx=CW-D.reduce((a,k)=>a+k[1],0),ws=D.map(k=>k[1]||fx),xs=[X0];ws.forEach(w=>xs.push(xs[xs.length-1]+w));
+   FR(X0,yy,CW,XP.TH,'#f3f4f6');D.forEach((k,j)=>T(k[0],xs[j]+6+(k[4]?16:0),yy+16,'700 11px','#374151'));LN(X0,yy+XP.TH-.5,X0+CW,yy+XP.TH-.5,'#d1d5db');yy+=XP.TH;
+   d.rows.slice(s.from,s.to).forEach((r,ri)=>{
+    D.forEach((k,j)=>{const x=xs[j]+6+(k[4]?16:0),w=ws[j]-12-(k[4]?16:0),v=k[2](r,g0+ri);
+     if(k[3]){c.font='11px '+XF;const Ls=xWrap(c,v,w,2);if(Ls.length===1)T(Ls[0],x,yy+17,'11px','#1f2937');else Ls.forEach((l,q)=>T(l,x,yy+11+q*12,'11px','#1f2937'))}
+     else{c.font='11px '+XF;T(xFit(c,v,w),x,yy+17,'11px','#1f2937')}});
+    LN(X0,yy+XP.RD-.5,X0+CW,yy+XP.RD-.5,'#e5e7eb');yy+=XP.RD})}});
+ return cv}
+const XF='"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
+/* PDF＝圖片頁＋隱形文字層（render mode 3），不內嵌字型。 */
+
+function xPngParts(u){const dv=new DataView(u.buffer,u.byteOffset,u.byteLength);let o=8,w=0,h=0,pal=null;const id=[];while(o<u.length){const n=dv.getUint32(o),t=String.fromCharCode(u[o+4],u[o+5],u[o+6],u[o+7]),d=u.subarray(o+8,o+8+n);if(t==='IHDR'){w=dv.getUint32(o+8);h=dv.getUint32(o+12)}else if(t==='PLTE')pal=d;else if(t==='IDAT')id.push(d);o+=12+n}
+ const z=new Uint8Array(id.reduce((a,p)=>a+p.length,0));let q=0;id.forEach(p=>{z.set(p,q);q+=p.length});return{w,h,pal,z}}
+const xHex=u=>{let s='';for(let i=0;i<u.length;i++)s+=(u[i]<16?'0':'')+u[i].toString(16);return s};
+const xU16=s=>{let o='';for(const ch of s){const c=ch.codePointAt(0);if(c>0xFFFF){const v=c-0x10000;o+=(0xD800+(v>>10)).toString(16).padStart(4,'0')+(0xDC00+(v&1023)).toString(16).padStart(4,'0')}else o+=c.toString(16).padStart(4,'0')}return o.toUpperCase()};
+async function xPdfBuild(pages,title){const enc=new TextEncoder(),ch=[],off=[];let len=0;
+ const put=u=>{ch.push(u);len+=u.length},str=s=>put(enc.encode(s));
+ const cid=new Map(),chars=[];pages.forEach(p=>p.tx.forEach(r=>{for(const c of r[0])if(!cid.has(c)){cid.set(c,chars.length+1);chars.push(c)}}));
+ const wd=c=>{const k=c.codePointAt(0);return k<0x2E80?(k<128?520:1000):1000};
+ const obj=(n,b)=>{off[n]=len;str(n+' 0 obj\n'+b+'\nendobj\n')},stm=(n,dict,data)=>{off[n]=len;str(n+' 0 obj\n<<'+dict+'/Length '+data.length+'>>\nstream\n');put(data);str('\nendstream\nendobj\n')};
+ put(new Uint8Array([0x25,0x50,0x44,0x46,0x2D,0x31,0x2E,0x35,0x0A,0x25,0xE2,0xE3,0xCF,0xD3,0x0A]));
+ const NP=pages.length,tot=7+NP*3;
+ obj(1,'<</Type/Catalog/Pages 2 0 R>>');obj(2,'<</Type/Pages/Count '+NP+'/Kids['+pages.map((p,i)=>(8+i*3)+' 0 R').join(' ')+']>>');
+ obj(3,'<</Type/Font/Subtype/Type0/BaseFont/MingLiU/Encoding/Identity-H/DescendantFonts[4 0 R]/ToUnicode 6 0 R>>');
+ obj(4,'<</Type/Font/Subtype/CIDFontType2/BaseFont/MingLiU/CIDSystemInfo<</Registry(Adobe)/Ordering(Identity)/Supplement 0>>/FontDescriptor 5 0 R/DW 1000/CIDToGIDMap/Identity'+(chars.length?'/W[1['+chars.map(wd).join(' ')+']]':'')+'>>');
+ obj(5,'<</Type/FontDescriptor/FontName/MingLiU/Flags 4/FontBBox[0 -200 1000 900]/ItalicAngle 0/Ascent 880/Descent -120/CapHeight 700/StemV 80>>');
+ let cm='/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n/CIDSystemInfo<</Registry(Adobe)/Ordering(UCS)/Supplement 0>> def\n/CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n';
+ for(let i=0;i<chars.length;i+=100){const part=chars.slice(i,i+100);cm+=part.length+' beginbfchar\n'+part.map((c,j)=>'<'+(i+j+1).toString(16).padStart(4,'0').toUpperCase()+'> <'+xU16(c)+'>').join('\n')+'\nendbfchar\n'}
+ cm+='endcmap\nCMapName currentdict /CMap defineresource pop\nend\nend';
+ stm(6,'',enc.encode(cm));
+ obj(7,'<</Title<FEFF'+xU16(title)+'>>>');
+ const PW=841.89,PH=595.28,f2=n=>n.toFixed(2);
+ for(let i=0;i<NP;i++){const p=pages[i],b=8+i*3,k=PW/(p.cw),im=p.png;
+  let cs='q '+f2(PW)+' 0 0 '+f2(PH)+' 0 0 cm /Im0 Do Q\nBT 3 Tr\n';
+  p.tx.forEach(r=>{const t=r[0];if(!t.trim()||!(r[3]>0))return;let nat=0,hx='';for(const c of t){nat+=wd(c)/1000;hx+=cid.get(c).toString(16).padStart(4,'0')}
+   const fs=r[4]*k,x0=r[5]==='right'?r[1]-r[3]:r[5]==='center'?r[1]-r[3]/2:r[1],tz=Math.min(1000,Math.max(5,r[3]*k/(nat*fs)*100));
+   cs+='/F1 '+f2(fs)+' Tf '+f2(tz)+' Tz 1 0 0 1 '+f2(x0*k)+' '+f2(PH-r[2]*k)+' Tm <'+hx.toUpperCase()+'> Tj\n'});
+  cs+='ET';
+  obj(b,'<</Type/Page/Parent 2 0 R/MediaBox[0 0 '+PW+' '+PH+']/Contents '+(b+1)+' 0 R/Resources<</XObject<</Im0 '+(b+2)+' 0 R>>/Font<</F1 3 0 R>>>>>>');
+  stm(b+1,'/Filter/FlateDecode',await xDeflate(enc.encode(cs)));
+  stm(b+2,'/Type/XObject/Subtype/Image/Width '+im.w+'/Height '+im.h+'/ColorSpace[/Indexed/DeviceRGB '+(im.pal.length/3-1)+'<'+xHex(im.pal)+'>]/BitsPerComponent 4/Filter/FlateDecode/DecodeParms<</Predictor 15/Colors 1/BitsPerComponent 4/Columns '+im.w+'>>',im.z);
+  p.png=null}
+ const xo=len;let x='xref\n0 '+(tot+1)+'\n0000000000 65535 f \n';for(let n=1;n<=tot;n++)x+=String(off[n]).padStart(10,'0')+' 00000 n \n';
+ str(x+'trailer\n<</Size '+(tot+1)+'/Root 1 0 R/Info 7 0 R>>\nstartxref\n'+xo+'\n%%EOF');
+ return new Blob(ch,{type:'application/pdf'})}
+async function xPdf(d,tick){const pl=planPages(d.sum.length,d.grp,d.man.length,d.ref.length),pages=[];
+ try{await document.fonts.ready}catch(e){}
+ for(let i=0;i<pl.length;i++){if(XS.stop)break;const cv=xDraw(d,pl,i),tx=XTX,png=xPngParts(await xPng(cv));pages.push({png,tx,cw:cv.width/XQ.scale});cv.width=cv.height=0;tick();await new Promise(r=>setTimeout(r))}
+ return XS.stop?null:xPdfBuild(pages,`${d.title}｜${d.short}`)}
+const xSafe=t=>String(t).replace(/[\\/:*?"<>|]/g,'_').trim();
+function xFile(g,fmt,used){const tag=(span||'').replace(/-/g,'').replace('～','-'),n=xSafe(`打卡異常${fmt==='xlsx'?'明細':'報告'}_${VER}_${xScope(g.leaves).join('_')}${xCatTag()}${xExTag(fmt)}${tag?'_'+tag:''}`).slice(0,150)+'_'+XS.stamp;let f=n+'.'+fmt,k=1;while(used.has(f))f=`${n}(${++k}).${fmt}`;used.add(f);return f}
+const xStamp=()=>{const t=new Date(),z=n=>String(n).padStart(2,'0');return`${z(t.getFullYear()%100)}${z(t.getMonth()+1)}${z(t.getDate())}${z(t.getHours())}${z(t.getMinutes())}`};
+function xSave(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),20000)}
+async function xGo(){if(XS.busy)return;const fmt=xv('xf'),mode=xv('xm'),gs=xGroups(mode);if(!gs.length)return;
+ if(fmt==='xlsx'&&typeof XLSX==='undefined'){alert('SheetJS 尚未載入（需連網載入 cdnjs），無法匯出 Excel');return}
+  if(fmt==='pdf'&&typeof CompressionStream==='undefined'){alert('此瀏覽器不支援 CompressionStream，無法產生 PDF。請改用 Chrome／Edge 最新版，或改用靜態 HTML。');return}
+ if(gs.length>1&&!window.JSZip){alert('ZIP 元件尚未載入（需連網載入 cdnjs 的 JSZip）。請連網後重開此檔。');return}
+ const pg=xSum.pg;if(fmt==='pdf'&&pg>150&&!confirm(`預估 ${pg} 頁。PDF 是逐頁畫圖再壓縮，頁數多會跑比較久（可能數分鐘）、檔案也比較大。\n要繼續嗎？（量大建議改用靜態 HTML）`))return;
+ XS.busy=true;XS.stop=false;XS.stamp=xStamp();$('xg').disabled=true;$('xc').textContent='取消';const P=$('xp');P.style.display='block';P.max=fmt==='pdf'?pg:gs.length;P.value=0;
+ const files=[],used=new Set();let done=0;
+ try{for(const g of gs){if(XS.stop)break;const d=xData(g),f=xFile(g,fmt,used);
+   if(fmt==='html'){files.push({f,b:new Blob([xHtml(d)],{type:'text/html;charset=utf-8'})});P.value=++done;$('xs').textContent=`產生 HTML 中… ${done} / ${gs.length} 份`}
+   else if(fmt==='xlsx'){files.push({f,b:xXlsx(g,d)});P.value=++done;$('xs').textContent=`產生 Excel 中… ${done} / ${gs.length} 份`}
+    else{const b=await xPdf(d,()=>{P.value=++done;$('xs').textContent=`產生 PDF 中… ${done} / ${pg} 頁（第 ${files.length+1} / ${gs.length} 份）`});if(XS.stop||!b)break;files.push({f,b})}
+   await new Promise(r=>setTimeout(r))}
+  if(XS.stop)$('xs').textContent='已取消';
+  else if(files.length===1)xSave(files[0].b,files[0].f);
+  else if(files.length){$('xs').textContent='打包 ZIP…';const z=new JSZip();files.forEach(x=>z.file(x.f,x.b));
+   xSave(await z.generateAsync({type:'blob',compression:fmt==='html'?'DEFLATE':'STORE'}),xSafe(`打卡異常${fmt==='xlsx'?'明細':'報告'}_${VER}_${fmt.toUpperCase()}_${xScope(gs.flatMap(g=>g.leaves)).join('_')}${xCatTag()}${xExTag(fmt)}${(span||'').replace(/-/g,'').replace('～','-')?'_'+(span||'').replace(/-/g,'').replace('～','-'):''}`).slice(0,150)+'_'+XS.stamp+'.zip')}
+ }catch(e){alert('匯出失敗：'+e.message)}
+ XS.busy=false;$('xc').textContent='關閉';P.style.display='none';if(!XS.stop)$('xs').textContent='';xSum()}
+$('xr').onclick=()=>{if(!res.length){alert('請先匯入檔案並完成分析');return}
+ XS.cats=sel.size?new Set(sel):new Set(CATS.map(c=>c[0]));xBuild();const ids=XT.flatMap(xLv).map(p=>p.id);XS.chk=new Set(ids);XS.known=new Set(ids);XS.open=new Set();XS.pb=XS.po=null;XS.q='';$('xq').value='';$('xd').style.display='flex';xCatUi();xRender()};
+/* 異常樣態（V14）：勾選變動→以所選樣態重建對象樹；新出現的人員（原本在其他樣態才有筆數）預設勾選，已知的人員保留使用者的勾選 */
+function xCatUi(){let ci=0;$('xk').innerHTML='<div class="xcr"><span class="xst"><b class="sn">④</b>異常樣態<small>勾選要列入報表的樣態</small></span>'+'<span class="xtools"><button type="button" class="mini" id="ka" title="把 8 種異常樣態全部勾選">全選樣態</button><button type="button" class="mini" id="kn" title="把 8 種異常樣態全部取消">全不選樣態</button></span>'+GRP.map(([g,d,n])=>{const cs=CATS.slice(ci,ci+n);ci+=n;return`<span class="kg2" title="${esc(d)}"><span class="kh">${g.replace(/^[^\u4e00-\u9fff]+/,'')}</span>`+cs.map(([c,col])=>`<label class="ck" style="--c:${col}" title="${esc(DEF[c]||'')}"><input type="checkbox" name="xk" value="${c}" ${XS.cats.has(c)?'checked':''}><span><i></i>${c}</span></label>`).join('')+'</span>'}).join('')+'<span class="kg2 ko"><span class="kh">其他</span>'+`<label class="ck" style="--c:#9a8c70" title="量販通路、即飲通路、營業處／營業所／商化所逾四小時：非異常，於附表前另列「四小時備查」"><input type="checkbox" id="xref" ${XS.ref?'checked':''}><span><i></i>含四小時備查（非異常）</span></label>`+`<label class="ck" id="xrawl" style="--c:#9a8c70;${xv('xf')==='xlsx'?'':'display:none'}" title="多匯出原始資料分頁：載入的全部原始列（可能十幾萬列），檔案會變很大，僅供複驗對帳用"><input type="checkbox" id="xraw" ${XS.raw?'checked':''}><span><i></i>含原始資料分頁</span></label>`+'</span>'+'</div>'}
+function xCatChg(){xBuild();XT.flatMap(xLv).forEach(p=>{if(!XS.known.has(p.id)){XS.known.add(p.id);XS.chk.add(p.id)}});xRender()}
+$('xk').addEventListener('change',e=>{if(e.target.id==='xraw'){XS.raw=e.target.checked;xSum();return}if(e.target.id==='xref'){XS.ref=e.target.checked;if(XS.busy)return;xCatChg();return}if(e.target.name!=='xk')return;if(XS.busy){xCatUi();return}e.target.checked?XS.cats.add(e.target.value):XS.cats.delete(e.target.value);xCatChg()});
+$('xk').addEventListener('click',e=>{const id=e.target.id;if(id!=='ka'&&id!=='kn')return;if(XS.busy)return;XS.cats=id==='ka'?new Set(CATS.map(c=>c[0])):new Set();xCatUi();xCatChg()});
+$('xt').onclick=e=>{if(e.target.tagName==='INPUT')return;const r=e.target.closest('.xr');if(!r)return;const id=r.dataset.a,t=id[0];
+ if(t==='b'){XS.pb=id;XS.po=null}else if(t==='o')XS.po=id;else{const on=!XS.chk.has(id);on?XS.chk.add(id):XS.chk.delete(id)}xRender()};
+$('xt').onchange=e=>{const k=e.target.dataset.k;if(!k)return;const on=e.target.checked;xLv(XM[k]).filter(xVis).forEach(p=>on?XS.chk.add(p.id):XS.chk.delete(p.id));xRender()};
+$('xa').onclick=()=>{XT.flatMap(xLv).filter(xVis).forEach(p=>XS.chk.add(p.id));xRender()};
+$('xn').onclick=()=>{XT.flatMap(xLv).filter(xVis).forEach(p=>XS.chk.delete(p.id));xRender()};
+$('xq').oninput=e=>{XS.q=e.target.value;xRender()};
+$('xd').addEventListener('change',e=>{if(e.target.name==='xf'){const r=$('xrawl');if(r)r.style.display=xv('xf')==='xlsx'?'':'none'}if(e.target.name==='xf'||e.target.name==='xm')xSum()});
+$('xc2').onclick=()=>$('xc').click();$('xg').onclick=xGo;$('xc').onclick=()=>{if(XS.busy)XS.stop=true;else $('xd').style.display='none'};
+$('xd').addEventListener('mousedown',e=>{if(e.target===$('xd')&&!XS.busy)$('xd').style.display='none'});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('xd').style.display!=='none'&&!XS.busy)$('xd').style.display='none'});
+
+/* V44 截圖：主畫面→剪貼簿 */
+async function shot(){const b=$('shot');if(typeof html2canvas==='undefined'){alert('截圖元件尚未載入（需連網載入 cdnjs 的 html2canvas），請連網後重開此檔');return}
+ if(b.disabled)return;const old=b.textContent;b.disabled=true;b.textContent='截圖中…';let msg='已複製 ✓';
+ try{const el=document.querySelector('main'),H=el.scrollHeight,sc=Math.min(2,16000/H);
+  const bp=html2canvas(el,{scale:sc,backgroundColor:'#f5edd8',logging:false,ignoreElements:e=>e.hasAttribute&&e.hasAttribute('data-shot-skip')}).then(c=>new Promise((ok,no)=>c.toBlob(x=>x?ok(x):no(new Error('產生圖片失敗')),'image/png')));
+  if(sc<1)msg+='（表格很長，畫質已縮小；建議先篩選縮小範圍）';
+  try{await navigator.clipboard.write([new ClipboardItem({'image/png':bp})])}
+  catch(e){const bl=await bp;xSave(bl,`打卡異常_畫面_${VER}.png`);msg='無法寫入剪貼簿，已改存成圖檔'}
+ }catch(e){alert('截圖失敗：'+e.message);msg=old}
+ b.textContent=msg;setTimeout(()=>{b.textContent=old;b.disabled=false},2200)}
+$('shot').onclick=shot;
+/* ===== 入口資料下載連結（比照督導管理系統入口：點連結→選日期區間／通路→開新分頁下載）=====
+   網址範本與督導管理系統 v272 的 SV_DL_* 相同；系統改版時兩邊一起改。 */
+const DL_TASK_A='https://ttl.unidyna.com/ubmsys_task/lists?taskExport=1&task_is_review=&dept_id=&user_id=&task_tag_id=&project_id=&mission_id=&task_is_success=&ch_id=&ch_store_id=&cust_id=&period=0&interval_type=1&task_title=&task_matter_id=&ch_store_area=&area_id=&task_daterange=';
+const DL_TASK_B='&title=batch_delete,period_work_date,department,salesman,accompany_supervisor,read_status,executive_task,task_proccess,channel,channel_store_code,channel_store,customer_name,channel_store_address,customer_lvl,created_date,status,create_user,checkin_time,mobile_fake_gps,mobile_root,task_finish_date,task_note,task_id,management,';
+const DL_CK_A='https://ttl.unidyna.com/ubmsys_checkin_error/lists/1?&ch_id=&ch_store_id=&dept_id=&user_id=&date_daterange=';
+const DL_CK_B='&str_km=&end_km=&group_id=&filter=2&channel_store_category_ids=&store_area_id=&user_area_id=&task_chk_type=&str_date=';
+const DL_CU_A='https://ttl.unidyna.com/ubmsys_customer/export/?ch_id=&ch_store_id=&store_area_id=&dept_id=&group_id=&user_id=&user_area_id=&filter=2';
+const DL_CU_B='&create_daterange=&edit_daterange=&keyword=';
+const DL_CATS=[{id:2,l:'傳統通路',d:1},{id:3,l:'即飲通路',d:1},{id:5,l:'室內外點',d:0},{id:6,l:'菸酒專',d:1},{id:7,l:'CVS通路',d:1},{id:8,l:'連鎖超市通路',d:1},{id:9,l:'量販通路',d:1},{id:10,l:'其他類別',d:1}];
+let dlKind='task';
+const dlP2=n=>String(n).padStart(2,'0'),dlF=d=>d.getFullYear()+'-'+dlP2(d.getMonth()+1)+'-'+dlP2(d.getDate());
+const dlRange=o=>{const n=new Date();return[dlF(new Date(n.getFullYear(),n.getMonth()+o,1)),dlF(new Date(n.getFullYear(),n.getMonth()+o+1,0))]};
+const dlUrl=(k,s,e)=>{const r=encodeURIComponent(s+' ~ '+e);return k==='task'?DL_TASK_A+r+DL_TASK_B:DL_CK_A+r+DL_CK_B+s+'&end_date='+e};
+const dlCu=ids=>DL_CU_A+ids.map(i=>'&channel_store_category_ids%5B%5D='+i).join('')+DL_CU_B;
+function dlOpenDate(k){dlKind=k;$('dl-date-t').textContent=k==='task'?'📋 工作規劃（工作管理）— 選擇下載區間':'🚨 打卡異常 — 選擇下載區間';dlQuick(0);$('dl-date').showModal()}
+function dlQuick(o){const[a,b]=dlRange(o);$('dl-s').value=a;$('dl-e').value=b}
+function dlGoDate(){const a=$('dl-s').value,b=$('dl-e').value;if(!a||!b){alert('請選擇完整的起訖日期');return}if(a>b){alert('起始日期不能晚於結束日期');return}window.open(dlUrl(dlKind,a,b),'_blank');$('dl-date').close()}
+function dlOpenCust(){$('dl-cl').innerHTML=DL_CATS.map(c=>`<label><input type="checkbox" value="${c.id}" ${c.d?'checked':''}> ${esc(c.l)}</label>`).join('');$('dl-cd').showModal()}
+function dlGoCust(){const ids=[...document.querySelectorAll('#dl-cl input:checked')].map(e=>e.value);if(!ids.length){alert('請至少勾選一個通路類別');return}window.open(dlCu(ids),'_blank');$('dl-cd').close()}
+/* 保底：onclick 若被擋，連結退回原生行為時直接下載「本月」／預設通路 */
+try{const[a,b]=dlRange(0);$('dl-task').href=dlUrl('task',a,b);$('dl-checkin').href=dlUrl('checkin',a,b);$('dl-cust').href=dlCu(DL_CATS.filter(c=>c.d).map(c=>c.id))}catch(e){}
+
+/* ---------- V83 檢查更新：掃描 GitHub repo 根目錄的檔名，找同名稱、版本號更大的檔案 ----------
+   檔名格式容許：名稱_v8.html／名稱_V05.html／名稱V34.html（v 大小寫皆可、底線可有可無、版本號可補 0）
+   舊版請搬進子資料夾（例如 archive/），只掃描根目錄。與「人力調查表編輯工具」同一個 repo、同一套做法。 */
+const VERN=+String(VER).replace(/\D/g,'');
+const UPD={raw:'https://raw.githubusercontent.com/1061005ttl-lab/tool/main/',api:'https://api.github.com/repos/1061005ttl-lab/tool/contents/',key:'打卡異常檢核工具',min:10};
+const upKey=t=>String(t).replace(/[\s　_\-]/g,'').toLowerCase();
+const upParse=n=>{const m=String(n).match(/^(.+?)[v]0*(\d+)\.html?$/i);return m?{base:upKey(m[1]),ver:Number(m[2])}:null};
+async function checkUpdate(force){
+ if(!window.fetch){if(force)alert('此瀏覽器不支援檢查更新');return}
+ const btn=$('ubtn'),old=btn.textContent;if(force){btn.disabled=true;btn.textContent='查詢中⋯'}
+ const done=m=>{if(force){btn.disabled=false;btn.textContent=m||old;if(m)setTimeout(()=>btn.textContent=old,2500)}};
+ try{
+  let best=null;const now=Date.now(),CK='cx_upd_cache';
+  try{const c=JSON.parse(localStorage.getItem(CK)||'null');if(!force&&c&&now-c.t<UPD.min*6e4)best=c.best||{ver:0}}catch(e){}
+  if(!best){
+   const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),6000);
+   const r=await fetch(UPD.api,{signal:ac.signal,headers:{Accept:'application/vnd.github+json'}});clearTimeout(tm);
+   if(!r.ok){done(force?'查詢失敗（'+r.status+'）':'');if(force)alert('查詢失敗（'+r.status+'），可能是查詢次數用完，請稍後再試');return}
+   const list=await r.json();if(!Array.isArray(list)){done();return}
+   best={ver:0};
+   for(const f of list){if(f.type!=='file')continue;const p=upParse(f.name);if(p&&p.base===upKey(UPD.key)&&p.ver>best.ver)best={ver:p.ver,name:f.name,url:f.html_url,dl:f.download_url}}
+   try{localStorage.setItem(CK,JSON.stringify({t:now,best}))}catch(e){}}
+  const nv=best.ver;if(!(nv>VERN)){done(force?'已是最新版 '+VER:'');return}
+  let sk=0;try{sk=Number(localStorage.getItem('cx_skip'))||0}catch(e){}
+  if(!force&&sk>=nv){done();return}
+  const u=$('upd');
+  u.innerHTML=`<span class="t">🔔 有新版 <b>V${nv}</b>（目前 ${VER}）：${esc(best.name||'')}<br><span id="updMsg" class="mu">按「直接下載」會把新版存到下載資料夾，再改開新下載的檔案即可。本工具的資料每次都要重新匯入，不會有舊資料遺失的問題。</span></span><button class="p" id="updGo">直接下載</button><button id="updSkip">略過此版</button><button id="updLater">稍後再說</button>`;
+  u.classList.add('on');done();
+  $('updGo').onclick=async e=>{const b=e.currentTarget,m=$('updMsg');
+   try{b.disabled=true;b.textContent='下載中…';
+    const r=await fetch(best.dl||(UPD.raw+encodeURIComponent(best.name)),{cache:'no-store'});if(!r.ok)throw new Error(r.status);
+    const bl=new Blob([await r.blob()],{type:'text/html'}),a=document.createElement('a');a.href=URL.createObjectURL(bl);a.download=best.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    b.textContent='已下載 ✓';m.textContent='已存到下載資料夾：'+best.name+'。請關掉這個頁面，改開新下載的檔案。'}
+   catch(err){b.disabled=false;b.textContent='重試';m.textContent='下載失敗（可能是網路不穩，或公司網路擋住 GitHub），請稍後按「重試」。'}};
+  $('updSkip').onclick=()=>{try{localStorage.setItem('cx_skip',String(nv))}catch(e){}u.classList.remove('on')};
+  $('updLater').onclick=()=>u.classList.remove('on');
+ }catch(e){done(force?'查不到更新':'');if(force)alert('查不到更新（可能離線，或公司網路擋住 GitHub）')}}
+$('ubtn').onclick=()=>checkUpdate(true);
+checkUpdate();
+</script><script>
+(function(){const d=document.getElementById('man'),b=document.getElementById('mbtn'),c=document.getElementById('mclose');if(!d||!b)return;
+b.addEventListener('click',()=>{if(d.showModal)d.showModal();else d.setAttribute('open','')});
+c.addEventListener('click',()=>d.close());
+d.addEventListener('click',e=>{if(e.target===d)d.close()})})();
+</script>
+</body></html>
