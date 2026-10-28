@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>人力調查表編輯工具</title>
+<style>
+:root{--bg:#f5efe3;--sf:#fffaf0;--tx:#000;--mu:#000;--bd:#dcd0b8;--ac:#a8672a;--acx:#fff;--hd:#ebdfc6;--ca:#f0e6d0;--bad:#b3402a;--ok:#4a7c3a;--chip:#ecdcbc;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.5 "Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif}
+header{padding:14px 16px 0;max-width:1400px;margin:auto}
+h1{font-size:18px;margin:0 0 10px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.bar label{color:var(--mu);font-size:12px}
+input,select,button{font:inherit;color:var(--tx)}
+input,select{background:var(--sf);border:1px solid var(--bd);border-radius:6px;padding:4px 6px;min-width:0}
+input:focus,select:focus{outline:2px solid var(--ac);outline-offset:-1px}
+button{background:var(--sf);border:1px solid var(--bd);border-radius:6px;padding:5px 12px;cursor:pointer}
+button.p{background:var(--ac);color:var(--acx);border-color:var(--ac)}
+.grp{display:inline-flex;align-items:stretch;border:1px solid var(--bd);border-radius:8px;background:var(--hd);overflow:hidden}
+.grp .gl{display:flex;align-items:center;padding:0 10px;font-size:12px;color:var(--mu);font-weight:600}
+.grp button{border:0;border-left:1px solid var(--bd);border-radius:0;background:var(--sf)}
+.grp button:hover{background:var(--chip)}
+.grp button.p{background:var(--ac);color:var(--acx)}
+.grp button.p:hover{filter:brightness(1.1)}
+#tabs{display:flex;gap:2px;border-bottom:1px solid var(--bd)}
+#tabs button{border:0;border-bottom:3px solid transparent;border-radius:0;background:none;padding:8px 14px}
+#tabs button.on{border-color:var(--ac);color:var(--tx);font-weight:600}
+main{max-width:1400px;margin:auto;padding:12px 16px 40px}
+.wrap{overflow-x:auto;border:1px solid var(--bd);border-radius:8px;background:var(--sf)}
+table{border-collapse:collapse;width:100%}
+th,td{padding:3px 5px;border-bottom:1px solid var(--bd);text-align:center;white-space:nowrap}
+th{background:var(--hd);font-weight:600;font-size:12px;position:sticky;top:0}
+td.l{text-align:left}td input,td select,td textarea{width:100%}
+textarea.rm{display:block;min-width:240px;resize:none;overflow:hidden;white-space:pre-wrap;overflow-wrap:anywhere;text-align:left;line-height:1.45;background:var(--sf);border:1px solid var(--bd);border-radius:6px;padding:4px 6px;font:inherit;color:var(--tx)}
+input.sp,select.sp{background:#ffe27a;outline:2px solid #d9232d;outline-offset:-1px}
+textarea.rm:focus{outline:2px solid var(--ac);outline-offset:-1px}
+td input.n{width:64px;text-align:center}td input.w{min-width:110px}
+.c{background:var(--ca);font-weight:600;min-width:52px}
+tr.tot td{background:var(--hd);font-weight:700}
+.x{color:var(--mu);border:0;background:none;padding:2px 6px}.x:hover{color:var(--bad)}
+.chip{display:inline-flex;gap:4px;align-items:center;background:var(--chip);border-radius:12px;padding:1px 4px 1px 9px;margin:1px 3px 1px 0}
+.chip.bad{outline:1px solid var(--bad);color:var(--bad)}.chip b{cursor:pointer;font-weight:400;padding:0 3px}
+.cell{display:flex;flex-wrap:wrap;align-items:center;min-width:240px;text-align:left}.cell select{width:auto;max-width:130px}
+.ch{width:16px;height:16px;accent-color:var(--ac)}
+#warn{font-size:12px;margin:0 0 10px;color:var(--mu)}#warn.bad{color:var(--bad)}#warn.ok{color:var(--ok)}
+.hint{color:var(--mu);font-size:12px;margin:8px 2px}
+#drop{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(168,103,42,.18);border:4px dashed var(--ac);font-size:22px;font-weight:600;color:var(--ac);z-index:20;pointer-events:none}
+#msg{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:8px 16px;border-radius:8px;display:none;max-width:90vw;z-index:9}
+.wide{max-width:none}
+select.bu{background:#ffd9d2;outline:2px solid var(--bad);outline-offset:-1px}
+.split{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.pane{min-width:0}.pane.pv{flex:966 1 560px}.pane.pc{flex:562 1 380px}
+.pane h3{margin:0 0 4px;font-size:14px;display:flex;align-items:center;gap:10px}
+.pane .wrap{height:calc(100vh - 340px);min-height:280px;overflow:auto}
+.pane table{table-layout:fixed;width:100%}
+.pane th{white-space:normal;line-height:1.25;padding:4px 3px;z-index:1}
+.pane td{padding:3px 3px;overflow:hidden}
+.pane td input.w{min-width:0}
+.pane textarea.rm{min-width:0}
+.pane .cell{min-width:0}.pane .cell select{max-width:100%}
+.pane td select{padding:4px 2px}
+.pane .hint{margin:2px 2px 6px}
+.mv{cursor:grab;color:var(--mu);padding:0 4px;user-select:none;font-size:15px}.mv:active{cursor:grabbing}
+.xm{color:var(--mu);border:0;background:none;padding:2px 4px;font-size:11px}.xm:hover{color:var(--ac)}
+tr.dragging{opacity:.4}tr.over-up td{box-shadow:inset 0 3px 0 var(--ac)}tr.over-dn td{box-shadow:inset 0 -3px 0 var(--ac)}
+.ops{white-space:nowrap}
+#upd{display:none;align-items:center;gap:10px;flex-wrap:wrap;background:#fff2cc;border:1px solid var(--ac);border-radius:8px;padding:8px 12px;margin:0 0 10px;font-size:13px}#upd.on{display:flex}#upd .t{flex:1 1 300px}#upd button.p{font-weight:600}
+</style>
+</head>
+<body>
+<header>
+  <div id="upd"></div>
+  <h1>營業處人力調查表編輯工具 <small id="ver" style="font-size:12px;color:var(--mu)"></small></h1>
+  <div class="bar">
+    <label>處名</label><input id="name" size="6">
+    <label>期間</label><input id="period" size="9">
+    <label title="人力調查表最下方的承辦、課長、副理、經理蓋章欄"><input type="checkbox" id="stamp"> 蓋章欄</label>
+    <button data-act="new" id="bnew" style="margin-left:14px">新範本</button>
+    <button data-act="imp">匯入檔案</button>
+    <input type="file" id="file" accept=".xlsx,.ods,.html,.htm,.json" hidden>
+    <div class="grp" role="group" aria-label="匯出"><span class="gl">匯出</span><button class="p" data-act="exp" data-k="xlsx">Excel</button><button data-act="exp" data-k="pdf">PDF</button><button data-act="exp" data-k="ods">ODS</button><button data-act="exp" data-k="html">快照</button></div>
+  </div>
+  <div id="warn"></div>
+  <div id="tabs"></div>
+</header>
+<main id="main"></main>
+<div id="drop">放開滑鼠，匯入檔案</div>
+<div id="msg"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+const DEF=['傳統','CVS','連鎖超市','量販','啤鋪','菸鋪','烈酒'], TYPES=['','綜合所','商化所','開單所'];
+const VER=35;
+const LOG=[[35,'2026-10-28',['開啟時自動到 GitHub（1061005ttl-lab/tool）檢查有無新版，有的話頂端顯示提示條，可前往下載、略過此版或稍後再說；查不到（離線、被擋）時靜默略過，不影響使用']],[34,'2026-10-28',['修正：拖曳調整列順序時，不再跳出「放開滑鼠，匯入檔案」的匯入提示（只有真正從外部拖入檔案才會顯示）']],[33,'2026-10-28',['三張表（人力調查表、訪員名單、櫃檯名單）的每一列都能調整順序：按「▲／▼」上下移動，或抓住「⠿」拖曳到目標列','有套用「篩選營業所/課」時，上移／下移只會跟同篩選內的相鄰列交換','移動後保留捲動位置']],[32,'2026-10-27',['訪員名單與櫃檯名單合併為同一頁籤「訪員／櫃檯名單」，左右併列、各自捲動，共用「篩選營業所/課」','合併後各欄重新調整欄寬；備註欄縮窄','畫面不再顯示「營業處」欄（匯出的 Excel／ODS／PDF 仍有）','「配對訪員」欄匯出改為純文字，不再使用公式','訪員所別非「所／行銷課」、櫃檯所別非「所」時，所別欄標紅並在頂端提醒','修正：櫃檯改名後，左側訪員的搭配櫃檯會同步更新；單位改名或刪除後，篩選自動回到「全部」']],[30,'2026-10-27',['櫃檯名單表新增「配對訪員」欄（依訪員的「搭配櫃檯」帶出；Excel／ODS 為公式，PDF 為匯出當下的值；匯入時忽略）','ODS 欄寬、列高、統計列字級、表頭對齊（首欄靠左、備註置中）與 Excel 一致；三個分頁補上第 2 列（長表頭／「人員資料」「負責通路」群組列），列配置與 Excel 一致；隔列底色起始列對齊','Excel 表格標題列固定為白字粗體藍底']],
+[29,'2026-10-27',['Excel 改用與 ODS 相同的淡藍配色（自訂表格樣式「人力調查表-淡藍」）']],
+[28,'2026-10-27',['Excel 名單表的「備註」欄納入表格，不再與上方儲存格合併']],
+[27,'2026-10-27',['單位、所別、姓名含空白時黃底紅框標示','匯出時「營業所」簡化為「所」']],
+[26,'2026-10-27',['名單表新增「營業處」欄（僅顯示）']],
+[25,'2026-10-27',['上方按鈕列重新排列，移除「自動對應所別」按鈕與提示文字，文字改為黑色']],
+[24,'2026-10-27',['新增「蓋章欄」勾選，Excel／ODS／PDF 同步','匯入時自動判斷是否有蓋章欄','ODS 不再出現規則運算式警告']],
+[23,'2026-10-27',['Excel 三張表為真正的表格並可切換樣式；ODS 加上同名資料庫範圍']],
+[22,'2026-10-27',['ODS 匯出加入完整格式與列印設定']],
+[21,'2026-10-27',['Excel 外觀優化：配色、凍結窗格、列印設定、欄寬自動調整']],
+[20,'2026-10-27',['PDF 改為一鍵下載，含可選取文字層']],
+[19,'2026-10-27',['修正自訂身份別出現「__custom__」；新增移除自訂身份別']],
+[18,'2026-10-27',['支援匯入 .ods']],
+[17,'2026-10-27',['櫃檯身份別支援自訂（僅「櫃檯」計入櫃台人數）','PDF 跨頁重複大標與表頭']],
+[16,'2026-10-27',['自動補處名前綴僅限「室」「課」結尾的單位']],
+[15,'2026-10-27',['不含「所」的單位自動補處名前綴，並隨處名更新']],
+[14,'2026-10-27',['修正匯入時重複標題列被當成單位']],
+[13,'2026-10-27',['蓋章欄只放人力調查表；PDF、Excel、ODS 版面調整']],
+[12,'2026-10-27',['快照改為 .html，仍可匯入 .json','新增蓋章欄']],
+[11,'2026-10-27',['修正 Excel XML 順序錯誤；PDF 改文字 PDF、跨頁重複表頭、加頁碼']],
+[10,'2026-10-27',['修正型態下拉範圍重疊；備註自動換行']],
+[9,'2026-10-27',['修正本機開啟時的下載']],
+[8,'2026-10-27',['匯出按鈕群組化；身份別新增「督導」；只有「所」需填型態']],
+[7,'2026-10-27',['非所單位的 0 值不顯示（有人員則顯示）']],
+[6,'2026-10-27',['訪員所別限「所」或「行銷課」；移除「夜通」；版本號改正整數']],
+[5,'2026-10-27',['修正名單中間有空白列時匯入提早停止']],
+[4,'2026-10-27',['新增 PDF、ODS、快照匯出與開發日誌；所別自動辨識']],
+[3,'2026-10-27',['支援更舊版格式']],
+[2,'2026-10-27',['改為淡米色主題；支援拖放匯入']],
+[1,'2026-10-27',['初版：人力調查表／訪員名單／櫃檯名單三分頁']]];
+const HIDE=['夜通'],OK={vis:/所|行銷課/,cnt:/所/};
+function stripCh(st){const ix=(st.ch||[]).map((k,i)=>HIDE.includes(k)?i:-1).filter(i=>i>=0);if(ix.length){st.ch=st.ch.filter((k,i)=>!ix.includes(i));(st.vis||[]).forEach(v=>{if(v.ch)v.ch=v.ch.filter((x,i)=>!ix.includes(i))})}return st}
+let CH=DEF.slice();
+const PRESET=[['經理室'],['副理室'],['人事室'],['政風室'],['行政室'],['會計室'],['物流課'],['處倉'],['行銷課'],['A所','綜合所'],['B所','商化所'],['C所','開單所']];
+const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const isSuo=n=>OK.cnt.test(n||'');
+const shown=(n,v)=>OK.vis.test(n)||v?v:'',N=v=>Number(v)||0, U=()=>({n:'',t:'',d:'',e:'',i:'',j:'',k:''});
+let S=blank(), tab=0, filt='', armed=false;
+function blank(){return{name:'XX',period:'115年10月',ch:DEF.slice(),units:PRESET.map(([n,t])=>({...U(),n,t:t||''})),vis:[],cnt:[],stamp:true}}
+let SNAP=null;try{const e=document.getElementById('snap');if(e)SNAP=JSON.parse(e.textContent)}catch(e){}
+const KEY=SNAP?'hc_snap_'+SNAP.time:'hc_v1';
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+try{const s=localStorage.getItem(KEY);if(s)S=JSON.parse(s);else if(SNAP&&SNAP.state)S=SNAP.state}catch(e){if(SNAP&&SNAP.state)S=SNAP.state}
+S.ch=S.ch||DEF.slice();stripCh(S);CH=S.ch;
+function toast(t){const m=$('#msg');m.textContent=t;m.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>m.style.display='none',3500)}
+
+/* ---------- 計算 ---------- */
+function calc(u){const f=(l,r)=>S[l].filter(x=>u&&x.u===u&&x.r===r).length;return{F:f('vis','督導兼訪員'),G:f('vis','訪員'),H:f('cnt','櫃檯')}}
+function rowv(u){const c=calc(u.n);return{C:N(u.d)+N(u.e)+c.F+c.G+c.H+N(u.i)+N(u.j),D:N(u.d),E:N(u.e),...c,I:N(u.i),J:N(u.j)}}
+const pairs=i=>S.vis.filter(v=>v.c.includes(S.cnt[i].n));
+const pairStr=c=>c.n?S.vis.filter(v=>v.n&&v.c.includes(c.n)).map(v=>v.n).join('、'):'';
+function refresh(){
+  if(tab==0){const T={};S.units.forEach((u,i)=>{const r=rowv(u);for(const k in r)T[k]=(T[k]||0)+r[k];for(const k of 'CFGH'){const e=document.querySelector(`[data-calc="${k}"][data-i="${i}"]`);if(e)e.textContent=k==='C'?r[k]:shown(u.n,r[k])}});
+    document.querySelectorAll('[data-tot]').forEach(e=>e.textContent=T[e.dataset.tot]||0)}
+  if(tab==1)document.querySelectorAll('[data-pair]').forEach(e=>{const p=pairs(+e.dataset.pair);e.textContent=p.length?p.length+'：'+p.map(v=>v.n).join('、'):'0'});
+  warn();save()}
+const nz=t=>String(t).replace(/[\s\u3000]/g,'').replace(/臺/g,'台');
+const pre=n=>{n=String(n==null?'':n).trim();const p=String(S.name||'').trim();if(!n||!p||isSuo(n)||!/[室課]$/.test(n))return n;return nz(n).startsWith(nz(p))?n:p+n};
+function remapU(o,n){if(o===n)return;S.vis.concat(S.cnt).forEach(x=>{if(x.u===o)x.u=n})}
+function autoPrefix(){S.vis=S.vis||[];S.cnt=S.cnt||[];S.cnt.forEach(c=>{if(c.r==='__custom__'||c.r==='__del__'||!c.r)c.r='櫃檯'});S.units.forEach(u=>{const n=pre(u.n);if(n!==u.n){remapU(u.n,n);u.n=n}})}
+function renamePrefix(o,nw){o=String(o||'').trim();nw=String(nw||'').trim();if(!o||o===nw)return;const po=nz(o);
+  S.units.forEach(u=>{if(isSuo(u.n)||!/[室課]$/.test(u.n))return;const m=String(u.n).replace(/[\s\u3000]/g,'');if(m.replace(/臺/g,'台').startsWith(po)){const n=nw+m.slice(po.length);remapU(u.n,n);u.n=n}})}
+autoPrefix();
+function matchU(x){const us=S.units.map(u=>u.n).filter(Boolean);if(!x)return null;if(us.includes(x))return x;
+  const nx=nz(x),p=nz(S.name),st=t=>t.startsWith(p)?t.slice(p.length):t;
+  let c=us.filter(u=>nz(u)===nx);if(!c.length)c=us.filter(u=>st(nz(u))===st(nx));
+  if(!c.length)c=us.filter(u=>{const a=nz(u);return a.length>=2&&nx.length>=2&&(nx.endsWith(a)||a.endsWith(nx))});
+  return c.length===1?c[0]:null}
+function fixUnits(add){const fixed=[],added=[],seen={};
+  for(const x of S.vis.concat(S.cnt)){if(!x.u||S.units.some(u=>u.n===x.u))continue;
+    let m=seen[x.u]||matchU(x.u);
+    if(!m&&add){S.units.push({...U(),n:x.u});added.push(x.u);m=x.u}
+    if(m){if(!seen[x.u]){seen[x.u]=m;if(m!==x.u)fixed.push(x.u+'→'+m)}x.u=m}}
+  return{fixed,added,msg:[fixed.length?'自動對應所別：'+fixed.join('、'):'',added.length?'自動新增單位：'+added.join('、'):''].filter(Boolean).join('；')}}
+function warn(){const us=new Set(S.units.map(u=>u.n)),cs=new Set(S.cnt.map(c=>c.n)),w=[],bad={},miss=new Set(),seen=new Set();
+  S.units.forEach(u=>{if(!u.n)w.push('有空白的單位名稱');else if(seen.has(u.n))w.push(`單位「${u.n}」重複`);seen.add(u.n)});
+  S.vis.concat(S.cnt).forEach(x=>{if(x.u&&!us.has(x.u))bad[x.u]=(bad[x.u]||0)+1});
+  for(const k in bad){const m=matchU(k);w.push(`所別「${k}」(${bad[k]} 人)不在單位清單`+(m?`，可對應為「${m}」`:'，匯出時會自動新增為單位'))}
+  const nu=S.vis.concat(S.cnt).filter(x=>!x.u).length;if(nu)w.push(`${nu} 人未填所別`);{const bv=S.vis.filter(x=>x.u&&!OK.vis.test(x.u)).length,bc=S.cnt.filter(x=>x.u&&!OK.cnt.test(x.u)).length;if(bv)w.push(`${bv} 位訪員的所別不是所／行銷課（已標紅）`);if(bc)w.push(`${bc} 位櫃檯的所別不是所（已標紅）`)}
+  S.vis.forEach(v=>v.c.forEach(c=>{if(!cs.has(c))miss.add(c)}));if(miss.size)w.push(`配對的櫃檯「${[...miss].join('、')}」不在櫃檯名單`);
+  const bv=S.vis.filter(v=>!v.n).length,bc=S.cnt.filter(c=>!c.n).length;if(bv)w.push(`${bv} 位訪員未填姓名`);if(bc)w.push(`${bc} 位櫃檯未填姓名`);
+  {const sp=[S.name,...S.units.map(u=>u.n),...S.vis.flatMap(v=>[v.n,v.u]),...S.cnt.flatMap(c=>[c.n,c.u])].filter(hasSp).length;if(sp)w.push(`${sp} 個名稱含空白（已高光標出）`)}
+  const e=$('#warn');e.className=w.length?'bad':'ok';e.textContent=w.length?`⚠ ${w.length} 項需確認：`+w.slice(0,5).join('；')+(w.length>5?'⋯':''):'✓ 資料檢查通過'}
+
+/* ---------- 畫面 ---------- */
+function render(){
+  if(filt&&!S.units.some(u=>u.n===filt))filt='';
+  $('#ver').textContent='v'+VER+(SNAP?'・快照 '+new Date(SNAP.time).toLocaleString('zh-TW',{hour12:false}):'');document.title='人力調查表編輯工具_v'+VER;$('#name').value=S.name;$('#name').dataset.old=S.name;$('#period').value=S.period;$('#stamp').checked=S.stamp!==false;$('#name').classList.toggle('sp',hasSp(S.name));
+  $('#tabs').innerHTML=['人力調查表','訪員／櫃檯名單（訪'+S.vis.length+'・櫃'+S.cnt.length+'）','開發日誌'].map((t,i)=>`<button data-act="tab" data-v="${i}" class="${i==tab?'on':''}">${t}</button>`).join('');
+  $('#main').className=tab==1?'wide':'';[r1,r2,r4][tab]();growAll();refresh()}
+const uOpts=(sel,k)=>{const us=[...new Set(S.units.map(u=>u.n).filter(n=>n&&(!k||OK[k].test(n))))];if(sel&&!us.includes(sel))us.push(sel);return '<option value=""></option>'+us.map(n=>`<option ${n===sel?'selected':''}>${esc(n)}</option>`).join('')};
+const BASE_R=['櫃檯','主辦','督導'];
+const roleOpts=sel=>{const ex=[...new Set(S.cnt.map(c=>c.r).filter(r=>r&&!BASE_R.includes(r)))];if(sel&&!BASE_R.includes(sel)&&!ex.includes(sel))ex.push(sel);return sOpts(BASE_R.concat(ex),sel)+'<option value="__custom__">＋自訂…</option>'+(ex.length?'<option value="__del__">－移除自訂身份別…</option>':'')};
+const sOpts=(a,sel)=>a.map(n=>`<option ${n===sel?'selected':''}>${esc(n)}</option>`).join('');
+const hasSp=v=>/\s/.test(String(v??''));
+const inp=(t,i,k,v,cls='')=>`<input class="${cls}${k==='n'&&hasSp(v)?' sp':''}" data-t="${t}" data-i="${i}" data-k="${k}" value="${esc(v)}">`;
+const ta=(t,i,v)=>`<textarea class="rm" rows="1" data-t="${t}" data-i="${i}" data-k="k">${esc(v)}</textarea>`;
+const grow=e=>{e.style.height='auto';e.style.height=e.scrollHeight+2+'px'};
+const growAll=()=>document.querySelectorAll('textarea.rm').forEach(grow);
+window.addEventListener('resize',growAll);
+const del=(t,i)=>`<td class="ops"><span class="mv" draggable="true" data-t="${t}" data-i="${i}" title="拖曳調整順序">⠿</span><button class="xm" data-act="up" data-t="${t}" data-i="${i}" title="上移">▲</button><button class="xm" data-act="dn" data-t="${t}" data-i="${i}" title="下移">▼</button><button class="x" data-act="del" data-t="${t}" data-i="${i}" title="刪除">✕</button></td>`;
+/* 調整列順序（保留捲動位置） */
+function keepRender(){const y=scrollY,ws=[...document.querySelectorAll('.wrap')].map(w=>[w.scrollTop,w.scrollLeft]);render();document.querySelectorAll('.wrap').forEach((w,k)=>{if(ws[k]){w.scrollTop=ws[k][0];w.scrollLeft=ws[k][1]}});scrollTo(scrollX,y)}
+function moveRow(t,i,j){const a=S[t];if(i===j||i<0||j<0||i>=a.length||j>=a.length)return;const [x]=a.splice(i,1);a.splice(j,0,x);keepRender()}
+function stepRow(t,i,dir){const a=S[t];let j=i+dir;if(filt&&t!=='units'){while(j>=0&&j<a.length&&a[j].u!==filt)j+=dir}if(j<0||j>=a.length)return toast(dir<0?'已經在最上面':'已經在最下面');moveRow(t,i,j)}
+let DRAG=null;
+document.addEventListener('dragstart',e=>{const h=e.target.closest&&e.target.closest('.mv');if(!h){return}DRAG={t:h.dataset.t,i:+h.dataset.i};const tr=h.closest('tr');if(tr){tr.classList.add('dragging');try{e.dataTransfer.setDragImage(tr,10,10)}catch(x){}}e.dataTransfer.effectAllowed='move';try{e.dataTransfer.setData('text/plain','row')}catch(x){}});
+const rowInfo=e=>{const tr=e.target.closest&&e.target.closest('tr');const h=tr&&tr.querySelector('.mv');return h?{tr,t:h.dataset.t,i:+h.dataset.i}:null};
+const clearOver=()=>document.querySelectorAll('tr.over-up,tr.over-dn,tr.dragging').forEach(r=>r.classList.remove('over-up','over-dn','dragging'));
+document.addEventListener('dragover',e=>{if(!DRAG)return;const r=rowInfo(e);clearOver();if(r&&r.t===DRAG.t){e.preventDefault();e.dataTransfer.dropEffect='move';r.tr.classList.add(r.i<DRAG.i?'over-up':'over-dn')}});
+document.addEventListener('drop',e=>{if(!DRAG)return;const r=rowInfo(e),d=DRAG;DRAG=null;clearOver();if(r&&r.t===d.t){e.stopImmediatePropagation();moveRow(d.t,d.i,r.i)}},true);
+document.addEventListener('dragend',()=>{DRAG=null;clearOver()});
+const filterBar=(t,label)=>`<div class="bar"><label>篩選營業所/課</label><select id="filt">${'<option value="">全部</option>'+[...new Set(S.units.map(u=>u.n).filter(n=>n&&(!OK[t]||OK[t].test(n))))].map(n=>`<option ${n===filt?'selected':''}>${esc(n)}</option>`).join('')}</select></div>`;
+
+function r1(){
+  const tot=k=>`<td class="c" data-tot="${k}">0</td>`;
+  $('#main').innerHTML=`<div class="bar"><button class="p" data-act="add" data-t="units">＋ 新增單位</button><span class="hint">灰底欄位為自動計算：督導兼訪員／訪員／櫃台人數取自名單，總人數＝主管＋承辦＋督訪＋訪銷＋櫃台＋倉管＋留停。</span></div>
+  <div class="wrap"><table><thead><tr><th>單位</th><th>型態</th><th>總人數</th><th>主管人數</th><th>承辦/主辦/督導</th><th>督導兼訪員</th><th>訪銷人數</th><th>櫃台人數</th><th>倉管人數</th><th>留停人數</th><th>備註</th><th></th></tr></thead><tbody>
+  <tr class="tot"><td>${esc(S.name)}處（合計）</td><td></td>${'CDEFGHIJ'.split('').map(tot).join('')}<td></td><td></td></tr>
+  ${S.units.map((u,i)=>`<tr><td><input class="w${hasSp(u.n)?' sp':''}" data-t="units" data-i="${i}" data-k="n" data-old="${esc(u.n)}" value="${esc(u.n)}"></td>
+  <td>${isSuo(u.n)?`<select data-t="units" data-i="${i}" data-k="t">${sOpts(TYPES,u.t)}</select>`:''}</td>
+  <td class="c" data-calc="C" data-i="${i}"></td><td>${inp('units',i,'d',u.d,'n')}</td><td>${inp('units',i,'e',u.e,'n')}</td>
+  <td class="c" data-calc="F" data-i="${i}"></td><td class="c" data-calc="G" data-i="${i}"></td><td class="c" data-calc="H" data-i="${i}"></td>
+  <td>${inp('units',i,'i',u.i,'n')}</td><td>${inp('units',i,'j',u.j,'n')}</td><td>${ta('units',i,u.k)}</td>${del('units',i)}</tr>`).join('')}</tbody></table></div>`}
+
+function cOpts(v,i){const ex=new Set(v.c),seen=new Set(),g=a=>a.filter(c=>c.n&&!ex.has(c.n)&&!seen.has(c.n)&&seen.add(c.n)).map(c=>`<option value="${esc(c.n)}">${esc(c.n)}（${esc(c.u)}・${esc(c.r)}）</option>`).join('');
+  const a=g(S.cnt.filter(c=>c.u===v.u)),b=g(S.cnt);
+  return `<select data-add data-i="${i}"><option value="">＋配對櫃檯</option>${a?`<optgroup label="同所/課">${a}</optgroup>`:''}${b?`<optgroup label="其他所/課">${b}</optgroup>`:''}</select>`}
+const cg=a=>'<colgroup>'+a.map(w=>`<col style="width:${w}px">`).join('')+'</colgroup>';
+function r2(){
+  const cs=new Set(S.cnt.map(c=>c.n)),vw=[100,84,100,190,...CH.map(()=>46),140,108],cw=[100,84,88,130,130,108],sum=a=>a.reduce((x,y)=>x+y,0);
+  const V=`<div class="pane pv" id="p-vis"><h3>訪員名單（${S.vis.length}）<button class="p" data-act="add" data-t="vis">＋ 新增訪員</button></h3><div class="hint">一位訪員可配對多位櫃檯（匯出時以「、」分隔）。紅框＝櫃檯名單中找不到該姓名。</div>
+  <div class="wrap"><table style="min-width:${sum(vw)}px">${cg(vw)}<thead><tr><th>營業所/課</th><th>姓名</th><th>身分別</th><th>搭配櫃檯（可多位）</th>${CH.map(c=>`<th>${esc(c)}</th>`).join('')}<th>備註</th><th></th></tr></thead><tbody>
+  ${S.vis.map((v,i)=>[v,i]).filter(([v])=>!filt||v.u===filt).map(([v,i])=>`<tr><td><select class="${hasSp(v.u)?'sp':''}${v.u&&!OK.vis.test(v.u)?' bu':''}" data-t="vis" data-i="${i}" data-k="u">${uOpts(v.u,'vis')}</select></td>
+  <td>${inp('vis',i,'n',v.n,'w')}</td><td><select data-t="vis" data-i="${i}" data-k="r">${sOpts(['督導兼訪員','訪員'],v.r)}</select></td>
+  <td class="l"><div class="cell">${v.c.map((n,j)=>`<span class="chip ${cs.has(n)?'':'bad'}">${esc(n)}<b data-act="rmc" data-i="${i}" data-j="${j}">×</b></span>`).join('')}${cOpts(v,i)}</div></td>
+  ${CH.map((c,j)=>`<td><input type="checkbox" class="ch" data-i="${i}" data-ch="${j}" ${v.ch[j]?'checked':''}></td>`).join('')}<td>${ta('vis',i,v.k)}</td>${del('vis',i)}</tr>`).join('')}</tbody></table></div></div>`;
+  const C=`<div class="pane pc" id="p-cnt"><h3>櫃檯名單（${S.cnt.length}）<button class="p" data-act="add" data-t="cnt">＋ 新增櫃檯</button></h3><div class="hint">「身份別」為「櫃檯」者才計入櫃台人數（主辦、督導、自訂不計）。配對訪員為自動帶出（匯出為純文字）。</div>
+  <div class="wrap"><table style="min-width:${sum(cw)}px">${cg(cw)}<thead><tr><th>營業所/課</th><th>櫃檯姓名</th><th>身份別</th><th>配對訪員（自動）</th><th>備註</th><th></th></tr></thead><tbody>
+  ${S.cnt.map((c,i)=>[c,i]).filter(([c])=>!filt||c.u===filt).map(([c,i])=>`<tr><td><select class="${hasSp(c.u)?'sp':''}${c.u&&!OK.cnt.test(c.u)?' bu':''}" data-t="cnt" data-i="${i}" data-k="u">${uOpts(c.u,'cnt')}</select></td>
+  <td>${inp('cnt',i,'n',c.n,'w').replace('data-k="n"',`data-k="n" data-old="${esc(c.n)}"`)}</td><td><select data-t="cnt" data-i="${i}" data-k="r">${roleOpts(c.r)}</select></td>
+  <td class="l c" data-pair="${i}" style="white-space:normal"></td><td>${ta('cnt',i,c.k)}</td>${del('cnt',i)}</tr>`).join('')}</tbody></table></div></div>`;
+  $('#main').innerHTML=filterBar('vis','訪員')+`<div class="split">${V}${C}</div>`}
+
+function r4(){$('#main').innerHTML=LOG.map(([v,d,a])=>`<div class="wrap" style="padding:10px 16px;margin-bottom:10px"><b>v${v}</b> <span class="hint">${d}</span><ul style="margin:6px 0 0;padding-left:20px">${a.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')}
+
+/* ---------- 事件 ---------- */
+$('#name').oninput=e=>{S.name=e.target.value;e.target.classList.toggle('sp',hasSp(S.name));save()};$('#name').onchange=e=>{const o=e.target.dataset.old;renamePrefix(o,S.name);autoPrefix();e.target.dataset.old=S.name;render()};$('#period').oninput=e=>{S.period=e.target.value;save()};$('#stamp').onchange=e=>{S.stamp=e.target.checked;save()};
+const main=$('#main');
+main.addEventListener('input',e=>{const t=e.target,d=t.dataset;if(d.t==null||t.type==='checkbox'||t.value==='__custom__'||t.value==='__del__')return;S[d.t][d.i][d.k]=t.value;if(t.tagName==='INPUT'&&d.k==='n')t.classList.toggle('sp',hasSp(t.value));if(t.tagName==='SELECT'&&d.k==='u')t.classList.toggle('sp',hasSp(t.value));if(t.tagName==='TEXTAREA')grow(t);refresh()});
+main.addEventListener('change',e=>{const t=e.target,d=t.dataset;
+  if(t.id==='filt'){filt=t.value;render();return}
+  if(d.ch!=null){S.vis[d.i].ch[d.ch]=t.checked;save();return}
+  if(d.add!=null){if(t.value)S.vis[d.i].c.push(t.value);render();return}
+  if(d.t==='cnt'&&d.k==='r'&&t.value==='__del__'){const cs=[...new Set(S.cnt.map(c=>c.r).filter(r=>r&&!BASE_R.includes(r)))];const v=(prompt('要移除哪個自訂身份別？使用它的人會改回「櫃檯」。\n目前有：'+cs.join('、'),'')||'').trim();if(v&&cs.includes(v)){S.cnt.forEach(c=>{if(c.r===v)c.r='櫃檯'});toast('已移除「'+v+'」')}else if(v)toast('找不到「'+v+'」');render();return}
+  if(d.t==='cnt'&&d.k==='r'&&t.value==='__custom__'){const v=(prompt('輸入自訂身份別（例如：兼任、支援）。注意：只有「櫃檯」會計入櫃台人數','')||'').trim();if(v)S.cnt[d.i].r=v;render();return}
+  if(d.t==null)return;if(d.t==='units'&&d.k==='n'){const v=pre(t.value);if(v!==t.value)t.value=v}S[d.t][d.i][d.k]=t.value;
+  const rnC=d.t==='cnt'&&d.k==='n'&&d.old!=null&&d.old!==t.value;
+  if(d.k==='n'&&d.old!=null&&d.old!==t.value){
+    if(d.t==='units')S.vis.concat(S.cnt).forEach(x=>{if(x.u===d.old)x.u=t.value});
+    if(d.t==='cnt')S.vis.forEach(v=>v.c=v.c.map(x=>x===d.old?t.value:x));t.dataset.old=t.value}
+  if(d.t==='units'&&d.k==='n'&&!isSuo(t.value))S.units[d.i].t='';
+  if(t.tagName==='SELECT'||(d.t==='units'&&d.k==='n')||rnC)render();else refresh()});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;const d=b.dataset;
+  if(d.act==='tab'){tab=+d.v;render()}
+  else if(d.act==='add'){S[d.t].push(d.t==='units'?U():d.t==='vis'?{u:OK.vis.test(filt)?filt:'',n:'',r:'訪員',c:[],ch:CH.map(()=>false),k:''}:{u:OK.cnt.test(filt)?filt:'',n:'',r:'櫃檯',k:''});render();const r=((d.t==='vis'||d.t==='cnt')?document.querySelector('#p-'+d.t):document).querySelectorAll('tbody tr');const l=r[r.length-1];l&&l.scrollIntoView({block:'center'});const x=l&&l.querySelector('input:not([type=checkbox])');x&&x.focus()}
+  else if(d.act==='up'||d.act==='dn')stepRow(d.t,+d.i,d.act==='up'?-1:1);
+  else if(d.act==='del'){S[d.t].splice(+d.i,1);render()}
+  else if(d.act==='rmc'){S.vis[d.i].c.splice(+d.j,1);render()}
+  else if(d.act==='new'){if(!armed){armed=true;b.textContent='再按一次：清空並建立新範本';setTimeout(()=>{armed=false;b.textContent='新範本'},3000)}else{armed=false;b.textContent='新範本';S=blank();CH=S.ch;tab=0;filt='';render();toast('已建立新範本')}}
+  else if(d.act==='imp')$('#file').click();
+  else if(d.act==='exp')exportAs(d.k);
+  });
+$('#file').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)runImport(f)};
+
+/* ---------- 匯入 ---------- */
+const val=c=>{let v=c&&c.value;if(v&&typeof v==='object'){v=v.richText?v.richText.map(t=>t.text).join(''):'result' in v?v.result:v.text}return v==null?'':String(v).trim()};
+const norm=s=>String(s).replace(/[\s\u3000]/g,'');
+function findHdr(ws,sets){for(const keys of sets)for(let r=1;r<=30;r++){const m={};ws.getRow(r).eachCell((c,i)=>{m[norm(val(c))]=i});if(keys.every(k=>m[k]))return{r,m}}return null}
+function remCol(ws,h){let x=h.m['備註']||0;if(!x)ws.getRow(Math.max(h.r-1,1)).eachCell((c,i)=>{if(norm(val(c))==='備註')x=i});return x}
+async function runImport(f){try{if(/\.(json|html?)$/i.test(f.name)){const tx=await f.text();let o;
+      if(/\.json$/i.test(f.name))o=JSON.parse(tx);else{const e=new DOMParser().parseFromString(tx,'text/html').getElementById('snap');if(!e)throw new Error('這個 HTML 檔內沒有快照資料（不是由本工具匯出的快照）');o=JSON.parse(e.textContent)}
+      const st=o.state||o;if(!st.units||!st.vis||!st.cnt)throw new Error('不是有效的快照檔');S=st;S.ch=S.ch||DEF.slice();stripCh(S);CH=S.ch;tab=0;filt='';render();toast('已還原快照')}else await importX(f)}catch(err){console.error(err);toast('匯入失敗：'+(err.message||err))}}
+async function importX(f){
+  if(typeof ExcelJS==='undefined')throw new Error('Excel 元件尚未載入，請稍後再試');
+  let buf=await f.arrayBuffer();
+  if(/\.ods$/i.test(f.name)){if(!window.XLSX)throw new Error('ODS 元件尚未載入，請稍後再試（需連線）');buf=XLSX.write(XLSX.read(buf,{type:'array'}),{bookType:'xlsx',type:'array'})}
+  const wb=new ExcelJS.Workbook();await wb.xlsx.load(buf);
+  let w1,w2,w3,h1,h2,h3,h;
+  for(const ws of wb.worksheets){
+    if(!w1&&(h=findHdr(ws,[['單位','型態'],['營業處及轄屬營業所','型態'],['單位']]))){w1=ws;h1=h;continue}
+    if(!w3&&(h=findHdr(ws,[['櫃檯姓名']]))){w3=ws;h3=h;continue}
+    if(!w2&&(h=findHdr(ws,[['姓名','營業所/課']]))){w2=ws;h2=h}}
+  const names=wb.worksheets.map(w=>w.name).join('、');
+  if(!w1)throw new Error('找不到人力調查表（需有「單位」或「營業處及轄屬營業所」與「型態」標題列）。檔內工作表：'+names);
+  if(!w2)throw new Error('找不到訪員名單表（需有「姓名」「營業所/課」標題列）。檔內工作表：'+names);
+  const n={name:S.name,period:S.period,ch:DEF.slice(),units:[],vis:[],cnt:[],stamp:false};let got=0;
+  for(let r=1;r<=h1.r&&!got;r++)w1.getRow(r).eachCell(c=>{const m=val(c).match(/^(.+?)營業處(.+?)最新人力調查表/);if(m&&!got){n.name=m[1];n.period=m[2];got=1}});
+  let c=h1.m,rm=remCol(w1,h1);const A=(ws,r,k)=>c[k]?val(ws.getCell(r,c[k])):'',fc=p=>{const k=Object.keys(c).find(x=>x.startsWith(p));return k?c[k]:0};
+  const legacy=!c['單位'],nc=c['單位']||c['營業處及轄屬營業所']||1,cD=fc('主管'),cE=fc('承辦'),cI=fc('倉管'),cJ=fc('留停'),cT=fc('型態'),cH=fc('櫃台')||fc('櫃檯');
+  const HDRX=['營業處及轄屬營業所','單位'];
+  const num=(ws,r,x)=>{const v=x?val(ws.getCell(r,x)):'';return v===''||isNaN(v)?'':Number(v)};let hc=[];
+  for(let r=h1.r+1,first=true,bl=0;r<=h1.r+300;r++){const a=val(w1.getCell(r,nc));if(norm(a)==='承辦人'||norm(a)==='承辦'){n.stamp=true;break}
+    if(!a){if(++bl>=6&&n.units.length)break;continue}bl=0;
+    if(HDRX.includes(norm(a))||(cT&&norm(val(w1.getCell(r,cT)))==='型態'))continue; /* 重複出現的標題列（如「營業處及轄屬營業所／型態…」）不當成單位 */
+    if(first&&/處$/.test(a)){first=false;continue}first=false;
+    n.units.push({n:(isSuo(a)||!n.name||!/[室課]$/.test(a)?a:(nz(a).startsWith(nz(n.name))?a:n.name+a)),t:cT&&isSuo(a)?val(w1.getCell(r,cT)):'',d:num(w1,r,cD),e:num(w1,r,cE),i:num(w1,r,cI),j:num(w1,r,cJ),k:rm?val(w1.getCell(r,rm)):''});hc.push(num(w1,r,cH))}
+  if(!n.units.length)throw new Error(`人力調查表讀到 0 個單位（標題列第 ${h1.r} 列、單位欄第 ${nc} 欄）`);
+  c=h2.m;rm=remCol(w2,h2);const rc=c['身分別']?'身分別':'身份別',idc=Math.max(c[rc]||0,c['搭配櫃檯']||0);
+  const chs=Object.entries(c).filter(([k,i])=>k&&i>idc&&k!=='備註'&&!HIDE.includes(k)).sort((x,y)=>x[1]-y[1]);
+  if(chs.length)n.ch=chs.map(x=>x[0]);
+  for(let r=h2.r+1,bl=0;r<=h2.r+500;r++){const a=A(w2,r,'姓名'),u=A(w2,r,'營業所/課');if(norm(val(w2.getCell(r,1)))==='承辦人')break;
+    if(!a&&!u){if(++bl>=6)break;continue}bl=0;
+    if(norm(a)==='姓名')continue;
+    const ro=A(w2,r,rc);n.vis.push({u,n:a,r:ro==='督導兼訪員'?ro:'訪員',c:A(w2,r,'搭配櫃檯').split(/[、,，;；\/\n]+/).map(s=>s.trim()).filter(Boolean),
+      ch:(chs.length?chs.map(x=>val(w2.getCell(r,x[1]))!==''):DEF.map(()=>false)),k:rm?val(w2.getCell(r,rm)):''})}
+  let ph=0;
+  if(w3){c=h3.m;rm=remCol(w3,h3);const rd=c['身份別']?'身份別':'身分別';
+    for(let r=h3.r+1,bl=0;r<=h3.r+500;r++){const a=A(w3,r,'櫃檯姓名'),u=A(w3,r,'營業所/課');if(norm(val(w3.getCell(r,1)))==='承辦人')break;
+      if(!a&&!u){if(++bl>=6)break;continue}bl=0;
+      if(norm(a)==='櫃檯姓名')continue;
+      n.cnt.push({u,n:a,r:A(w3,r,rd)||'櫃檯',k:rm?val(w3.getCell(r,rm)):''})}}
+  else n.units.forEach((u,i)=>{for(let k=0;k<(hc[i]||0);k++){n.cnt.push({u:u.n,n:'',r:'櫃檯',k:''});ph++}});
+  S=n;CH=n.ch;const fx=fixUnits(false);tab=0;filt='';render();toast((fx.msg?fx.msg+'。':'')+`已匯入：${n.units.length} 個單位、${n.vis.length} 位訪員、${n.cnt.length} 位櫃檯`+(w3?'':`（舊版無櫃檯名單，已依「櫃台人數」建立 ${ph} 筆空白櫃檯，請補姓名）`))}
+/* 拖放 */
+let dc=0;const ov=$('#drop');
+const isFile=e=>!DRAG&&e.dataTransfer&&[...(e.dataTransfer.types||[])].includes('Files');
+addEventListener('dragenter',e=>{if(!isFile(e))return;e.preventDefault();dc++;ov.style.display='flex'});
+addEventListener('dragover',e=>{if(isFile(e))e.preventDefault()});
+addEventListener('dragleave',e=>{if(!isFile(e))return;dc=Math.max(0,dc-1);if(!dc)ov.style.display='none'});
+addEventListener('drop',e=>{if(!isFile(e)){dc=0;ov.style.display='none';return}e.preventDefault();dc=0;ov.style.display='none';const f=[...(e.dataTransfer?e.dataTransfer.files:[])].find(x=>/\.(xlsx|ods|json|html?)$/i.test(x.name));f?runImport(f):toast('請拖入 .xlsx、.ods 或快照 .html 檔案')});
+
+/* ---------- 匯出 ---------- */
+const FN='微軟正黑體',BC='FFBFC9D9',bd=Object.fromEntries(['top','left','bottom','right'].map(k=>[k,{style:'thin',color:{argb:BC}}]));
+const CL={navy:'FF1F3864',blue:'FF2F5597',sub:'FFD9E2F3',zebra:'FFF5F8FC',calc:'FFE8EFF9',tot:'FFFFF2CC',ink:'FF262626'};
+const TSN='人力調查表-淡藍';
+const fill=c=>({type:'pattern',pattern:'solid',fgColor:{argb:c}});
+/* 表格範圍（表頭列＋資料列）只設對齊與字型，不寫死底色／框線／字色，這樣「表格設計」換樣式才會生效；表格上方的大標、群組列才用固定色 */
+function fmt(ws,r1,r2,c1,c2,hdr){for(let r=r1;r<=r2;r++){const out=r<hdr,th=r===hdr;if(!out&&!th)ws.getRow(r).height=22;
+  for(let c=c1;c<=c2;c++){const x=ws.getCell(r,c);if(out)x.border=bd;x.alignment={vertical:'middle',horizontal:c===1?'left':'center',wrapText:true,...(c===1&&!out&&!th?{indent:1}:{})};
+    if(out){x.font={name:FN,size:11,bold:true,color:{argb:'FFFFFFFF'}};x.fill=fill(CL.blue)}
+    else if(th){x.font={name:FN,size:11,bold:true,color:{argb:'FFFFFFFF'}};x.fill=fill(CL.blue)}
+    else x.font={name:FN,size:11}}}}
+function title(ws,txt){const x=ws.getCell('A1');x.value=txt;x.font={name:FN,size:16,bold:true,color:{argb:CL.navy}};x.alignment={vertical:'middle',horizontal:'left'};ws.getRow(1).height=32}
+const SIGN=['承辦','課長','副理','經理'];
+function stamp(ws,r,nc){const k=SIGN.length,base=Math.floor(nc/k),ex=nc%k;let c=1;
+  SIGN.forEach((t,i)=>{const w=base+(i<ex?1:0),c2=c+w-1;
+    for(let rr=r;rr<=r+1;rr++)for(let cc=c;cc<=c2;cc++){const x=ws.getCell(rr,cc);x.border=bd;x.alignment={vertical:'middle',horizontal:'center'};x.font={name:FN,size:11,bold:rr===r,color:{argb:CL.navy}};if(rr===r)x.fill=fill(CL.sub)}
+    ws.getCell(r,c).value=t;if(w>1){ws.mergeCells(r,c,r,c2);ws.mergeCells(r+1,c,r+1,c2)}c=c2+1});
+  ws.getRow(r).height=24;ws.getRow(r+1).height=64}
+/* 凍結窗格、隱藏格線、分頁標籤色、列印設定（A4 橫向、一頁寬、每頁重複表頭、頁碼） */
+function dress(ws,o){ws.views=[{state:'frozen',xSplit:o.x||0,ySplit:o.y,showGridLines:false}];ws.properties.tabColor={argb:CL.blue};
+  ws.pageSetup={paperSize:9,orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0,horizontalCentered:true,printTitlesRow:`1:${o.y}`,margins:{left:.4,right:.4,top:.5,bottom:.6,header:.3,footer:.3}};
+  ws.headerFooter={oddFooter:'&C第 &P 頁，共 &N 頁'}}
+/* 備註欄多行時，列高依行數加高，避免被截掉 */
+const rh=(ws,r,t,w)=>{if(!t)return;const n=String(t).split('\n').reduce((a,p)=>a+Math.max(1,Math.ceil([...p].length*2/w)),0);if(n>1)ws.getRow(r).height=Math.max(22,n*15.5+6)};
+const wOf=(a,mn,mx,k=2.1,pad=3)=>Math.min(mx,Math.max(mn,Math.max(0,...a.map(x=>[...String(x||'')].length))*k+pad));
+function sign(ws,r,a){a.forEach(([c,t])=>{const x=ws.getCell(r,c);x.value=t;x.font={name:FN,size:11,bold:true}})}
+const dv=(ws,col,r1,r2,list,loose)=>{const m=ws.dataValidations.model;m[`${col}${r1}:${col}${r2}`]={type:'list',allowBlank:true,formulae:['"'+list+'"'],...(loose?{showErrorMessage:false}:{})}};
+/* ExcelJS 會把 <tableParts> 寫在 <legacyDrawing>（註解）前面，違反 OOXML 順序，Excel 會報 XML 錯誤；此處把順序調正 */
+async function fixXlsx(buf){const z=await JSZip.loadAsync(buf);
+  for(const f of Object.keys(z.files).filter(n=>/^xl\/worksheets\/sheet\d+\.xml$/.test(n))){
+    const x=await z.file(f).async('string');
+    z.file(f,x.replace(/(<tableParts\b[\s\S]*?<\/tableParts>)(\s*)(<legacyDrawing\b[^>]*\/>)/,'$3$2$1'))}
+  /* 自訂表格樣式（與 ODS 同色）：寫入 styles.xml 的 dxfs 與 tableStyles，讓「表格設計」能顯示並切換 */
+  let st=await z.file('xl/styles.xml').async('string');
+  const m=st.match(/<dxfs count="(\d+)"\s*(\/>|>)/),n0=m?+m[1]:0,B='<color rgb="FFBFC9D9"/>',ln=k=>`<${k} style="thin">${B}</${k}>`;
+  const dx=`<dxf><font><color rgb="FF262626"/></font><border>${['left','right','top','bottom','vertical','horizontal'].map(ln).join('')}</border></dxf>`+
+    `<dxf><font><b/><color rgb="FFFFFFFF"/></font><fill><patternFill patternType="solid"><fgColor rgb="FF2F5597"/><bgColor rgb="FF2F5597"/></patternFill></fill></dxf>`+
+    `<dxf><fill><patternFill patternType="solid"><fgColor rgb="FFF5F8FC"/><bgColor rgb="FFF5F8FC"/></patternFill></fill></dxf>`;
+  if(!m)st=st.replace(/(<tableStyles\b)/,`<dxfs count="3">${dx}</dxfs>$1`);
+  else if(m[2]==='/>')st=st.replace(m[0],`<dxfs count="${n0+3}">${dx}</dxfs>`);
+  else st=st.replace(/<\/dxfs>/,dx+'</dxfs>').replace(m[0],`<dxfs count="${n0+3}">`);
+  const ts=`<tableStyles count="1" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16"><tableStyle name="${TSN}" pivot="0" count="3"><tableStyleElement type="wholeTable" dxfId="${n0}"/><tableStyleElement type="headerRow" dxfId="${n0+1}"/><tableStyleElement type="firstRowStripe" dxfId="${n0+2}"/></tableStyle></tableStyles>`;
+  st=st.replace(/<tableStyles\b[^>]*\/>|<tableStyles\b[\s\S]*?<\/tableStyles>/,ts);
+  z.file('xl/styles.xml',st);
+  return z.generateAsync({type:'arraybuffer',compression:'DEFLATE'})}
+async function buildXlsx(){
+  if(!S.units.length)return toast('請至少保留一個單位');
+  if(typeof ExcelJS==='undefined')return toast('Excel 元件載入失敗，請檢查網路後重新整理');
+  const nm=S.name,wb=new ExcelJS.Workbook();wb.calcProperties={fullCalcOnLoad:true};wb.creator='人力調查表編輯工具 v'+VER;
+  const chk=(a,b)=>a;const ONE=a=>a.length?a:[null];
+  /* 人力調查表 */
+  const w1=wb.addWorksheet(nm+'處人力調查表'),n=S.units.length,hd=['單位','型態','總人數','主管人數','承辦主辦督導人數','督訪人數','訪銷人數','櫃台人數','倉管人數','留停人數','備註'];
+  title(w1,`${nm}營業處${S.period}最新人力調查表`);w1.getCell('K1').value='單位:人';
+  ['營業處及轄屬營業所','型態','總人數\n(服務人數)','主管人數\n(含經理、副理、課長、主任)','承辦/主辦/督導人數\n(不含督導兼訪員)','督導兼訪員人數','訪銷總人數','櫃台人數','倉管人數','留停人數','備註'].forEach((t,i)=>w1.getCell(2,i+1).value=t);
+  const rv=S.units.map(rowv),T={};rv.forEach(r=>{for(const k in r)T[k]=(T[k]||0)+r[k]});
+  w1.getCell('A3').value=nm+'處';'CDEFGHIJ'.split('').forEach((L,i)=>w1.getCell(L+3).value={formula:`SUM(人力調查表[${hd[i+2]}])`,result:T[L]||0});
+  w1.addTable({name:'人力調查表',ref:'A4',headerRow:true,totalsRow:false,style:{theme:TSN,showRowStripes:true},columns:hd.map(x=>({name:x,filterButton:true})),
+    rows:S.units.map(u=>[u.n,(isSuo(u.n)&&u.t)||null,null,N(u.d)||null,N(u.e)||null,null,null,null,N(u.i)||null,N(u.j)||null,u.k||null])});
+  const q=(sh,col,v)=>`COUNTIFS(${sh}[營業所/課],人力調查表[[#This Row],[單位]],${sh}[${col}],"${v}")`;
+  S.units.forEach((u,i)=>{const r=5+i,v=rv[i];
+    w1.getCell('C'+r).value={formula:`SUM($D${r}:$J${r})`,result:v.C};
+    const sh=k=>shown(u.n,v[k])!=='';
+    if(sh('F'))w1.getCell('F'+r).value={formula:q('訪銷員名單表','身分別','督導兼訪員'),result:v.F};
+    if(sh('G'))w1.getCell('G'+r).value={formula:q('訪銷員名單表','身分別','訪員'),result:v.G};
+    if(sh('H'))w1.getCell('H'+r).value={formula:q('櫃檯名單表','身份別','櫃檯'),result:v.H}});
+  fmt(w1,2,4+n,1,11,4);
+  const k1=w1.getCell('K1');k1.value='單位:人';k1.font={name:FN,size:11,color:{argb:'FF595959'}};k1.alignment={horizontal:'right',vertical:'middle'};
+  /* 第 2 列主表頭（長名稱）、第 3 列統計列、第 4 列公式用欄名（較淡） */
+  for(let c=1;c<=11;c++){const a=w1.getCell(2,c);a.fill=fill(CL.blue);a.font={name:FN,size:11,bold:true,color:{argb:'FFFFFFFF'}};
+    const t=w1.getCell(3,c);t.fill=fill(CL.tot);t.font={name:FN,size:12,bold:true,color:{argb:CL.navy}};t.border={top:{style:'thin',color:{argb:BC}},bottom:{style:'medium',color:{argb:CL.blue}},left:{style:'thin',color:{argb:BC}},right:{style:'thin',color:{argb:BC}}};
+  }
+  w1.getRow(3).height=26;w1.getRow(4).height=22;
+  for(let r=5;r<=4+n;r++){'CFGH'.split('').forEach(L=>{const x=w1.getCell(L+r);x.fill=fill(CL.calc);x.font={name:FN,size:11,bold:L==='C',color:{argb:CL.ink}}});w1.getCell('K'+r).alignment={horizontal:'left',vertical:'middle',wrapText:true}}
+  S.units.forEach((u,i)=>rh(w1,5+i,u.k,50));w1.getRow(2).height=52;[wOf(S.units.map(u=>u.n),16,32),10,13,16,18,13,12,12,12,12,50].forEach((w,i)=>w1.getColumn(i+1).width=w);dress(w1,{x:1,y:4});
+  {let a=-1;const go=e=>{if(a>=0)dv(w1,'B',5+a,5+e,'綜合所,商化所,開單所');a=-1};S.units.forEach((u,i)=>{if(isSuo(u.n)){if(a<0)a=i}else go(i-1)});go(n-1)}if(S.stamp!==false)stamp(w1,6+n,11);
+  w1.getCell('A2').note='營業所名稱需與分頁「訪員名單表」內的欄位「營業所/課」相符，公式才能計算';
+  w1.getCell('B2').note='僅「所」需填寫型態：綜合所、商化所、開單所；其他單位免填';
+  w1.getCell('E2').note='工作屬性為辦公室人員為準\n單位包含以下但不設限：行銷課、人事室、行政室、物流課、政風室、營業所';
+  w1.getCell('G2').note='工作屬性以訪銷為主之人員';w1.getCell('H2').note='工作屬性以櫃台為主之人員';
+  w1.getCell('I2').note='營業處-處倉現場工作人員\n營業所-所倉現場工作人員';w1.getCell('J2').note='基於任何因素留停，且非左側任一身份別。';
+  w1.getCell('A3').note='本行為統計行，處名可更動，公式勿更動。';
+  /* 訪員名單表 */
+  const w2=wb.addWorksheet(nm+'處訪員名單表'),V=S.vis,nv=Math.max(V.length,1),h2=['營業處','營業所/課','姓名','身分別','搭配櫃檯',...CH,'備註'];
+  title(w2,`${nm}營業處${S.period}訪銷員名單表`);w2.getCell('A2').value='人員資料';w2.mergeCells('A2:E2');w2.getCell('F2').value='負責通路';const K=CH.length,LC=w2.getColumn(5+K).letter,RC=w2.getColumn(6+K).letter;w2.mergeCells('F2:'+LC+'2');
+  w2.addTable({name:'訪銷員名單表',ref:'A3',headerRow:true,totalsRow:false,style:{theme:TSN,showRowStripes:true},columns:h2.map(x=>({name:x,filterButton:true})),
+    rows:V.length?V.map(v=>[nm+'處',v.u||null,v.n||null,v.r,v.c.join('、')||null,...CH.map((c,j)=>v.ch[j]?'V':null),v.k||null]):[[nm+'處',...Array(5+K).fill(null)]]});
+  fmt(w2,2,3+nv,1,6+K,3);for(let r=4;r<=3+nv;r++)w2.getCell(RC+r).alignment={horizontal:'left',vertical:'middle',wrapText:true};
+  for(let c=1;c<=6+K;c++){const g=w2.getCell(2,c);g.fill=fill(CL.blue)}
+  w2.addConditionalFormatting({ref:`F4:${LC}${3+nv}`,rules:[{type:'cellIs',operator:'equal',formulae:['"V"'],style:{font:{bold:true,color:{argb:'FF1E6B3A'}},fill:{type:'pattern',pattern:'solid',bgColor:{argb:'FFD5EFDC'}}}}]});
+  [10,wOf(V.map(v=>v.u),14,30),12,13,wOf(V.map(v=>v.c.join('、')),22,44,2,3),...CH.map(c=>wOf([c],9,16,2.1,3.5)),40].forEach((w,i)=>w2.getColumn(i+1).width=w);V.forEach((v,i)=>rh(w2,4+i,v.k,40));dress(w2,{x:3,y:3});
+  dv(w2,'D',4,3+nv,'督導兼訪員,訪員');
+  w2.getCell('E3').note='一位訪員可配對多位櫃檯，請以「、」分隔姓名。';
+  /* 櫃檯名單表 */
+  const w3=wb.addWorksheet(nm+'處櫃檯名單表'),C=S.cnt,nc=Math.max(C.length,1);
+  title(w3,`${nm}營業處${S.period}櫃檯名單表`);w3.getCell('A2').value='人員資料';w3.mergeCells('A2:E2');
+  w3.addTable({name:'櫃檯名單表',ref:'A3',headerRow:true,totalsRow:false,style:{theme:TSN,showRowStripes:true},columns:['營業處','營業所/課','櫃檯姓名','身份別','配對訪員','備註'].map(x=>({name:x,filterButton:true})),
+    rows:C.length?C.map(c=>[nm+'處',c.u||null,c.n||null,c.r,pairStr(c)||null,c.k||null]):[[nm+'處',null,null,null,null,null]]});
+  fmt(w3,2,3+nc,1,6,3);
+  for(let r=4;r<=3+nc;r++){const c=C[r-4],nmv=c&&c.n?c.n:'';w3.getCell('E'+r).value=c&&pairStr(c)||null}for(let r=4;r<=3+nc;r++)w3.getCell('F'+r).alignment={horizontal:'left',vertical:'middle',wrapText:true};
+  for(let c=1;c<=6;c++)w3.getCell(2,c).fill=fill(CL.blue);
+  [10,wOf(C.map(c=>c.u),14,30),14,12,wOf(C.map(pairStr),16,40,2,3),30].forEach((w,i)=>w3.getColumn(i+1).width=w);C.forEach((c,i)=>rh(w3,4+i,c.k,30));dress(w3,{x:3,y:3});dv(w3,'D',4,3+nc,'櫃檯,主辦,督導',true);
+  w3.getCell('D3').note='此欄只會取值為「櫃檯」的人，去「人力調查表」計算櫃檯人數。';
+  w3.getCell('E3').note='此欄為匯出當下依訪員名單「搭配櫃檯」帶出的純文字，不會自動更新。\n若配對有異動，請回編輯工具修改後重新匯出。';
+  return fixXlsx(await wb.xlsx.writeBuffer())}
+function sheets(){const nm=S.name,rv=S.units.map(rowv),T={};rv.forEach(r=>{for(const k in r)T[k]=(T[k]||0)+r[k]});
+  return[{name:nm+'處人力調查表',title:`${nm}營業處${S.period}最新人力調查表`,sum:1,stamp:S.stamp!==false?1:0,head:['單位','型態','總人數','主管人數','承辦主辦督導人數','督訪人數','訪銷人數','櫃台人數','倉管人數','留停人數','備註'],
+    rows:[[nm+'處','',...'CDEFGHIJ'.split('').map(k=>T[k]||0),''],...S.units.map((u,i)=>{const r=rv[i];return[u.n,isSuo(u.n)?u.t:'',r.C,r.D,r.E,shown(u.n,r.F),shown(u.n,r.G),shown(u.n,r.H),r.I,r.J,u.k]})]},
+   {name:nm+'處訪員名單表',title:`${nm}營業處${S.period}訪銷員名單表`,head:['營業處','營業所/課','姓名','身分別','搭配櫃檯',...CH,'備註'],rows:S.vis.map(v=>[nm+'處',v.u,v.n,v.r,v.c.join('、'),...CH.map((c,j)=>v.ch[j]?'V':''),v.k])},
+   {name:nm+'處櫃檯名單表',title:`${nm}營業處${S.period}櫃檯名單表`,head:['營業處','營業所/課','櫃檯姓名','身份別','配對訪員','備註'],rows:S.cnt.map(c=>[nm+'處',c.u,c.n,c.r,pairStr(c),c.k])}]}
+/* ---------- 匯出 PDF：不下載字型，不依賴外部套件 ----------
+   用瀏覽器內建中文字型把每頁畫成圖片（JPEG），再手寫組成 PDF，並疊一層看不見、但可選取／搜尋／複製的文字。 */
+const PW=841.89,PH=595.28,PDF_K=3,PDF_FONT_STACK='"Microsoft JhengHei","PingFang TC","Noto Sans TC","Noto Sans CJK TC","Heiti TC",sans-serif';
+  function buildPdf(pages, title, d) {
+    const p2=n=>String(n).padStart(2,'0');
+    const enc = new TextEncoder(), parts = [], offs = []; let len = 0;
+    const put = b => { if (typeof b === 'string') b = enc.encode(b); parts.push(b); len += b.length; };
+    const hex16 = s => 'FEFF' + [...s].map(ch => ch.codePointAt(0)).map(cp => cp > 0xFFFF ? [0xD800 + ((cp - 0x10000) >> 10), 0xDC00 + ((cp - 0x10000) & 0x3FF)] : [cp]).flat().map(u => u.toString(16).padStart(4, '0')).join('').toUpperCase();
+    const n = pages.length, FIRST = 7, total = 6 + n * 3;
+    put(new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2D, 0x31, 0x2E, 0x34, 0x0A, 0x25, 0xE2, 0xE3, 0xCF, 0xD3, 0x0A]));
+    const obj = (i, fn) => { offs[i] = len; put(`${i} 0 obj\n`); fn(); put('\nendobj\n'); };
+    obj(1, () => put('<< /Type /Catalog /Pages 2 0 R >>'));
+    obj(2, () => put(`<< /Type /Pages /Count ${n} /Kids [${pages.map((_, i) => `${FIRST + i * 3} 0 R`).join(' ')}] >>`));
+    obj(3, () => put(`<< /Title <${hex16(title)}> /Creator <${hex16('人力調查表編輯工具 v'+VER+'')}> /CreationDate (D:${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}) >>`));
+    /* 隱形文字層用的字型：不內嵌字型檔，靠 ToUnicode 對照讓檢視器能選取／搜尋／複製 */
+    obj(4, () => put('<< /Type /Font /Subtype /Type0 /BaseFont /NotoSansTC /Encoding /Identity-H /DescendantFonts [5 0 R] /ToUnicode 6 0 R >>'));
+    obj(5, () => put('<< /Type /Font /Subtype /CIDFontType2 /BaseFont /NotoSansTC /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor << /Type /FontDescriptor /FontName /NotoSansTC /Flags 4 /FontBBox [0 -200 1000 900] /ItalicAngle 0 /Ascent 880 /Descent -120 /CapHeight 700 /StemV 80 >> /DW 1000 /CIDToGIDMap /Identity >>'));
+    obj(6, () => { const cm = '/CIDInit /ProcSet findresource begin 12 dict begin begincmap /CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def /CMapName /Adobe-Identity-UCS def /CMapType 2 def 1 begincodespacerange <0000> <FFFF> endcodespacerange 1 beginbfrange <0000> <FFFF> <0000> endbfrange endcmap CMapName currentdict /CMap defineresource pop end end'; put(`<< /Length ${cm.length} >>\nstream\n${cm}\nendstream`); });
+    const hexU = t => { let o = ''; for (let i = 0; i < t.length; i++) { const c = t.charCodeAt(i); if (c >= 0xD800 && c <= 0xDFFF) continue; o += c.toString(16).padStart(4, '0'); } return o.toUpperCase(); };
+    pages.forEach((pg, i) => {
+      const b = FIRST + i * 3;
+      let content = `q ${PW} 0 0 ${PH} 0 0 cm /Im0 Do Q\nBT 3 Tr\n`;
+      for (const r of pg.runs || []) {
+        const hx = hexU(r.t), nn = hx.length / 4; if (!nn || !(r.fs > 0.5)) continue;
+        const tz = Math.max(5, Math.min(400, r.w / (nn * r.fs) * 100));
+        content += `/F1 ${r.fs.toFixed(2)} Tf ${tz.toFixed(1)} Tz 1 0 0 1 ${r.x.toFixed(2)} ${(PH - r.base).toFixed(2)} Tm <${hx}> Tj\n`;
+      }
+      content += 'ET';
+      obj(b, () => put(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PW} ${PH}] /Resources << /XObject << /Im0 ${b + 2} 0 R >> /Font << /F1 4 0 R >> /ProcSet [/PDF /Text /ImageC] >> /Contents ${b + 1} 0 R >>`));
+      obj(b + 1, () => put(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`));
+      obj(b + 2, () => { put(`<< /Type /XObject /Subtype /Image /Width ${pg.w} /Height ${pg.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${pg.jpg.length} >>\nstream\n`); put(pg.jpg); put('\nendstream'); });
+    });
+    const xr = len;
+    put(`xref\n0 ${total + 1}\n0000000000 65535 f \n` + offs.slice(1).map(o => String(o).padStart(10, '0') + ' 00000 n \n').join(''));
+    put(`trailer\n<< /Size ${total + 1} /Root 1 0 R /Info 3 0 R >>\nstartxref\n${xr}\n%%EOF\n`);
+    return new Blob(parts, { type: 'application/pdf' });
+  }
+async function pdfBlob(){
+  const M=28,FOOT=26,PX=4,GAP=16,LB=20,BH=64,TITLE=26,avail=PW-2*M,ink='#000',line='#404040';
+  const mc=document.createElement('canvas').getContext('2d');
+  const tw=(t,sz,b)=>{mc.font=`${b?700:400} ${sz}px ${PDF_FONT_STACK}`;return mc.measureText(t).width};
+  const pages=[];let FS=9,LH=FS*1.4,PY=3;
+  const SH=sheets().map(t=>({...t,title:String(t.title),head:t.head.map(x=>String(x??'')),rows:t.rows.map(r=>r.map(x=>String(x??'').replace(/\r/g,'')))}));
+  const wrap=(t,w)=>{const out=[];for(const p of t.split('\n')){let cur='';for(const c of p){if(cur&&tw(cur+c,FS)>w){out.push(cur);cur=c}else cur+=c}out.push(cur)}return out};
+  const hOf=ls=>Math.max(...ls.map(a=>a.length))*LH+2*PY;
+  for(const t of SH){
+    const head=t.head,rows=t.rows,nc=head.length,last=nc-1;
+    const plan=fs=>{FS=fs;LH=fs*1.4;PY=3*fs/9;
+      const nat=head.map((h,j)=>{let m=tw(h,fs,true)+2*PX;for(const r of rows)for(const ln of r[j].split('\n'))m=Math.max(m,tw(ln,fs)+2*PX);return Math.min(m,j===last?260:150)});
+      const minW=head.map(h=>tw(h,fs,true)+2*PX),tot=nat.reduce((a,b)=>a+b,0),k=avail/tot,cw=nat.map((n,j)=>Math.max(minW[j],n*k));
+      cw[last]=Math.max(60,avail-cw.slice(0,last).reduce((a,b)=>a+b,0));
+      const sc=avail/cw.reduce((a,b)=>a+b,0);if(sc<1)for(let j=0;j<nc;j++)cw[j]*=sc;
+      const Ls=rows.map(r=>r.map((c,j)=>wrap(c,cw[j]-2*PX))),hs=Ls.map(hOf),hh=hOf(head.map(x=>[x]));
+      return{cw,Ls,hs,hh,body:TITLE+hh+hs.reduce((a,b)=>a+b,0)}};
+    let P=plan(9);
+    /* 單位很多時，人力調查表逐步縮小字級，盡量與蓋章欄同頁 */
+    if(t.stamp){let ok=false;for(const f of [9,8.5,8,7.5,7]){P=plan(f);if(P.body+GAP+LB+BH<=PH-2*M-FOOT){ok=true;break}}if(!ok)P=plan(9)}
+    const {cw,Ls,hs}=P;let pg,g,y;
+    const font=(sz,b)=>g.font=`${b?700:400} ${sz}px ${PDF_FONT_STACK}`;
+    const run=(tx,x,base,w,fs)=>{if(tx)pg.runs.push({t:tx,x,base,w,fs})};
+    const text=(tx,x,base,sz,b)=>{if(!tx)return;font(sz,b);g.fillStyle=ink;g.fillText(tx,x,base);run(tx,x,base,g.measureText(tx).width,sz)};
+    const box=(x,yy,w,h,fill)=>{if(fill){g.fillStyle=fill;g.fillRect(x,yy,w,h)}g.strokeStyle=line;g.lineWidth=.5;g.strokeRect(x,yy,w,h)};
+    const drawRow=(L,o)=>{const h=hOf(L);let x=M;
+      L.forEach((ls,j)=>{box(x,y,cw[j],h,o.head?'#e3e3e3':o.sum?'#f2f2f2':null);
+        const th=ls.length*LH;ls.forEach((ln,q)=>{font(FS,o.head||o.sum);const lw=g.measureText(ln).width,tx=j===last?x+PX:x+(cw[j]-lw)/2,base=y+(h-th)/2+LH*(q+.78);
+          g.fillStyle=ink;g.fillText(ln,tx,base);run(ln,tx,base,lw,FS)});x+=cw[j]});y+=h};
+    /* 每一頁（含換頁）都重畫大標 */
+    const newPage=()=>{const c=document.createElement('canvas');c.width=Math.round(PW*PDF_K);c.height=Math.round(PH*PDF_K);
+      g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.scale(PDF_K,PDF_K);g.textBaseline='alphabetic';
+      pg={c,g,runs:[]};pages.push(pg);y=M;text(t.title,M,y+14,14,true);y+=TITLE};
+    const hdr=()=>drawRow(head.map(x=>[x]),{head:1});
+    newPage();hdr();
+    rows.forEach((r,i)=>{const h=hs[i];
+      /* 最後 3 列與蓋章欄綁在一起，避免蓋章欄單獨成頁 */
+      const need=t.stamp&&i===Math.max(rows.length-3,0)?hs.slice(i).reduce((a,b)=>a+b,0)+GAP+LB+BH:h;
+      if(y+Math.max(h,need)>PH-M-FOOT){newPage();hdr()}
+      drawRow(Ls[i],{sum:t.sum&&i==0})});
+    if(t.stamp){if(y+GAP+LB+BH>PH-M-FOOT){newPage();hdr()}y+=GAP;const bw=avail/SIGN.length;
+      SIGN.forEach((lb,i)=>{const x=M+i*bw;box(x,y,bw,LB,'#ededed');box(x,y+LB,bw,BH);const w=tw(lb,10,true);text(lb,x+(bw-w)/2,y+LB-6,10,true)})}
+  }
+  const N=pages.length,stamp=new Date();
+  const out=[];
+  for(let i=0;i<N;i++){const p=pages[i],s=`第 ${i+1} 頁，共 ${N} 頁`;g=p.g;g.font=`400 8px ${PDF_FONT_STACK}`;g.fillStyle='#4d4d4d';
+    const w=g.measureText(s).width,x=(PW-w)/2,base=PH-12;g.fillText(s,x,base);p.runs.push({t:s,x,base,w,fs:8});
+    const blob=await new Promise((res,rej)=>p.c.toBlob(b=>b?res(b):rej(new Error('無法產生圖片')),'image/jpeg',.92));
+    out.push({jpg:new Uint8Array(await blob.arrayBuffer()),w:p.c.width,h:p.c.height,runs:p.runs});p.c.width=p.c.height=0}
+  return buildPdf(out,`${S.name}處人力調查表`,stamp)}
+/* ---------- ODS 匯出（自行組檔，含格式）：表頭色、隔列底色、框線、欄寬列高、合併、下拉選單、凍結窗格、列印設定 ---------- */
+async function buildOds(){
+  if(typeof JSZip==='undefined')throw new Error('ODS 元件載入失敗，請重新整理');
+  const X=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const FAM='微軟正黑體',cm=n=>(Math.round(n*1000)/1000)+'cm',pt2cm=p=>p*0.03528;
+  const BR='0.5pt solid #BFC9D9';
+  /* 動態產生儲存格樣式（相同設定共用一個） */
+  const cstyles=new Map();
+  const cs=o=>{const k=JSON.stringify(o);if(cstyles.has(k))return cstyles.get(k).n;const n='ce'+(cstyles.size+1);cstyles.set(k,{n,o});return n};
+  const csXml=({n,o})=>`<style:style style:name="${n}" style:family="table-cell"><style:table-cell-properties style:vertical-align="${o.va||'middle'}"${o.fill?` fo:background-color="#${o.fill}"`:''}${o.border===false?'':` fo:border="${BR}"`}${o.bb?` fo:border-bottom="${o.bb}"`:''} fo:wrap-option="${o.nw?'no-wrap':'wrap'}"/><style:paragraph-properties fo:text-align="${o.al||'center'}"${o.ml?` fo:margin-left="${o.ml}"`:''}/><style:text-properties style:font-name="${FAM}" fo:font-family="${FAM}" style:font-family-asian="${FAM}" fo:font-size="${o.sz||11}pt" style:font-size-asian="${o.sz||11}pt" fo:font-weight="${o.b?'bold':'normal'}" style:font-weight-asian="${o.b?'bold':'normal'}" fo:color="#${o.c||'262626'}"/></style:style>`;
+  const col=new Map(),row=new Map();
+  const cw=w=>{const k=cm(w);if(!col.has(k))col.set(k,'co'+(col.size+1));return col.get(k)};
+  const rw=h=>{const k=cm(h);if(!row.has(k))row.set(k,'ro'+(row.size+1));return row.get(k)};
+  const vals=new Map();let vn=0;
+  const val=(list,loose)=>{const k=list.join('|')+(loose?'!':'');if(!vals.has(k))vals.set(k,{n:'val'+(++vn),list,loose});return vals.get(k).n};
+  const cell=(v,style,o={})=>{
+    const a=`${style?` table:style-name="${style}"`:''}${o.span>1?` table:number-columns-spanned="${o.span}" table:number-rows-spanned="1"`:''}${o.vn?` table:content-validation-name="${o.vn}"`:''}`;
+    if(o.f)return `<table:table-cell${a} table:number-matrix-columns-spanned="1" table:number-matrix-rows-spanned="1" table:formula="${X(o.f)}"${v!==''&&v!=null?` office:value-type="string" office:string-value="${X(v)}"`:''}><text:p>${X(v)}</text:p></table:table-cell>`;
+    if(v===''||v==null)return `<table:table-cell${a}/>`;
+    if(typeof v==='number')return `<table:table-cell${a} office:value-type="float" office:value="${v}"><text:p>${v}</text:p></table:table-cell>`;
+    return `<table:table-cell${a} office:value-type="string">${String(v).split('\n').map(p=>`<text:p>${X(p)}</text:p>`).join('')}</table:table-cell>`};
+  const covered=n=>'<table:covered-table-cell/>'.repeat(Math.max(0,n));
+  const chars=s=>Math.max(0,...String(s??'').split('\n').map(p=>[...p].length));
+  const SH=sheets(),tabs=[],settings=[];
+  SH.forEach((t,si)=>{
+    const head=t.head,rows=t.rows,nc=head.length,last=nc-1;
+    /* 欄寬：依內容；備註固定寬 */
+    const wch=si===0?[wOf(S.units.map(u=>u.n),16,32),10,13,16,18,13,12,12,12,12,50]:si===1?[10,wOf(S.vis.map(v=>v.u),14,30),12,13,wOf(S.vis.map(v=>v.c.join('、')),22,44,2,3),...CH.map(c=>wOf([c],9,16,2.1,3.5)),40]:[10,wOf(S.cnt.map(c=>c.u),14,30),14,12,wOf(S.cnt.map(pairStr),16,40,2,3),30];
+    const remW=wch[last];
+    const rowsXml=[];
+    /* 標題列 */
+    rowsXml.push(`<table:table-row table:style-name="${rw(1.129)}">${cell(t.title,cs({b:1,sz:16,c:'1F3864',al:'start',border:false,nw:1}))}${si===0?'<table:table-cell table:number-columns-repeated="'+(nc-2)+'"/>'+cell('單位:人',cs({c:'595959',al:'end',border:false,nw:1})):''}</table:table-row>`);
+    const hs=cs({b:1,c:'FFFFFF',fill:'2F5597'}),hsL=cs({b:1,c:'FFFFFF',fill:'2F5597',al:'start',ml:'0.1cm'});
+    const hdrRow=`<table:table-row table:style-name="${rw(si===0?0.776:0.582)}">${head.map((h,j)=>cell(h,j===0?hsL:hs)).join('')}</table:table-row>`;
+    const LONG=['營業處及轄屬營業所','型態','總人數\n(服務人數)','主管人數\n(含經理、副理、課長、主任)','承辦/主辦/督導人數\n(不含督導兼訪員)','督導兼訪員人數','訪銷總人數','櫃台人數','倉管人數','留停人數','備註'];
+    const longRow=si===0?`<table:table-row table:style-name="${rw(1.834)}">${LONG.map((h,j)=>cell(h,j===0?hsL:hs)).join('')}</table:table-row>`:'';
+    const gRow=c=>`<table:table-row table:style-name="${rw(0.582)}">${c}</table:table-row>`,KK=Math.max(0,nc-6);
+    const grpRow=si===1?gRow(cell('人員資料',hs,{span:5})+covered(4)+(KK?cell('負責通路',hs,{span:KK})+covered(KK-1):'')+cell('',hs)):si===2?gRow(cell('人員資料',hs,{span:5})+covered(4)+cell('',hs)):'';
+    const body=[],totRow=[];
+    const vcol=si===1?3:si===2?3:si===0?1:-1;
+    const vl=si===1?['督導兼訪員','訪員']:si===2?['櫃檯','主辦','督導']:['綜合所','商化所','開單所'];
+    rows.forEach((r,i)=>{
+      const isTot=si===0&&i===0,zebra=!isTot&&(i%2===(si===0?1:0));
+      let hgt=0.776;const rk=String(r[last]??'');
+      if(rk){const n=rk.split('\n').reduce((a,p)=>a+Math.max(1,Math.ceil([...p].length*2/remW)),0);if(n>1)hgt=Math.max(0.776,pt2cm(n*15.5+6))}
+      if(isTot)hgt=0.917;
+      const cells=r.map((v0,j)=>{const v=si===0&&!isTot&&[3,4,8,9].includes(j)&&v0===0?'':v0;
+        let o={fill:isTot?'FFF2CC':zebra?'F5F8FC':'FFFFFF',b:isTot?1:0,sz:isTot?12:11,c:isTot?'1F3864':'262626',al:(j===0||j===last)?'start':'center',ml:(j===0||j===last)?'0.1cm':undefined};
+        if(isTot)o.bb='1.5pt solid #2F5597';
+        if(si===0&&!isTot&&[2,5,6,7].includes(j)){o.fill='E8EFF9';if(j===2)o.b=1}
+        if(si===1&&j>4&&j<last&&v==='V'){o.fill='D5EFDC';o.c='1E6B3A';o.b=1}
+        const ex={};if(!isTot&&j===vcol&&!(si===0&&!isSuo(r[0])))ex.vn=val(vl,si===2);
+                return cell(v,cs(o),ex)}).join('');
+      (isTot?totRow:body).push(`<table:table-row table:style-name="${rw(hgt)}">${cells}</table:table-row>`)});
+    /* 人力調查表：蓋章欄（第一格寫「承辦」，匯入時以此判斷結束） */
+    if(t.stamp){
+      body.push(`<table:table-row table:style-name="${rw(0.5)}"><table:table-cell table:number-columns-repeated="${nc}"/></table:table-row>`);
+      const k=SIGN.length,base=Math.floor(nc/k),ex=nc%k,sp=SIGN.map((_,i)=>base+(i<ex?1:0));
+      const sh=cs({b:1,c:'1F3864',fill:'D9E2F3'}),sb=cs({}) ;
+      body.push(`<table:table-row table:style-name="${rw(0.85)}">${SIGN.map((l,i)=>cell(l,sh,{span:sp[i]})+covered(sp[i]-1)).join('')}</table:table-row>`);
+      body.push(`<table:table-row table:style-name="${rw(2.2)}">${SIGN.map((l,i)=>cell('',sb,{span:sp[i]})+covered(sp[i]-1)).join('')}</table:table-row>`)}
+    const colsXml=wch.map(w=>`<table:table-column table:style-name="${cw((w*7+5)*2.54/96)}"/>`).join('');
+    tabs.push(`<table:table table:name="${X(t.name.slice(0,31))}" table:style-name="ta${si+1}">${colsXml}<table:table-header-rows>${rowsXml.join('')}${longRow}${grpRow}${totRow.join('')}${hdrRow}</table:table-header-rows>${body.join('')}</table:table>`);
+    const xs=si===0?1:3,ys=si===0?4:3;
+    settings.push(`<config:config-item-map-entry config:name="${X(t.name.slice(0,31))}"><config:config-item config:name="HorizontalSplitMode" config:type="short">2</config:config-item><config:config-item config:name="VerticalSplitMode" config:type="short">2</config:config-item><config:config-item config:name="HorizontalSplitPosition" config:type="int">${xs}</config:config-item><config:config-item config:name="VerticalSplitPosition" config:type="int">${ys}</config:config-item><config:config-item config:name="ActiveSplitRange" config:type="short">2</config:config-item><config:config-item config:name="PositionLeft" config:type="int">0</config:config-item><config:config-item config:name="PositionRight" config:type="int">${xs}</config:config-item><config:config-item config:name="PositionTop" config:type="int">0</config:config-item><config:config-item config:name="PositionBottom" config:type="int">${ys}</config:config-item></config:config-item-map-entry>`)});
+  const NS='xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" xmlns:tableooo="http://openoffice.org/2009/table" xmlns:config="urn:oasis:names:tc:opendocument:xmlns:config:1.0" xmlns:of="urn:oasis:names:tc:opendocument:xmlns:of:1.2"';
+  const auto=[...col].map(([k,n])=>`<style:style style:name="${n}" style:family="table-column"><style:table-column-properties style:column-width="${k}" fo:break-before="auto"/></style:style>`).join('')+
+    [...row].map(([k,n])=>`<style:style style:name="${n}" style:family="table-row"><style:table-row-properties style:row-height="${k}" fo:break-before="auto" style:use-optimal-row-height="false"/></style:style>`).join('')+
+    SH.map((_,i)=>`<style:style style:name="ta${i+1}" style:family="table" style:master-page-name="Default"><style:table-properties table:display="true" tableooo:tab-color="#2F5597"/></style:style>`).join('')+
+    [...cstyles.values()].map(csXml).join('');
+  const vx=vals.size?`<table:content-validations>${[...vals.values()].map(v=>`<table:content-validation table:name="${v.n}" table:condition="of:cell-content-is-in-list(${v.list.map(x=>'&quot;'+X(x)+'&quot;').join(';')})" table:allow-empty-cell="true" table:display-list="unsorted" table:base-cell-address="${X(SH[0].name.slice(0,31))}.A1"><table:error-message table:message-type="stop" table:display="${v.loose?'false':'true'}"/></table:content-validation>`).join('')}</table:content-validations>`:'';
+  /* 資料庫範圍（ODS 最接近 Excel「表格」的東西）：名稱與 Excel 表格相同，表頭列顯示篩選下拉按鈕 */
+  const TN=['人力調查表','訪銷員名單表','櫃檯名單表'],colL=n=>{let t='';n++;while(n>0){const m=(n-1)%26;t=String.fromCharCode(65+m)+t;n=Math.floor((n-1)/26)}return t};
+  const qs=n=>/[^\p{L}\p{N}_]/u.test(n)?"'"+n.replace(/'/g,"''")+"'":n;
+  const dbx=SH.map((t,si)=>{const nd=t.rows.length-(si===0?1:0);if(nd<1)return '';const sn=qs(t.name.slice(0,31)),hr=si===0?4:3;
+    return `<table:database-range table:target-range-address="${X(sn)}.A${hr}:${X(sn)}.${colL(t.head.length-1)}${hr+nd}" table:name="${TN[si]}" table:display-filter-buttons="true"/>`}).join('');
+  const content=`<?xml version="1.0" encoding="UTF-8"?><office:document-content ${NS} office:version="1.2"><office:automatic-styles>${auto}</office:automatic-styles><office:body><office:spreadsheet><table:calculation-settings table:case-sensitive="false" table:search-criteria-must-apply-to-whole-cell="true" table:use-wildcards="true" table:use-regular-expressions="false" table:automatic-find-labels="false"/>${vx}${tabs.join('')}${dbx?`<table:database-ranges>${dbx}</table:database-ranges>`:''}</office:spreadsheet></office:body></office:document-content>`;
+  const styles=`<?xml version="1.0" encoding="UTF-8"?><office:document-styles ${NS} office:version="1.2"><office:automatic-styles><style:page-layout style:name="pm1"><style:page-layout-properties fo:page-width="29.7cm" fo:page-height="21cm" style:print-orientation="landscape" fo:margin-top="1.2cm" fo:margin-bottom="1.2cm" fo:margin-left="1cm" fo:margin-right="1cm" style:table-centering="horizontal" style:scale-to-X="1" style:scale-to-Y="0"/><style:footer-style><style:header-footer-properties fo:min-height="0.5cm" fo:margin-top="0.2cm"/></style:footer-style></style:page-layout></office:automatic-styles><office:master-styles><style:master-page style:name="Default" style:page-layout-name="pm1"><style:footer><text:p fo:text-align="center">第 <text:page-number/> 頁，共 <text:page-count/> 頁</text:p></style:footer></style:master-page></office:master-styles></office:document-styles>`;
+  const setx=`<?xml version="1.0" encoding="UTF-8"?><office:document-settings ${NS} office:version="1.2"><office:settings><config:config-item-set config:name="ooo:view-settings"><config:config-item-map-indexed config:name="Views"><config:config-item-map-entry><config:config-item config:name="ViewId" config:type="string">view1</config:config-item><config:config-item-map-named config:name="Tables">${settings.join('')}</config:config-item-map-named><config:config-item config:name="ShowGrid" config:type="boolean">false</config:config-item></config:config-item-map-entry></config:config-item-map-indexed></config:config-item-set></office:settings></office:document-settings>`;
+  const man=`<?xml version="1.0" encoding="UTF-8"?><manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" manifest:version="1.2"><manifest:file-entry manifest:full-path="/" manifest:version="1.2" manifest:media-type="application/vnd.oasis.opendocument.spreadsheet"/><manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/><manifest:file-entry manifest:full-path="styles.xml" manifest:media-type="text/xml"/><manifest:file-entry manifest:full-path="settings.xml" manifest:media-type="text/xml"/></manifest:manifest>`;
+  const z=new JSZip();z.file('mimetype','application/vnd.oasis.opendocument.spreadsheet',{compression:'STORE'});
+  z.file('META-INF/manifest.xml',man);z.file('content.xml',content);z.file('styles.xml',styles);z.file('settings.xml',setx);
+  return z.generateAsync({type:'arraybuffer',compression:'DEFLATE',mimeType:'application/vnd.oasis.opendocument.spreadsheet'})}
+
+function snapHtml(){
+  const c=document.documentElement.cloneNode(true);c.querySelectorAll('#snap').forEach(e=>e.remove());
+  ['#main','#tabs','#warn','#msg','#ver','#upd'].forEach(q=>{const e=c.querySelector(q);if(e){e.innerHTML='';e.removeAttribute('class');e.removeAttribute('style')}});
+  const d=c.querySelector('#drop');if(d)d.removeAttribute('style');
+  const sc=document.createElement('script');sc.type='application/json';sc.id='snap';
+  sc.textContent=JSON.stringify({app:'hc-manpower',ver:VER,time:new Date().toISOString(),state:S}).replace(/</g,'\\u003c');
+  c.querySelector('script:not([src])').before(sc);
+  return '<!DOCTYPE html>\n'+c.outerHTML}
+const shortSuo=n=>String(n??'').replace(/營業所/g,'所');
+/* 匯出用：單位名稱（含名單的所別）中的「營業所」簡化為「所」；只改匯出，不動畫面與快照 */
+function shortState(r){return{...r,units:r.units.map(u=>({...u,n:shortSuo(u.n)})),vis:r.vis.map(v=>({...v,u:shortSuo(v.u)})),cnt:r.cnt.map(c=>({...c,u:shortSuo(c.u)}))}}
+async function exportAs(kind){
+  if(!S.units.length)return toast('請至少保留一個單位');
+  const fx=fixUnits(true);render();const note=fx.msg?fx.msg+'。':'';
+  const dl=(window.claude&&claude.use&&await claude.use('downloads'))||{save:async({filename,data})=>{const u=URL.createObjectURL(new Blob([data])),l=document.createElement('a');l.href=u;l.download=filename;document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}};
+  const d=new Date(),ymd=String(d.getFullYear()%100).padStart(2,'0')+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0'),base=`${S.name}處所最新人力調查表_v${ymd}`;
+  toast('產生檔案中⋯');
+  const real=S,cut=kind!=='html'&&real.units.some(u=>/營業所/.test(u.n));if(kind!=='html')S=shortState(real);
+  try{
+    if(kind==='xlsx'){if(typeof ExcelJS==='undefined')return toast('Excel 元件載入失敗，請重新整理');await dl.save({filename:base+'.xlsx',data:await buildXlsx()})}
+    else if(kind==='pdf'){await dl.save({filename:base+'.pdf',data:await (await pdfBlob()).arrayBuffer()})}
+    else if(kind==='html')await dl.save({filename:base+'_快照.html',data:snapHtml()});
+    else if(kind==='ods'){if(typeof JSZip==='undefined')return toast('ODS 元件載入失敗，請重新整理');
+      const buf=await buildOds();
+      try{await dl.save({filename:base+'.ods',data:buf})}catch(e){if(!e||e.code!=='rejected_extension')throw e;
+        const z=new JSZip();z.file(base+'.ods',buf);await dl.save({filename:base+'_ods.zip',data:await z.generateAsync({type:'arraybuffer'})});return toast(note+'平台不允許直接下載 .ods，已打包成 zip，解壓即得 .ods（內容為數值，不含公式）')}}
+    toast(note+(cut?'已將單位名稱中的「營業所」簡化為「所」。':'')+'已送出下載')
+  }catch(e){if(e&&e.code==='declined')toast('已取消下載');else{console.error(e);toast('匯出失敗：'+(e.message||e))}}finally{S=real}}
+
+/* ---------- 檢查更新（GitHub 上的 version.json） ---------- */
+const UPD={json:'https://raw.githubusercontent.com/1061005ttl-lab/tool/main/version.json',page:'https://github.com/1061005ttl-lab/tool'};
+async function checkUpdate(){
+  if(SNAP||!window.fetch)return;
+  try{
+    const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),6000);
+    const r=await fetch(UPD.json+'?t='+Date.now(),{cache:'no-store',signal:ac.signal});clearTimeout(tm);
+    if(!r.ok)return;const j=await r.json(),nv=Number(j.ver);
+    if(!(nv>VER))return;
+    let sk=0;try{sk=Number(localStorage.getItem('hc_skip'))||0}catch(e){}
+    if(sk>=nv)return;
+    const u=$('#upd'),notes=(j.notes||[]).slice(0,4).map(esc).join('；');
+    u.innerHTML=`<span class="t">🔔 有新版 <b>v${nv}</b>（目前 v${VER}）${notes?'：'+notes:''}<br><span style="color:var(--mu);font-size:12px">更新前建議先按「快照」備份目前資料；下載新版後用新檔案開啟即可。</span></span><button class="p" id="updGo">前往下載</button><button id="updSkip">略過此版</button><button id="updLater">稍後再說</button>`;
+    u.classList.add('on');
+    $('#updGo').onclick=()=>{open(/^https:\/\//.test(j.url||'')?j.url:UPD.page,'_blank','noopener')};
+    $('#updSkip').onclick=()=>{try{localStorage.setItem('hc_skip',String(nv))}catch(e){}u.classList.remove('on')};
+    $('#updLater').onclick=()=>u.classList.remove('on');
+  }catch(e){/* 離線或被擋：靜默略過 */}}
+
+render();
+checkUpdate();
+</script>
+</body>
+</html>
