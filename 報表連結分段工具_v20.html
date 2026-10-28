@@ -1836,9 +1836,10 @@
 })();
 </script>
 <script>
-/* ===== 檢查更新（GitHub 最新版確認與下載）=====
+/* ===== GitHub 檢查更新（畫面上的按鈕叫「檢查更新」）=====
    做法同「人力調查表編輯工具」：掃描 GitHub repo 根目錄的檔名，找「同名稱、版本號更大」的檔案。
    檔名格式：名稱_v數字.html（舊版請放子資料夾，例如 archive/，只掃根目錄）。
+   C.key 須與發佈檔名前綴一致（改檔名或工具名時要一起改，否則永遠查不到新版）；目前版本由 C.ver 讀取，改版時版本號要一併更新。
    本模組自成一體，執行後會把自己的 script 標籤從畫面移除（避免被「整頁拷貝式」的匯出夾帶）。 */
 (function(){
 'use strict';
@@ -1847,7 +1848,7 @@ var C={key:'報表連結分段工具',
   ver:[function(){return document.querySelector('header h1 span').textContent}],
   anchor:'header h1 span',
   btnStyle:'font-family:inherit;font-size:13px;font-weight:600;color:var(--accent);background:var(--accent-soft);border:1px solid var(--line);border-radius:10px;padding:2px 9px;margin-left:8px;vertical-align:middle;cursor:pointer',
-  hint:'目前輸入的網址與設定不會帶到新版。'};
+  hint:'新版不會保留目前輸入的網址與設定，需重新輸入。'};
 var RAW='https://raw.githubusercontent.com/1061005ttl-lab/tool/main/',
     API='https://api.github.com/repos/1061005ttl-lab/tool/contents/',
     MIN=10,LK='ghu_list_v1',SK='ghu_skip_'+C.key,busy=false,tt=0;
