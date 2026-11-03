@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<!--
+================================================================
+店家分配試算工具｜開發紀錄（給後續 AI 助手／維護者先讀這一段）
+現行版本：V09（2026-11-11）。改版時「五處」版號一起改：①檔名 ②<title> ③畫面 #ver ④程式 const VER ⑤本註解（含下方【版本紀錄】）。
+  版本紀錄只寫在本註解，不放畫面（比照其他工具）。
+================================================================
+【版本紀錄】
+  V01 初版：從「督導管理系統_執行追蹤儀表板」v502 的店家分布「分配方案」獨立出來（使用者：獨立出來比較好改，調整完再接回儀表板）。
+      讀儀表板 v503 起的「📦 匯出分配資料包」；五種分法（現況／區域制／通路制／混合制／最小異動）、系統建議、地圖即時預覽、人員組成、指標比較、換手清單、排除人員。
+  V02 混合制改「通路分組制」：特販（CVS／連鎖超市／量販）與區域型（傳統／即飲）兩組，每人原則上只做一組、組內所有通路在自己的區域負責，交界的人兩組各做一小塊；
+      原做法在特販量大的所會把特販分給所有人（使用者 2026/10 資料包：23 所建議混合制中 11 所每人通路數比現況多，例 宜蘭 1.5→3.5、林園 1.2→2.8）。
+      系統建議若每人通路數比現況多 0.3 以上，理由中加註「是為了拉平工作量」。（引擎與儀表板 v503 起不再相同，接回時以本工具為準）
+  V03 🎛 分工設定（使用者：要有 CONTROL PANEL，由主管指定誰做哪些通路）：右側新分頁，人×通路勾選表；系統依勾選用最大流算出「每人負荷率盡量一樣」的工作量，
+      再把每個通路的店依每人分到的量用遞迴二分切區域＝方案「🎛 自訂分工」。表上即時顯示各通路需要幾人份／指派幾人、每人預估負荷，做不完或沒人負責會警示；
+      可一鍵帶入「現況（占自己工作量 10% 以上的通路）／通路制／混合制／區域制（全勾）」再微調；設定依營業所記在 localStorage alloc-tool-roles-v1。
+      自訂分工不做偏遠店就近交辦（主管指定的分工優先）；非主要通路店交給有做該通路且不太遠的人。
+  V04 使用者質疑「通路制大家範圍蓋來蓋去，為何範圍重疊 0%」：原指標只算「同通路」交錯（三重通路制：同通路 0%、不分通路 94%，兩者都算對，但名稱與地圖讓人誤解）。
+      指標拆成兩個：「同通路交錯」（各制度的邊界是否清楚；區域制＝全部店）與「不分通路交疊」（人員範圍不分通路疊在一起的比例，通路制本來就高）；
+      地圖新增「通路」篩選（只看某通路的店與範圍），範圍改「依人／依人×通路／關」，通路制／混合制／自訂分工在「全部通路＋依人」時顯示提醒。
+  V05 分工設定新增「包區」（使用者：A 員包一塊區、B／C／D 分掉某個通路）：勾「包區」的人包一塊區域內的所有通路（roles 存 '*AREA*'）；
+      先用遞迴二分切出每位包區者一塊（量＝產能占比，從他現況店家的重心出發）＋「其餘」一塊，其餘那塊再依各人勾的通路用最大流＋遞迴二分分配。
+      其餘區域若某通路沒人勾，警示並暫時維持原負責人。
+  V06 使用者：「就算算出來了，也不一定要照工具的結果；要能手工圈地、窮盡法慢慢分，工具只要動態計算」＋「量販獨立出來手動分配、色塊用飛地模式」：
+      ①新增方案「✋ 手動調整」：地圖工具列「▭ 框選／✎ 圈選／👆 點選（＋累加）」選店（受通路篩選、只看某人、非主要通路店開關影響），下方浮動面板顯示已選家數、通路、工作量，
+        按某人即指派；每次指派立即重算所有指標、人員小卡、範圍色塊。第一次手動時以「當下的方案」為底稿；可「↶ 復原」（50 步）、「🔄 以目前方案為底稿重來」。
+        存 localStorage alloc-tool-manual-v1＝{處|所:{base,assign:{店碼:員編}}}。
+      ②量販：不參與任何自動分配（各方案都照「🏬 量販」分頁的指定，沒指定＝原負責人），自動方案把量販的工作量當成已固定（svAllocPre）再分其他通路；
+        地圖上量販是黑框大點的飛地，不畫進範圍色塊、不算活動半徑與範圍交錯；框選／圈選不會選到量販（用點選或量販分頁）。存 alloc-tool-bulk-v1。
+      ③分工設定的勾選表不再列量販。
+  V07 使用者：「畫面很多沒用的訊息、雜訊太多；主管只需要很直觀地調整手下業務員的店家分配，不需要知道太複雜的東西」→ 畫面全面精簡：
+      只剩「左：業務員負荷清單（顏色＝地圖色塊、負荷條、各通路店數）」＋「右：大地圖（✋移動／✎圈選／👆點選、通路下拉、含非主要通路勾選）」＋頂列選營業所。
+      操作只有一種：圈店 → 點左邊的人。圈選時左邊每人會預覽「指派給他會變成幾 %」。起點下拉（現況／系統幫我先分：區域、通路、混合）、↶復原、⬇換手清單。
+      已移除畫面：方案按鈕列、指標列、系統建議文字、右側七個分頁（分工設定、量販、人員組成、指標比較、換手清單、全部營業所）、左側靜態資訊與 k 表、排除人員。
+      引擎、資料包、手動指派與量販指定的儲存格式不變（V06 的手動結果會延續）。量販仍是飛地（黑框大點），用👆點選後指派。
+  V08 使用者：「要優化認定值協助操作者、不合理的分配要防呆」＋「現在只能用現有人力分配，離職、新人加入要能增減人員」：
+      ①防呆（引擎）：量少（<0.5 人份）又分散（離該通路中心平均 >5 公里，SV_ALLOC_SCATTER_KM）的通路，通路制不交專人跑全所、改依區域給當地的人；
+        混合制的特販若也是這樣，混合制＝依區域（玉里：CVS＋超市 4.7 天、縱谷 77 公里，原通路制一人範圍 69 公里）。
+      ②防呆（畫面）：人員卡片提示「範圍特別大」（活動半徑 >8 公里且 >其他人中位數 2 倍）、「還沒有店」；負荷 >100% 紅字。
+      ③人員增減（localStorage alloc-tool-staff-v1＝{處|所:{removed:[員編],added:[{code,name,capDays}]}}）：
+        卡片「✕ 離職」→ 不再參與分配，他的店變「待分配」（灰點），清單下方顯示待分配家數，可「🔁 交給其他人補位」（就近、負荷低者優先，寫入手動指派）或自己圈選；
+        「＋ 新增人員」（名稱、產能 %）→ 新人從 0% 開始，可圈店給他，或把起點換成「系統先分」讓系統連新人一起分。
+  V09 畫面用詞「離職」一律改「調離」（使用者指定；人員不一定是離職，也可能調到別所）。儲存格式不變。
+【定位與分工（不可違反）】
+  ・儀表板＝規則來源：各通路 k（近 3 個月滾動）、主要通路判定、每月應訪次數、店家歸屬（S 列）、每人產能，全部由儀表板算好放進資料包；本工具只讀不重算。
+  ・本工具＝分配引擎與操作畫面的試驗場；調整完成後，引擎（svAlloc* 一整段，與儀表板逐字元相同為目標）與畫面再接回儀表板。
+  ・接回前驗證：同一份資料包，本工具與儀表板 smCmpOffice 算出的各所各方案指標必須相同（V01 以 2026/10 真實資料 56 所比對，差異 0）。
+    V02 起混合制已在本工具修改，儀表板仍是 v502 版混合制；接回時把本工具引擎整段搬回儀表板，再重做一次比對。
+【資料包】儀表板「🏘️ 店家分布 → 分配預覽列 → 📦 匯出分配資料包」產生 分配資料包_YYYYMM_日期.json.gz（gzip JSON）：
+  format＝'sv-alloc-pack'、v＝1、ym、chanK／kInfo（各通路 k）、loadHigh／loadLow、channels（通路鍵→名稱）、
+  offices[{branch,office,staff[{code,name,cap(分鐘),capDays,stores[主要通路責任店碼]}]}]、storeCols＋stores（陣列列；含非主要通路店）、excl（儀表板的排除名單）。
+  資料包含人名員編、未去識別；要給外部請先用「原始檔案去識別化工具」處理原始檔，匯入儀表板後再匯出。
+【使用者定調（分配規則，來自儀表板備忘 55 ⑦ 與 v496～v502 對話）】
+  ①一次到位、不做逐月漸進 ②公平排序：通路專精 > 工作量相近 > 區域集中 > 異動少 ③非主要通路不算工作量，但每家都要有人負責
+  ④「獨鳥型」店不該讓專責者跨大範圍跑（偏遠店就近交辦）⑤混合制＝通路分組：特販一組、區域型通路一組，每人只做一組、在自己區域內全包該組通路（恆春實例：A＝特販＋一小塊傳統、B＝其餘傳統）
+  ⑥範圍大、人多時不論哪種制度都要有清楚邊界（遞迴二分；臺中北區實例）⑦主管可逐人排除（新人、支援等）⑧系統建議只是參考，由主管決定 ⑨主管可直接指定每人負責哪些通路（🎛 分工設定），系統只負責把店公平、有邊界地切給被指定的人
+【已知限制（待使用者決定）】工作量不含路程：偏遠或狹長的所拉平工作量時，跑最遠的人可能變遠；邊界是直線，未考慮道路與行政區。
+【GitHub 檢查更新】與其他四個工具同一套做法：UPD.key＝'店家分配試算工具'（須與檔名前綴相同），暫存 alloc_upd_cache、略過 alloc_skip。
+-->
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>店家分配試算工具 V09</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{--bg:#f8fafc;--card:#fff;--bd:#e2e8f0;--tx:#0f172a;--mu:#64748b;--ac:#2563eb}
+*{box-sizing:border-box}html,body{margin:0;height:100%;font-family:system-ui,"Microsoft JhengHei","PingFang TC",sans-serif;color:var(--tx);background:var(--bg);font-size:15px}
+button,select{font:inherit;color:inherit}button{cursor:pointer;border:1px solid var(--bd);background:var(--card);border-radius:8px;padding:5px 12px}button:hover{border-color:var(--ac)}button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+select{padding:5px 8px;border:1px solid var(--bd);border-radius:8px;background:var(--card)}
+header{display:flex;align-items:center;gap:10px;padding:8px 14px;background:#0f172a;color:#fff;flex-wrap:wrap}
+header h1{font-size:1.05rem;margin:0 8px 0 0;white-space:nowrap}header #ver{font-size:.75rem;opacity:.7}header button{background:transparent;color:#fff;border-color:#475569;padding:4px 10px;font-size:.85rem}
+header select{background:#1e293b;color:#fff;border-color:#475569}#packInfo{font-size:.75rem;opacity:.6;margin-left:auto}
+#upd{display:none;align-items:center;gap:8px;padding:6px 14px;background:#fef3c7;font-size:.85rem}#upd.on{display:flex}#upd .t{flex:1}#upd button.p{background:var(--ac);color:#fff;border-color:var(--ac)}
+#app{display:grid;grid-template-columns:320px 1fr;height:calc(100vh - 48px)}
+#side{background:var(--card);border-right:1px solid var(--bd);display:flex;flex-direction:column;min-height:0}
+#side h2{font-size:.95rem;margin:12px 14px 6px}#plist{overflow:auto;flex:1;padding:0 8px}
+.pr{display:block;width:100%;text-align:left;border:1px solid transparent;border-radius:10px;padding:8px 10px;margin:4px 0;background:transparent}
+.pr:hover{background:#f1f5f9;border-color:var(--bd)}.pr.hl{border-color:var(--ac);background:#eff6ff}.pr.go{border-color:#16a34a;background:#f0fdf4}
+.pr .top{display:flex;align-items:center;gap:8px}.pr i{width:12px;height:12px;border-radius:50%;flex:none}.pr .nm{font-weight:600;flex:1}
+.pr .pct{font-weight:700;font-size:1.05rem}.pr .pct.hi{color:#dc2626}.pr .bar{height:8px;background:#e2e8f0;border-radius:4px;margin:6px 0 4px;overflow:hidden}.pr .bar span{display:block;height:100%;border-radius:4px}
+.pr .sub{font-size:.78rem;color:var(--mu)}.pr .pv{font-size:.8rem;font-weight:700;color:#16a34a;margin-left:6px}
+#sfoot{border-top:1px solid var(--bd);padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+#sfoot .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}#fair{font-size:.85rem}
+#mapwrap{position:relative;min-height:0}#map{position:absolute;inset:0}
+#tools{position:absolute;top:10px;left:56px;z-index:600;display:flex;gap:6px;align-items:center;background:rgba(255,255,255,.96);border:1px solid var(--bd);border-radius:10px;padding:5px 8px;box-shadow:0 1px 6px rgba(0,0,0,.15)}
+#tools label{font-size:.85rem;display:flex;align-items:center;gap:4px}
+#selbox{position:absolute;left:50%;transform:translateX(-50%);bottom:16px;z-index:600;background:#1e3a8a;color:#fff;border-radius:12px;padding:10px 16px;font-size:.92rem;box-shadow:0 3px 12px rgba(0,0,0,.3);display:none;white-space:nowrap}
+#selbox button{background:transparent;color:#fff;border-color:#93c5fd;padding:2px 10px;margin-left:10px}
+#landing{grid-column:1/-1;display:flex;align-items:center;justify-content:center}#landing .card{background:var(--card);border:2px dashed var(--bd);border-radius:14px;padding:30px 40px;max-width:600px;line-height:1.8}
+.empty{padding:16px;color:var(--mu)}
+.pr{cursor:pointer}.xb{margin-left:6px;color:#94a3b8;font-size:.85rem;padding:0 4px;border-radius:4px}.xb:hover{background:#fee2e2;color:#dc2626}
+.wn{font-size:.78rem;color:#b45309;margin-top:3px}.gone{margin:10px 4px;padding:8px;border:1px dashed #94a3b8;border-radius:10px;background:#f8fafc}.gone .gr{font-size:.85rem;margin:4px 0}.gone button{margin-top:6px;width:100%}.gone .sub{font-size:.75rem;color:var(--mu);margin-top:4px}
+@media print{header,#tools,#selbox,#upd{display:none!important}}
+</style></head><body>
+<div id="upd"></div>
+<header><h1>🧭 店家分配試算工具 <span id="ver">V09</span></h1><span id="unitSel"></span>
+<button type="button" id="loadBtn">📂 開啟資料包</button><input type="file" id="fileIn" accept=".gz,.json" hidden><button type="button" id="ubtn" title="立即到 GitHub 查有沒有新版">檢查更新</button><span id="packInfo"></span></header>
+<div id="app"><div id="landing"><div class="card"><h2 style="margin-top:0">把「分配資料包」拖到這裡</h2>
+資料包從儀表板匯出：<b>🏘️ 店家分布 → 選營業處 → 📦 匯出分配資料包</b>。<br><br>
+<button type="button" onclick="document.getElementById('fileIn').click()">📂 選擇資料包</button></div></div></div>
+<script>
+'use strict';
+const VER='V09';
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const smAttr=esc;
+const smZh=(a,b)=>String(a).localeCompare(String(b),'zh-Hant');
+function smHull(pts){const p=pts.slice().sort((a,b)=>a[1]-b[1]||a[0]-b[0]);if(p.length<3)return p;const cr=(o,a,b)=>(a[1]-o[1])*(b[0]-o[0])-(a[0]-o[0])*(b[1]-o[1]);const lo=[],up=[];
+ p.forEach(q=>{while(lo.length>=2&&cr(lo[lo.length-2],lo[lo.length-1],q)<=0)lo.pop();lo.push(q)});for(let i=p.length-1;i>=0;i--){const q=p[i];while(up.length>=2&&cr(up[up.length-2],up[up.length-1],q)<=0)up.pop();up.push(q)}lo.pop();up.pop();return lo.concat(up)}
+function smInPoly(lat,lng,poly){let inside=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const yi=poly[i].lat,xi=poly[i].lng,yj=poly[j].lat,xj=poly[j].lng;if(((yi>lat)!==(yj>lat))&&(lng<(xj-xi)*(lat-yi)/(yj-yi)+xi))inside=!inside}return inside}
+const SM_CMP=[['now','現況'],['geo','區域制'],['ch','通路制'],['mix','混合制'],['min','最小異動'],['cus','🎛 自訂分工'],['man','✋ 手動調整']];
+const SM_CMP_NAME={now:'現況',min:'最小異動',geo:'區域制',ch:'通路制',mix:'混合制',cus:'自訂分工',man:'手動調整'};
+const COLORS=['#e11d48','#2563eb','#16a34a','#d97706','#7c3aed','#0891b2','#db2777','#65a30d','#ea580c','#4f46e5','#0d9488','#a16207','#475569','#be123c','#1d4ed8','#15803d'];
+let CHANNELS={};
+/* ===== 分配引擎（源自儀表板 v502 的 svAlloc*；V02 起在本工具調整，接回時整段搬回） ===== */
+    // ---- v496 精準分配引擎（備忘 55 ⑤）：區域制／通路制／混合制，一次到位（使用者定調：換了就是換了，不做逐月漸進）----
+    // 共通：工作量＝店家每月應訪 f ÷ 該通路 k（工作天，與⚖️勞逸比預估負荷同一把尺）；每人目標＝全所工作量×個人產能占比；
+    // 距離＝直線（haversine），只用來分區與衡量集中度。所有方案最後都做「負荷平衡」：只在制度允許的範圍內搬店（區域制＝附近三人、通路制＝有做該通路的人、混合制＝主通路照通路制、小通路照區域）。
+    function svAllocW(st, K) { return st.f / (K[st.ch] || 7); }
+    function svAllocKm(a, b, c, d) { const R = Math.PI / 180, x = (c - a) * R, y = (d - b) * R, h = Math.sin(x / 2) ** 2 + Math.cos(a * R) * Math.cos(c * R) * Math.sin(y / 2) ** 2; return 12742 * Math.asin(Math.sqrt(h)); }
+    function svAllocCenter(list, K) { const p = list.filter(s => s.hasXY); if (!p.length) return null; const W = p.reduce((t, s) => t + svAllocW(s, K), 0) || 1; return { lat: p.reduce((t, s) => t + s.lat * svAllocW(s, K), 0) / W, lng: p.reduce((t, s) => t + s.lng * svAllocW(s, K), 0) / W }; }
+    function svAllocRadius(list, K) { list = list.filter(s => s.ch !== 'bulk'); /* V06 量販＝飛地，不算活動範圍 */ const c = svAllocCenter(list, K), p = list.filter(s => s.hasXY); return c && p.length > 1 ? p.reduce((t, s) => t + svAllocKm(c.lat, c.lng, s.lat, s.lng), 0) / p.length : null; }
+    // v502 分區改「遞迴二分」（使用者：範圍大、人多時，不論區域制或通路制都要有清楚的邊界；臺中北區實測容量 k-means 有 63% 的店落在別人的範圍裡）：
+    // 每次沿店家分布最長的方向（主軸）畫一條直線，把人分成兩組、店依兩組產能比例切開，再各自往下切——每塊都是由直線圍成、互不重疊，工作量依產能精準切分。
+    // 人放哪一邊：依各人現況店家重心在主軸上的位置排序，盡量沿用原本的方位（減少換手）。
+    function svAllocGeoSplit(stores, persons, targets, init, K) {
+        const out = new Map(); if (!stores.length) return out;
+        if (persons.length === 1) { stores.forEach(s => out.set(s, persons[0])); return out; }
+        const xy = stores.filter(s => s.hasXY), noxy = stores.filter(s => !s.hasXY);
+        const lat0 = xy.length ? xy.reduce((t, s) => t + s.lat, 0) / xy.length : 24, kx = Math.cos(lat0 * Math.PI / 180) * 111, ky = 111;
+        const P = s => [s.lng * kx, s.lat * ky];
+        const tg = new Map(persons.map((p, i) => [p, targets[i]])), ini = new Map(persons.map((p, i) => [p, init[i] ? [init[i].lng * kx, init[i].lat * ky] : null]));
+        const rec = (list, ps) => {
+            if (ps.length === 1) { list.forEach(s => out.set(s, ps[0])); return; }
+            if (!list.length) return;
+            // 主軸：加權共變異的最大特徵向量
+            const pts = list.map(P), w = list.map(s => svAllocW(s, K) || 1e-6), W = w.reduce((t, v) => t + v, 0);
+            const mx = pts.reduce((t, p, i) => t + p[0] * w[i], 0) / W, my = pts.reduce((t, p, i) => t + p[1] * w[i], 0) / W;
+            let sxx = 0, syy = 0, sxy = 0; pts.forEach((p, i) => { const dx = p[0] - mx, dy = p[1] - my; sxx += w[i] * dx * dx; syy += w[i] * dy * dy; sxy += w[i] * dx * dy; });
+            const th = 0.5 * Math.atan2(2 * sxy, sxx - syy), ux = Math.cos(th), uy = Math.sin(th);
+            const proj = p => (p[0] - mx) * ux + (p[1] - my) * uy;
+            const order = list.map((s, i) => ({ s, v: proj(pts[i]), w: w[i] })).sort((a, b) => a.v - b.v || smZh(a.s.code, b.s.code));
+            const pp = ps.slice().sort((a, b) => { const A = ini.get(a), B = ini.get(b); return (A ? proj(A) : 0) - (B ? proj(B) : 0) || smZh(a.code, b.code); });
+            const h = Math.floor(pp.length / 2), g1 = pp.slice(0, h), g2 = pp.slice(h);
+            const t1 = g1.reduce((t, p) => t + tg.get(p), 0), t2 = g2.reduce((t, p) => t + tg.get(p), 0), cut = W * t1 / (t1 + t2 || 1);
+            let acc = 0, k = 0; while (k < order.length && acc + order[k].w / 2 < cut) { acc += order[k].w; k++; }
+            rec(order.slice(0, k).map(o => o.s), g1); rec(order.slice(k).map(o => o.s), g2);
+        };
+        rec(xy, persons);
+        const load = new Map(persons.map(p => [p, 0])); out.forEach((p, s) => load.set(p, load.get(p) + svAllocW(s, K)));
+        noxy.forEach(s => { const p = persons.reduce((b, q) => (load.get(q) / tg.get(q) < load.get(b) / tg.get(b) ? q : b), persons[0]); out.set(s, p); load.set(p, load.get(p) + svAllocW(s, K)); });
+        return out;
+    }
+    // 負荷平衡：每次從最忙的人搬一家店給較閒、且制度允許的人，直到落差 <2 個百分點或無法再改善
+    // V06：svAllocPre＝每人已固定的工作量（例：手動指派的量販店），平衡與目標量都要扣掉；由 svAllocPlans／svAllocCustom 設定、結束時清掉
+    let svAllocPre = null;
+    const svPre = p => (svAllocPre && svAllocPre.get(p)) || 0;
+    function svAllocBalance(own, persons, cap, allowed, K) {
+        const load = new Map(persons.map(p => [p, svPre(p)])); own.forEach((p, s) => { if (load.has(p)) load.set(p, load.get(p) + svAllocW(s, K)); });
+        const rate = p => load.get(p) / cap.get(p);
+        for (let it = 0; it < 600; it++) {
+            const order = persons.slice().sort((a, b) => rate(b) - rate(a)); if (rate(order[0]) - rate(order[order.length - 1]) < 0.02) break;
+            let done = false;
+            for (const from of order.slice(0, Math.ceil(order.length / 2))) {
+                let best = null;
+                own.forEach((p, s) => { if (p !== from) return; persons.forEach(to => { if (to === from || rate(to) >= rate(from) || !allowed(s, from, to)) return;
+                    const w = svAllocW(s, K), a = rate(from), b = rate(to), na = (load.get(from) - w) / cap.get(from), nb = (load.get(to) + w) / cap.get(to), g = (a - b) ** 2 - (na - nb) ** 2;
+                    if (g > 1e-6 && (!best || g > best.g)) best = { s, to, g, w }; }); });
+                if (best) { own.set(best.s, best.to); load.set(from, load.get(from) - best.w); load.set(best.to, load.get(best.to) + best.w); done = true; break; }
+            }
+            if (!done) break;
+        }
+        return own;
+    }
+    function svAllocNear3(own, persons, K) {
+        const cs = new Map(persons.map(p => [p, svAllocCenter([...own].filter(([, q]) => q === p).map(([s]) => s), K)]));
+        return (s, f, t) => { if (!s.hasXY) return true; const d = persons.map(p => [p, cs.get(p) ? svAllocKm(cs.get(p).lat, cs.get(p).lng, s.lat, s.lng) : 1e9]).sort((x, y) => x[1] - y[1]); return d.slice(0, 3).some(x => x[0] === t); };
+    }
+    // 通路切人份：通路依工作量由大到小排，人依「現況最常做該通路」排，把每人產能當成一段尺依序切下去（每人最多跨到相鄰通路）
+    function svAllocCut(chs, chW, persons, curCh, tgt, scale) {
+        const order = [], used = new Set(), tot = chs.reduce((t, c) => t + chW[c], 0) || 1;
+        chs.forEach(c => { const ps = persons.filter(p => !used.has(p)).sort((x, y) => (curCh(y)[c] || 0) - (curCh(x)[c] || 0) || smZh(x.code, y.code)); ps.slice(0, Math.max(1, Math.round(chW[c] / tot * persons.length))).forEach(p => { used.add(p); order.push(p); }); });
+        persons.forEach(p => { if (!used.has(p)) order.push(p); });
+        const seg = new Map(order.map(p => [p, {}])); let i = 0, room = tgt(order[0]) * scale;
+        chs.forEach(c => { let left = chW[c]; while (left > 1e-9 && i < order.length) { const take = Math.min(left, room), p = order[i]; seg.get(p)[c] = (seg.get(p)[c] || 0) + take; left -= take; room -= take; if (room <= 1e-9) { i++; if (i < order.length) room = tgt(order[i]) * scale; } }
+            if (left > 1e-9) { const p = order[order.length - 1]; seg.get(p)[c] = (seg.get(p)[c] || 0) + left; } });
+        return { order, seg };
+    }
+    // v497 偏遠店就近交辦（使用者：「獨鳥型」的店不該因為通路而讓專責的人跨大範圍跑）：一家店離「同一負責人的其他店」最近也有 D 公里以上（要專程跑），
+    // 而另一個人有店在它一半距離以內，就改交給那個人（即使他不做這個通路）；改過的店鎖定，之後的負荷平衡不再搬動。
+    // 用「離自己其他店多遠」而不是「離區域中心多遠」：市區店家密，中心距離 5 公里很常見，但離自己的其他店都很近，不算獨鳥（實測：用中心距離會誤搬上千家、破壞專精）
+    const SV_ALLOC_NEAR_KM = 5, SV_ALLOC_SCATTER_KM = 5;
+    let svAllocGuard = null;
+    function svAllocIsoFix(own, persons, K, D) {
+        const lists = new Map(persons.map(p => [p, []])); own.forEach((p, s) => { if (s.hasXY && lists.has(p)) lists.get(p).push(s); });
+        const nearOf = (p, s) => { let m = 1e9; lists.get(p).forEach(x => { if (x !== s) { const d = svAllocKm(x.lat, x.lng, s.lat, s.lng); if (d < m) m = d; } }); return m; };
+        const locked = new Set(); let n = 0;
+        [...own].forEach(([s, p]) => {
+            if (!s.hasXY || !lists.has(p)) return;
+            const dOwn = nearOf(p, s); if (dOwn <= D) return;
+            let best = null, bd = 1e9; persons.forEach(q => { if (q === p) return; const d = nearOf(q, s); if (d < bd) { bd = d; best = q; } });
+            if (best && bd <= dOwn / 2) { own.set(s, best); lists.get(p).splice(lists.get(p).indexOf(s), 1); lists.get(best).push(s); locked.add(s); n++; }
+        });
+        return { n, locked, okNear: s => !locked.has(s) };
+    }
+    // stores：可分配的店；persons：參與分配的人（產能>0、未被主管排除）；cur：店→現況負責人；回傳 { geo, ch, mix }（各為 店→人 Map）與大小通路
+    function svAllocPlans(stores, persons, cur, K, D, pre) {
+        svAllocPre = pre || null; try { return svAllocPlans0(stores, persons, cur, K, D); } finally { svAllocPre = null; }
+    }
+    function svAllocPlans0(stores, persons, cur, K, D) {
+        D = D == null ? SV_ALLOC_NEAR_KM : D;
+        const cap = new Map(persons.map(p => [p, p.capDays > 0 ? p.capDays : 1])), capSum = persons.reduce((t, p) => t + cap.get(p), 0);
+        const W = stores.reduce((t, s) => t + svAllocW(s, K), 0), F = persons.reduce((t, p) => t + svPre(p), 0), tgt = p => Math.max(1e-6, (W + F) * cap.get(p) / capSum - svPre(p));
+        const mine = p => stores.filter(s => cur.get(s) === p), curCenter = p => svAllocCenter(mine(p), K);
+        const curCh = p => { const m = {}; mine(p).forEach(s => { m[s.ch] = (m[s.ch] || 0) + svAllocW(s, K); }); return m; };
+        const hasCh = own => { const m = new Map(persons.map(p => [p, new Set()])); own.forEach((p, s) => m.get(p) && m.get(p).add(s.ch)); return m; };
+        // 區域制
+        const geo = svAllocGeoSplit(stores, persons, persons.map(tgt), persons.map(curCenter), K);
+        svAllocBalance(geo, persons, cap, svAllocNear3(geo, persons, K), K);
+        const gi = svAllocIsoFix(geo, persons, K, D), gn = svAllocNear3(geo, persons, K); svAllocBalance(geo, persons, cap, (s, f, t) => gn(s, f, t) && gi.okNear(s), K);
+        // 通路制
+        const chW = {}; stores.forEach(s => { chW[s.ch] = (chW[s.ch] || 0) + svAllocW(s, K); });
+        const chs = Object.keys(chW).sort((x, y) => chW[y] - chW[x]);
+        const byCut = (chList, cut, init) => { const own = new Map(); chList.forEach(c => { const ps = cut.order.filter(p => cut.seg.get(p)[c] > 0), st = stores.filter(s => s.ch === c);
+            svAllocGeoSplit(st, ps, ps.map(p => cut.seg.get(p)[c]), ps.map(p => init(p, c)), K).forEach((p, s) => own.set(s, p)); }); return own; };
+        // V08 防呆：量少（不到半個人份）又分散（店家離該通路中心平均超過 SV_ALLOC_SCATTER_KM）的通路，不交給專人跑全所，改依區域交給當地的人
+        // （玉里實例：CVS＋超市只有 4.7 工作天、分布在 77 公里的縱谷，通路制把 38 家全交給 1 人，他的範圍 69 公里、其他人 3～5 公里）
+        const avgCap = capSum / persons.length, chRad = c => svAllocRadius(stores.filter(s => s.ch === c), K) || 0;
+        const scatter = persons.length >= 2 ? chs.filter(c => chW[c] < 0.5 * avgCap && chRad(c) > SV_ALLOC_SCATTER_KM) : [], chMain = chs.filter(c => !scatter.includes(c));
+        let ch;
+        if (scatter.length && chMain.length) {
+            const Wm = chMain.reduce((t, c) => t + chW[c], 0), cutM = svAllocCut(chMain, chW, persons, curCh, tgt, Wm / W);
+            ch = byCut(chMain, cutM, (p, c) => svAllocCenter(mine(p).filter(s => s.ch === c), K) || curCenter(p));
+            const load = new Map(persons.map(p => [p, svPre(p)])); ch.forEach((p, s) => load.set(p, load.get(p) + svAllocW(s, K)));
+            const cs = new Map(persons.map(p => [p, svAllocCenter([...ch].filter(([, q]) => q === p).map(([x]) => x), K) || curCenter(p)]));
+            stores.filter(s => scatter.includes(s.ch)).map(s => { const d = persons.map(p => [s.hasXY && cs.get(p) ? svAllocKm(cs.get(p).lat, cs.get(p).lng, s.lat, s.lng) : 0, p]).sort((x, y) => x[0] - y[0]); return { s, d, rg: (d[1] ? d[1][0] : 0) - d[0][0] }; })
+                .sort((x, y) => y.rg - x.rg || smZh(x.s.code, y.s.code))
+                .forEach(({ s, d }) => { const w = svAllocW(s, K); let pk = d.find(([, p]) => load.get(p) + w <= (tgt(p) + svPre(p)) * 1.03); if (!pk) pk = d.reduce((b, x) => (load.get(x[1]) / cap.get(x[1]) < load.get(b[1]) / cap.get(b[1]) ? x : b), d[0]); load.set(pk[1], load.get(pk[1]) + w); ch.set(s, pk[1]); });
+        } else ch = byCut(chs, svAllocCut(chs, chW, persons, curCh, tgt, 1), (p, c) => svAllocCenter(mine(p).filter(s => s.ch === c), K) || curCenter(p));
+        const hc = hasCh(ch), cn0 = svAllocNear3(ch, persons, K); svAllocBalance(ch, persons, cap, (s, f, t) => (scatter.includes(s.ch) ? cn0(s, f, t) : hc.get(t).has(s.ch)), K);
+        const ci = svAllocIsoFix(ch, persons, K, D); if (ci.n) { const hc2 = hasCh(ch), cn = svAllocNear3(ch, persons, K); svAllocBalance(ch, persons, cap, (s, f, t) => hc2.get(t).has(s.ch) && cn(s, f, t) && ci.okNear(s), K); } // v502：補平時只搬給附近的人，避免邊界交錯
+        // 混合制（V02 改「通路分組制」）：通路分兩組——特販（CVS／連鎖超市／量販）與區域型（傳統／即飲）；每人原則上只做一組，
+        // 組內所有通路都由他在自己的區域負責（以通路為主＋負責某一塊地方的其他通路）。兩組依工作量切人份（同通路制的切法，交界的人兩組都做一小塊），
+        // 組內再用遞迴二分切區域。恆春：A＝特販全所＋一小塊傳統、B＝其餘傳統；臺中北區：約 9 人特販、4 人傳統／即飲。
+        // （v498～v502 的「少數人專責特販、其餘依區域」在特販量大的所會讓特販分給所有人，每人通路數反而比現況多，作廢）
+        const SV_CHAIN = ['cvs', 'supermarket', 'bulk'];
+        const chainCh = chs.filter(c => SV_CHAIN.includes(c)), areaCh = chs.filter(c => !SV_CHAIN.includes(c));
+        const major = chainCh, minor = areaCh, grp = c => (SV_CHAIN.includes(c) ? 'chain' : 'area');
+        const gW = { chain: chainCh.reduce((t, c) => t + chW[c], 0), area: areaCh.reduce((t, c) => t + chW[c], 0) };
+        let mix;
+        // V08 防呆：特販量少（不到半個人份）又分散時，不設特販專責，混合制＝依區域（同通路制的防呆）
+        const chainScatter = gW.chain < 0.5 * avgCap && (svAllocRadius(stores.filter(s => grp(s.ch) === 'chain'), K) || 0) > SV_ALLOC_SCATTER_KM;
+        if (!chainCh.length || !areaCh.length || persons.length < 2 || chainScatter) mix = new Map(geo);
+        else {
+            const groups = ['chain', 'area'].sort((x, y) => gW[y] - gW[x]);
+            const curG = p => { const m = {}; mine(p).forEach(s => { const g = grp(s.ch); m[g] = (m[g] || 0) + svAllocW(s, K); }); return m; };
+            const cutG = svAllocCut(groups, gW, persons, curG, tgt, 1);
+            mix = new Map();
+            groups.forEach(g => { const ps = cutG.order.filter(p => cutG.seg.get(p)[g] > 0), st = stores.filter(s => grp(s.ch) === g);
+                svAllocGeoSplit(st, ps, ps.map(p => cutG.seg.get(p)[g]), ps.map(p => svAllocCenter(mine(p).filter(s => grp(s.ch) === g), K) || curCenter(p)), K).forEach((p, s) => mix.set(s, p)); });
+        }
+        let mi = { n: 0 };
+        if (major.length && minor.length && persons.length >= 2) { mi = svAllocIsoFix(mix, persons, K, D); if (mi.n) { const mh2 = hasCh(mix), nr2 = svAllocNear3(mix, persons, K); svAllocBalance(mix, persons, cap, (s, f, t) => (minor.includes(s.ch) ? nr2(s, f, t) : mh2.get(t).has(s.ch)) && mi.okNear(s), K); } }
+        svAllocGuard = { scatter, chainScatter };
+        return { geo, ch, mix, major, minor, guard: { scatter, chainScatter }, iso: { geo: gi.n, ch: ci.n, mix: major.length && minor.length ? mi.n : (!major.length ? gi.n : ci.n) }, isoSet: { geo: gi.locked, ch: ci.locked, mix: major.length && minor.length ? (mi.locked || new Set()) : (!major.length ? gi.locked : ci.locked) } };
+    }
+    // v497 非主要通路的店：不算工作量（使用者定調），但每家都要有人負責——依各制度的規則指定：區域制／混合制＝區域中心最近的人；
+    // 通路制＝有做該通路的人裡最近的，但若比最近的人遠 D 公里以上就交給最近的人；原負責人仍在名單且不比最近的人遠 D 公里以上＝維持原負責人；沒有座標＝維持原負責人（不在名單就給第一位）
+    function svAllocNonMain(nm, own, persons, K, mode, cur, D) {
+        const out = new Map(), lists = new Map(persons.map(p => [p, []])); own.forEach((p, s) => { if (lists.has(p)) lists.get(p).push(s); });
+        const cs = new Map(persons.map(p => [p, svAllocCenter(lists.get(p), K)])), chs = new Map(persons.map(p => [p, new Set(lists.get(p).map(s => s.ch))]));
+        nm.forEach(s => {
+            if (!s.hasXY) { const c = cur.get(s); out.set(s, persons.includes(c) ? c : persons[0]); return; }
+            const d = persons.map(p => [p, cs.get(p) ? svAllocKm(cs.get(p).lat, cs.get(p).lng, s.lat, s.lng) : 1e9]).sort((x, y) => x[1] - y[1]);
+            let pick = d[0];
+            if (mode === 'ch') { const same = d.find(([p]) => chs.get(p).has(s.ch)); if (same && same[1] - d[0][1] <= D) pick = same; }
+            // 原負責人仍在名單、而且離他的區域不比最近的人遠 D 公里以上＝維持原負責人（非主要通路不算工作量，少換手為先）
+            const c = cur.get(s), dc = c ? d.find(([p]) => p === c) : null;
+            if (dc && dc[1] - d[0][1] <= D) pick = dc;
+            out.set(s, pick[0]);
+        });
+        return out;
+    }
+    // 主管排除的人（不參與分配，名下店不動）：localStorage sv-alloc-excl-v1＝{ "營業處|營業所": [員編…] }
+    const SV_ALLOC_EXCL_LS = 'sv-alloc-excl-v1';
+    function svAllocExclAll() { try { return JSON.parse(localStorage.getItem(SV_ALLOC_EXCL_LS) || '{}') || {}; } catch (e) { return {}; } }
+    function svAllocExcl(a) { const v = svAllocExclAll()[a.branch + '|' + a.office]; return new Set(Array.isArray(v) ? v : []); }
+    function svAllocExclToggle(a, code, on) { const all = svAllocExclAll(), k = a.branch + '|' + a.office, s = new Set(all[k] || []); on ? s.add(code) : s.delete(code); all[k] = [...s]; try { localStorage.setItem(SV_ALLOC_EXCL_LS, JSON.stringify(all)); } catch (e) { } }
+    // v502 範圍重疊：店落在「同組別的別人」範圍（凸包）內的比例——區域制看全部店、通路制看同通路、混合制看同組（特販／區域型通路）；0% 表示邊界清楚
+    function svAllocOverlap(per, mode, skip) {
+        skip = skip || new Set(); const isBulk = s => s.ch === 'bulk';
+        const key = s => (mode === 'ch' ? s.ch : mode === 'mix' ? (['cvs', 'supermarket', 'bulk'].includes(s.ch) ? 'chain' : 'area') : '*');
+        const H = new Map(); per.forEach(y => { const g = {}; y.list.filter(t => t.hasXY && !skip.has(t.code) && !isBulk(t)).forEach(t => { (g[key(t)] = g[key(t)] || []).push([t.lat, t.lng]); });
+            const h = {}; Object.keys(g).forEach(k => { if (g[k].length >= 3) h[k] = smHull(g[k]).map(q => ({ lat: q[0], lng: q[1] })); }); H.set(y, h); });
+        let ov = 0, tot = 0;
+        per.forEach(x => x.list.forEach(s => { if (!s.hasXY || skip.has(s.code) || isBulk(s)) return; tot++; /* 偏遠店就近交辦的店是刻意的例外，不算重疊 */ const k = key(s); if (per.some(y => y !== x && H.get(y)[k] && smInPoly(s.lat, s.lng, H.get(y)[k]))) ov++; }));
+        return tot ? ov / tot : null;
+    }
+    // 系統建議（使用者排序：通路專精 > 工作量相近 > 區域集中 > 異動少）
+    // v497：①現況已合格（工作量落差 ≤25 個百分點、每人通路數不比最專精方案多 0.3 以上、跑最遠的人不比各方案多 1 公里且 30% 以上）＝建議維持現況 ②區域看「跑最遠的那個人」：
+    // 最遠者活動半徑比各方案中最小的多 1 公里以上且超過 30% 就不建議（只看平均會出現一人變輕鬆、另一人跑更遠的方案）③其餘挑每人通路數最少，同分取異動少
+    function svAllocRecommend(r) {
+        const ks = ['geo', 'ch', 'mix'].filter(k => r.schemes[k]); if (!ks.length) return null;
+        const S = k => r.schemes[k].sum, now = r.schemes.now && S('now'), bestCh = Math.min(...ks.map(k => S(k).avgCh));
+        const rm = k => S(k).radMax, minR = Math.min(...ks.map(rm).filter(v => v != null)), radOk = v => v == null || !(minR > 0) || v - minR <= Math.max(1, minR * 0.3);
+        if (now && now.spread != null && now.spread <= 0.25 && now.avgCh != null && now.avgCh <= bestCh + 0.3 && radOk(now.radMax))
+            return { k: 'now', why: `現況工作量落差 ${(now.spread * 100).toFixed(0)} 個百分點、每人 ${now.avgCh.toFixed(1)} 個通路，已在合理範圍內，不必重新分配` };
+        const bal = ks.filter(k => S(k).spread == null || S(k).spread <= 0.10); // 工作量沒調平（落差 >10 個百分點）的方案不列入建議
+        const pool = bal.length ? bal : ks, unb = ks.filter(k => !bal.includes(k));
+        let ok = pool.filter(k => radOk(rm(k))); if (!ok.length) ok = pool.slice();
+        const pick = ok.sort((a, b) => (S(a).avgCh - S(b).avgCh) || (S(a).moved - S(b).moved))[0], left = ks.filter(k => !ok.includes(k));
+        const more = now && now.avgCh != null && S(pick).avgCh > now.avgCh + 0.3 ? `；注意：每人通路數比現況多（${now.avgCh.toFixed(1)}→${S(pick).avgCh.toFixed(1)}），是為了拉平工作量（現況落差 ${(now.spread * 100).toFixed(0)} 點）` : '';
+        return { k: pick, why: `每人平均 ${S(pick).avgCh.toFixed(1)} 個通路、跑最遠的人活動半徑 ${rm(pick) != null ? rm(pick).toFixed(1) + ' km' : '—'}` + more + (left.filter(k => bal.includes(k)).length ? `；${left.filter(k => bal.includes(k)).map(k => SM_CMP_NAME[k]).join('、')}會讓跑最遠的人多 1 公里以上（且超過 30%），不建議` : '') + (unb.length ? `；${unb.map(k => SM_CMP_NAME[k]).join('、')}在這個所沒辦法把工作量調平（落差超過 10 個百分點）` : '') };
+    }
+    // ---- V03 🎛 自訂分工（使用者：要有 CONTROL PANEL，由主管指定誰做哪些通路）----
+    // roles：Map(人→Set(通路))。先用最大流找「每人負荷率盡量一樣」的工作量分配：來源→通路（該通路工作量）→有被指派的人→終點（產能×r），
+    // 二分搜尋最小可行的 r；再把每個通路的店依「每人分到的工作量」用遞迴二分切區域。指派的人做不完（r>1）或沒人負責的通路，回報在 info。
+    function svAllocMaxFlow(n, edges, s, t) { // edges: [u,v,cap] → 回傳 {flow, f(邊流量陣列)}
+        const g = Array.from({ length: n }, () => []), E = [];
+        edges.forEach(([u, v, c]) => { g[u].push(E.length); E.push({ v, c, f: 0 }); g[v].push(E.length); E.push({ v: u, c: 0, f: 0 }); });
+        let flow = 0;
+        for (;;) {
+            const prev = new Array(n).fill(-1), q = [s]; prev[s] = -2;
+            while (q.length && prev[t] === -1) { const u = q.shift(); g[u].forEach(ei => { const e = E[ei]; if (prev[e.v] === -1 && e.c - e.f > 1e-12) { prev[e.v] = ei; q.push(e.v); } }); }
+            if (prev[t] === -1) break;
+            let aug = Infinity; for (let v = t; v !== s; v = E[prev[v] ^ 1].v) aug = Math.min(aug, E[prev[v]].c - E[prev[v]].f);
+            for (let v = t; v !== s; v = E[prev[v] ^ 1].v) { E[prev[v]].f += aug; E[prev[v] ^ 1].f -= aug; }
+            flow += aug;
+        }
+        return { flow, f: edges.map((_, i) => E[i * 2].f) };
+    }
+    // V05 包區：roles 裡含 '*AREA*' 的人＝包一塊區域的所有通路。先用遞迴二分從全所切出「每位包區者一塊＋其餘一塊」（包區者的量＝產能占比），
+    // 其餘那塊再依通路分工切給其他人。包區者的位置從他現況店家的重心出發。
+    function svAllocCustom(stores, persons, cur, K, roles, pre) {
+        svAllocPre = pre || null; try { return svAllocCustom0(stores, persons, cur, K, roles); } finally { svAllocPre = null; }
+    }
+    function svAllocCustom0(stores, persons, cur, K, roles) {
+        const AREA = '*AREA*', areaP = persons.filter(p => roles.get(p) && roles.get(p).has(AREA));
+        if (areaP.length) {
+            const cap0 = new Map(persons.map(p => [p, p.capDays > 0 ? p.capDays : 1])), capSum0 = persons.reduce((t, p) => t + cap0.get(p), 0);
+            const W0 = stores.reduce((t, s) => t + svAllocW(s, K), 0) + persons.reduce((t, p) => t + svPre(p), 0), chP = persons.filter(p => !areaP.includes(p));
+            const ctr = list => svAllocCenter(list, K);
+            const REST = { code: '__REST__', name: '其餘' };
+            const ps = chP.length ? areaP.concat([REST]) : areaP.slice();
+            const tg = ps.map(p => p === REST ? Math.max(1e-6, chP.reduce((t, q) => t + W0 * cap0.get(q) / capSum0 - svPre(q), 0)) : Math.max(1e-6, W0 * cap0.get(p) / capSum0 - svPre(p)));
+            const init = ps.map(p => p === REST ? ctr(stores.filter(s => chP.includes(cur.get(s)))) : (ctr(stores.filter(s => cur.get(s) === p)) || null));
+            const split = svAllocGeoSplit(stores, ps, tg, init, K), own = new Map(), rest = [];
+            split.forEach((p, s) => { if (p === REST) rest.push(s); else own.set(s, p); });
+            let info = { rate: 0, need: {}, assigned: {}, orphan: [], idle: [], x: new Map(), area: areaP };
+            if (chP.length && rest.length) { const sub = svAllocCustomCh(rest, chP, cur, K, roles); sub.own.forEach((p, s) => own.set(s, p)); info = Object.assign(sub.info, { area: areaP }); }
+            const chW = {}; stores.forEach(s => { chW[s.ch] = (chW[s.ch] || 0) + svAllocW(s, K); });
+            const avgCap = capSum0 / persons.length; info.need = Object.fromEntries(Object.keys(chW).map(c => [c, chW[c] / avgCap]));
+            const ld = new Map(persons.map(p => [p, svPre(p)])); own.forEach((p, s) => { if (ld.has(p)) ld.set(p, ld.get(p) + svAllocW(s, K)); });
+            info.rate = Math.max(...persons.map(p => ld.get(p) / cap0.get(p)));
+            return { own, info };
+        }
+        return svAllocCustomCh(stores, persons, cur, K, roles);
+    }
+    function svAllocCustomCh(stores, persons, cur, K, roles) {
+        const cap = new Map(persons.map(p => [p, p.capDays > 0 ? p.capDays : 1]));
+        const chW = {}; stores.forEach(s => { chW[s.ch] = (chW[s.ch] || 0) + svAllocW(s, K); });
+        const chs = Object.keys(chW).sort((x, y) => chW[y] - chW[x]);
+        const who = c => persons.filter(p => roles.get(p) && roles.get(p).has(c));
+        const covered = chs.filter(c => who(c).length), orphan = chs.filter(c => !who(c).length);
+        const Wc = covered.reduce((t, c) => t + chW[c], 0);
+        // 節點：0＝來源、1..C＝通路、C+1..C+P＝人、最後＝終點
+        const C = covered.length, P = persons.length, T = C + P + 1;
+        const build = r => { const e = []; covered.forEach((c, i) => { e.push([0, 1 + i, chW[c]]); persons.forEach((p, j) => { if (roles.get(p) && roles.get(p).has(c)) e.push([1 + i, 1 + C + j, 1e9]); }); }); persons.forEach((p, j) => e.push([1 + C + j, T, Math.max(0, r * cap.get(p) - svPre(p))])); return e; };
+        let lo = 0, hi = 1; while (svAllocMaxFlow(T + 1, build(hi), 0, T).flow < Wc - 1e-9 && hi < 1e6) hi *= 2;
+        for (let it = 0; it < 40; it++) { const m = (lo + hi) / 2; if (svAllocMaxFlow(T + 1, build(m), 0, T).flow >= Wc - 1e-9) hi = m; else lo = m; }
+        const edges = build(hi), res = svAllocMaxFlow(T + 1, edges, 0, T), x = new Map(persons.map(p => [p, {}]));
+        edges.forEach(([u, v], i) => { if (u >= 1 && u <= C && v > C && v < T) { const f = res.f[i]; if (f > 1e-9) x.get(persons[v - 1 - C])[covered[u - 1]] = f; } });
+        const mine = p => stores.filter(s => cur.get(s) === p);
+        const own = new Map();
+        covered.forEach(c => { const ps = persons.filter(p => (x.get(p)[c] || 0) > 1e-9), st = stores.filter(s => s.ch === c);
+            if (!ps.length) return;
+            svAllocGeoSplit(st, ps, ps.map(p => x.get(p)[c]), ps.map(p => svAllocCenter(mine(p).filter(s => s.ch === c), K) || svAllocCenter(mine(p), K)), K).forEach((p, s) => own.set(s, p)); });
+        // 沒人負責的通路：維持原負責人（原負責人不在名單就交給負荷最低的人），並回報
+        orphan.forEach(c => stores.filter(s => s.ch === c).forEach(s => { const c0 = cur.get(s); own.set(s, persons.includes(c0) ? c0 : persons[0]); }));
+        const avgCap = persons.reduce((t, p) => t + cap.get(p), 0) / persons.length;
+        const need = Object.fromEntries(chs.map(c => [c, chW[c] / avgCap]));
+        return { own, info: { rate: hi, need, assigned: Object.fromEntries(chs.map(c => [c, who(c).length])), orphan, idle: persons.filter(p => !roles.get(p) || !roles.get(p).size), x, area: [] } };
+    }
+
+/* ===== 分配引擎 結束 ===== */
+// 排除名單：本工具自己的 localStorage（alloc-tool-excl-v1）；某所沒設定過時沿用資料包內儀表板的設定
+const EX_LS='alloc-tool-excl-v1';
+function svAllocExclAll(){try{return JSON.parse(localStorage.getItem(EX_LS)||'{}')||{}}catch(e){return{}}}
+function svAllocExcl(a){const all=svAllocExclAll(),k=a.branch+'|'+a.office;const v=k in all?all[k]:((S.pack&&S.pack.excl&&S.pack.excl[k])||[]);return new Set(Array.isArray(v)?v:[])}
+function svAllocExclToggle(a,code,on){const all=svAllocExclAll(),k=a.branch+'|'+a.office,s=svAllocExcl(a);on?s.add(code):s.delete(code);all[k]=[...s];try{localStorage.setItem(EX_LS,JSON.stringify(all))}catch(e){}}
+// 最小異動（儀表板 smCmpMin＋smCmpItems；工作量單位與 cap 相同：分鐘）
+function smCmpItems(stores){const pts=stores.filter(st=>st.hasXY),lat0=pts.length?pts.reduce((a,st)=>a+st.lat,0)/pts.length:24,k=Math.cos(lat0*Math.PI/180);
+ return stores.map(st=>({st,x:st.hasXY?st.lng*111*k:null,y:st.hasXY?st.lat*111:null,w:st.f*(st.stayMin!=null?st.stayMin:30)}))}
+function smCmpMin(items,slots,cur,tol){const own=new Map(),load=new Map(slots.map(s=>[s,0])),okSet=new Set(slots);
+ items.forEach(it=>{let s=cur.get(it.st.code);if(!okSet.has(s))s=slots.slice().sort((a,b)=>load.get(a)/a.cap-load.get(b)/b.cap||smZh(a.name,b.name))[0];own.set(it.st.code,s);load.set(s,load.get(s)+it.w)});
+ const lists=new Map(slots.map(s=>[s,[]]));items.forEach(it=>lists.get(own.get(it.st.code)).push(it));
+ const capA=slots.reduce((t,s)=>t+s.cap,0),mu=[...load.values()].reduce((t,v)=>t+v,0)/capA;
+ for(let iter=0;iter<3000;iter++){let hi=slots[0],lo=slots[0],rh=-Infinity,rl=Infinity;slots.forEach(s=>{const r=load.get(s)/s.cap;if(r>rh){rh=r;hi=s}if(r<rl){rl=r;lo=s}});
+  if(rh<=mu*(1+tol)&&rl>=mu*(1-tol))break;const gap=Math.min((rh-mu)*hi.cap,(mu-rl)*lo.cap);if(!(gap>0))break;
+  const dpts=lists.get(lo).filter(it=>it.x!=null),cand=lists.get(hi).filter(it=>it.w<=gap*1.2);if(!cand.length)break;
+  let best=null,bd=Infinity,bw=0;cand.forEach(it=>{const d=(it.x==null||!dpts.length)?50:Math.round(Math.min(...dpts.map(t=>Math.hypot(it.x-t.x,it.y-t.y)))*10)/10;if(d<bd||(d===bd&&it.w>bw)){best=it;bd=d;bw=it.w}});
+  const hl=lists.get(hi);hl.splice(hl.indexOf(best),1);lists.get(lo).push(best);own.set(best.st.code,lo);load.set(hi,load.get(hi)-best.w);load.set(lo,load.get(lo)+best.w)}
+ return own}
+// 個人負荷（儀表板 smRzCalc 店日制：load＝Σ應訪×stayMin（＝60÷k）分鐘、cap＝產能分鐘）
+function calcM(s,stores){let stay=0,n=0;stores.forEach(st=>{if(!(st.f>0))return;const m=st.stayMin!=null?st.stayMin:60/(S.pack.chanK[st.ch]||7);stay+=st.f*m;n++});
+ const cap=s.cap,rate=cap>0?stay/cap:(stay>0?Infinity:null);return{n,load:stay,cap,rate,over:rate!=null&&rate>S.pack.loadHigh,under:rate!=null&&rate<S.pack.loadLow}}
+function smCmpSum(per,cur,own){const act=per.filter(x=>x.m.cap>0&&!x.ex),rates=act.map(x=>x.m.rate).filter(isFinite);
+ const mean=rates.length?rates.reduce((t,v)=>t+v,0)/rates.length:0,sd=rates.length>1?Math.sqrt(rates.reduce((t,v)=>t+(v-mean)*(v-mean),0)/rates.length):null;
+ const load=per.reduce((t,x)=>t+x.m.load,0),has=per.filter(x=>x.m.n>0&&!x.ex),avgCap=act.length?act.reduce((t,x)=>t+x.m.cap,0)/act.length:0;
+ let moved=0;own.forEach((s,c)=>{if(cur.get(c)!==s)moved++});const rr=act.map(x=>x.rad).filter(v=>v!=null);
+ return{sd,max:rates.length?Math.max(...rates):null,min:rates.length?Math.min(...rates):null,over:per.filter(x=>x.m.over).length,under:per.filter(x=>x.m.under).length,load,need:avgCap>0?load/avgCap:null,
+  avgCh:has.length?has.reduce((t,x)=>t+x.nch,0)/has.length:null,moved,spread:rates.length>1?Math.max(...rates)-Math.min(...rates):null,rad:rr.length?rr.reduce((t,v)=>t+v,0)/rr.length:null,radMax:rr.length?Math.max(...rr):null}}
+// 🎛 分工設定（V03）：localStorage alloc-tool-roles-v1＝{ "營業處|營業所": { 員編: [通路鍵…] } }；沒設定過＝依現況（占自己主要通路工作量 10% 以上的通路）
+const ROLE_LS='alloc-tool-roles-v1';
+function rolesAll(){try{return JSON.parse(localStorage.getItem(ROLE_LS)||'{}')||{}}catch(e){return{}}}
+function rolesFromCurrent(a,persons){const K=S.pack.chanK,m=new Map();persons.forEach(p=>{const w={};let tot=0;p.stores.forEach(st=>{if(!(st.f>0))return;const v=st.f/(K[st.ch]||7);w[st.ch]=(w[st.ch]||0)+v;tot+=v});m.set(p,new Set(Object.keys(w).filter(c=>tot&&w[c]/tot>=0.1)))});return m}
+function rolesGet(a,persons){const all=rolesAll(),k=a.branch+'|'+a.office;if(!all[k])return rolesFromCurrent(a,persons);const m=new Map();persons.forEach(p=>m.set(p,new Set(all[k][p.code]||[])));return m}
+function rolesSave(a,obj){const all=rolesAll();all[a.branch+'|'+a.office]=obj;try{localStorage.setItem(ROLE_LS,JSON.stringify(all))}catch(e){}S.cache.clear()}
+function rolesHas(a){return !!rolesAll()[a.branch+'|'+a.office]}
+// V06 量販：全台不到百家，各所有的有、有的沒有，改「手動指定負責人」（右側「🏬 量販」分頁）；各方案都照這個指定（沒指定＝維持原負責人），不參與自動分配，
+// 地圖上以「飛地」畫（黑框大點、不畫進範圍色塊、不算活動半徑與範圍交錯）。localStorage alloc-tool-bulk-v1＝{ "處|所": { 店碼: 員編 } }
+const BULK_LS='alloc-tool-bulk-v1',MAN_LS='alloc-tool-manual-v1';
+function lsGet(k){try{return JSON.parse(localStorage.getItem(k)||'{}')||{}}catch(e){return{}}}
+function lsSet(k,o){try{localStorage.setItem(k,JSON.stringify(o))}catch(e){}}
+function bulkGet(a){return lsGet(BULK_LS)[a.branch+'|'+a.office]||{}}
+function bulkSet(a,code,pc){const all=lsGet(BULK_LS),k=a.branch+'|'+a.office,m=all[k]||{};if(pc)m[code]=pc;else delete m[code];all[k]=m;lsSet(BULK_LS,all);S.cache.clear()}
+// V06 ✋ 手動調整：底稿方案＋逐店指派（框選／圈選／點選後指派給某人）。localStorage alloc-tool-manual-v1＝{ "處|所": { base, assign:{店碼:員編} } }
+function manGet(a){return lsGet(MAN_LS)[a.branch+'|'+a.office]||null}
+function manSet(a,v){const all=lsGet(MAN_LS),k=a.branch+'|'+a.office;if(v)all[k]=v;else delete all[k];lsSet(MAN_LS,all)}
+function allocOffice(a){
+ const staff=a.staff,stores=[],idx=new Map(),cur=new Map();
+ staff.forEach(s=>s.stores.forEach(st=>{if(st.f>0&&!idx.has(st.code)){idx.set(st.code,stores.length);stores.push(st);cur.set(st.code,s)}}));
+ const byCode=new Map(staff.map(s=>[s.code,s]));
+ const nmAll=S.stores.filter(st=>!(st.f>0)&&st.branch===a.branch&&st.office===a.office&&st.status!=='虛擬帳號'&&!idx.has(st.code));
+ const nmOnly=new Map();nmAll.forEach(st=>{if(st.sCode&&!byCode.has(st.sCode)&&st.status==='ok'){if(!nmOnly.has(st.sCode))nmOnly.set(st.sCode,{code:st.sCode,name:st.sName||st.sCode,cap:0,capDays:0,stores:[],nmOnly:true})}});
+ const nmCur=new Map();nmAll.forEach(st=>{const o=byCode.get(st.sCode)||nmOnly.get(st.sCode);if(o)nmCur.set(st.code,o)});
+ const allStores=stores.concat(nmAll),allIdx=new Map(allStores.map((st,i)=>[st.code,i])),curAll=new Map([...cur,...nmCur]);
+ const K=S.pack.chanK||{},ex=svAllocExcl(a),slots=staff.filter(s=>s.cap>0&&!ex.has(s.code)&&!s.removed),owners={now:curAll};
+ const isEx=o=>!!(o&&(ex.has(o.code)||o.nmOnly));
+ // 量販：手動指定（沒指定＝原負責人），不參與自動分配
+ const bm=bulkGet(a),bulk=stores.filter(st=>st.ch==='bulk'),bulkOwner=new Map();
+ bulk.forEach(st=>{const pc=bm[st.code],p=pc&&slots.find(q=>q.code===pc);let o=p||cur.get(st.code);
+  if(o&&o.removed&&slots.length){/* 原負責人調離：交給店家最近的人 */let best=slots[0],bd=1e9;slots.forEach(q=>{const c=svAllocCenter(q.stores.filter(x=>x.f>0),K);if(c&&st.hasXY){const d=svAllocKm(c.lat,c.lng,st.lat,st.lng);if(d<bd){bd=d;best=q}}});o=best}
+  bulkOwner.set(st.code,o)});
+ const free=stores.filter(st=>st.ch!=='bulk'&&!isEx(cur.get(st.code))),nmFree=nmAll.filter(st=>!isEx(nmCur.get(st.code)));
+ const fixed=new Map(allStores.filter(st=>st.ch!=='bulk'&&isEx(curAll.get(st.code))).map(st=>[st.code,curAll.get(st.code)]));
+ bulk.forEach(st=>fixed.set(st.code,bulkOwner.get(st.code)));
+ const pre=new Map(slots.map(p=>[p,0]));bulk.forEach(st=>{const p=bulkOwner.get(st.code);if(pre.has(p))pre.set(p,pre.get(p)+svAllocW(st,K))});
+ const withFixed=m=>{const o=new Map(fixed);m.forEach((p,c)=>o.set(c,p));return o};
+ let major=[],minor=[],iso={};const isoCodes={};let out_cus=null,out_roles=null;
+ if(slots.length>=2&&free.length){
+  const D=SV_ALLOC_NEAR_KM,nmCurObj=new Map(nmFree.map(st=>[st,nmCur.get(st.code)]));
+  const A=svAllocPlans(free,slots,new Map(free.map(st=>[st,cur.get(st.code)])),K,D,pre);
+  const toCode=(m,mode)=>{const o=new Map();m.forEach((p,st)=>o.set(st.code,p));svAllocNonMain(nmFree,m,slots,K,mode,nmCurObj,D).forEach((p,st)=>o.set(st.code,p));return withFixed(o)};
+  const minM=smCmpMin(smCmpItems(free),slots,cur,0.10),minObj=new Map(free.map(st=>[st,minM.get(st.code)]));
+  owners.min=(()=>{const o=new Map(minM);nmFree.forEach(st=>{const c=nmCur.get(st.code);if(c&&slots.includes(c))o.set(st.code,c)});svAllocNonMain(nmFree.filter(st=>!(nmCur.get(st.code)&&slots.includes(nmCur.get(st.code)))),minObj,slots,K,'geo',nmCurObj,D).forEach((p,st)=>o.set(st.code,p));return withFixed(o)})();
+  svAllocGuard=A.guard;owners.geo=toCode(A.geo,'geo');owners.ch=toCode(A.ch,'ch');owners.mix=toCode(A.mix,'geo');major=A.major;minor=A.minor;iso=A.iso;
+  ['geo','ch','mix'].forEach(k=>{isoCodes[k]=new Set([...(A.isoSet[k]||[])].map(st=>st.code))});
+  const roles=rolesGet(a,slots),CU=svAllocCustom(free,slots,new Map(free.map(st=>[st,cur.get(st.code)])),K,roles,pre);
+  owners.cus=toCode(CU.own,'ch');out_cus=CU.info;out_roles=roles;
+ }
+ const staffAll=staff.concat([...nmOnly.values()]);
+ const out={a,guard:svAllocGuard,cus:out_cus,roles:out_roles,slots,staff:staffAll,nmOnly:nmOnly.size,cur:curAll,stores:allStores,nStores:stores.length,nNonMain:nmAll.length,nBulk:bulk.length,noXY:stores.filter(st=>!st.hasXY).length,schemes:{},ok:!!owners.geo,ex,major,minor};
+ const evalScheme=(own,k)=>{const lists=new Map(staffAll.map(s=>[s,[]]));
+  own.forEach((s,code)=>{if(lists.has(s)&&allIdx.has(code))lists.get(s).push(allStores[allIdx.get(code)])});
+  const per=staffAll.map(s=>{const all=lists.get(s),l=all.filter(x=>x.f>0);return{s,ex:ex.has(s.code)||!!s.nmOnly||!!s.removed,m:calcM(s,l),list:l,nm:all.length-l.length,nmList:all.filter(x=>!(x.f>0)),nch:new Set(l.map(x=>x.ch)).size,rad:svAllocRadius(l,K)}});
+  const live=per.filter(x=>x.m.cap>0&&x.m.n>0),mu=live.length?live.reduce((t,x)=>t+x.m.rate,0)/live.length:0;
+  if(live.length>=3&&mu>0)live.forEach(x=>{x.m.over=x.m.rate>=mu*1.3||x.m.rate>S.pack.loadHigh;x.m.under=x.m.rate<=mu*0.7});
+  const sum=smCmpSum(per,curAll,own);let mn=0;nmAll.forEach(st=>{if(own.get(st.code)!==curAll.get(st.code))mn++});
+  sum.movedNm=mn;sum.moved-=mn;sum.iso=k in iso?iso[k]:null;
+  sum.overlap=svAllocOverlap(per.filter(x=>x.s.cap>0&&!x.ex),k==='ch'||k==='cus'||k==='man'?'ch':k==='mix'?'mix':'geo',isoCodes[k]);
+  sum.overlapAll=svAllocOverlap(per.filter(x=>x.s.cap>0&&!x.ex),'geo',isoCodes[k]);
+  return{owner:own,per,sum}};
+ out.evalScheme=evalScheme;
+ Object.keys(owners).forEach(k=>{out.schemes[k]=evalScheme(owners[k],k)});
+ if(out.ok)out.schemes.man=manScheme(out);
+ return out}
+// 手動方案：底稿＋逐店指派；量販照「🏬 量販」分頁的指定
+function manScheme(r){const m=manGet(r.a)||{base:'now',assign:{}},base=r.schemes[m.base]||r.schemes.now,own=new Map(base.owner),byCode=new Map(r.staff.map(s=>[s.code,s]));
+ Object.entries(bulkGet(r.a)).forEach(([code,pc])=>{const p=byCode.get(pc);if(p&&own.has(code))own.set(code,p)});
+ Object.entries(m.assign||{}).forEach(([code,pc])=>{const p=byCode.get(pc);if(p&&own.has(code))own.set(code,p)});
+ const sc=r.evalScheme(own,'man');sc.base=m.base;sc.nAssign=Object.keys(m.assign||{}).length;return sc}
+function manRefresh(r){r.schemes.man=manScheme(r)}
+
+
+/* ===== 狀態與資料載入 ===== */
+const S={pack:null,stores:[],byCode:new Map(),offices:[],branch:'',office:'',scheme:'man',cache:new Map(),chF:'',showNm:false,hl:'',map:null,lay:null,hullLay:null,
+ pick:{mode:'',sel:new Set(),drag:null,shape:null,undo:[],add:true}};
+async function readPack(file){
+ const buf=new Uint8Array(await file.arrayBuffer());let txt;
+ if(buf[0]===0x1f&&buf[1]===0x8b){if(!window.DecompressionStream)throw new Error('此瀏覽器不支援解壓縮，請改用 Chrome／Edge');txt=await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text()}
+ else txt=new TextDecoder().decode(buf);
+ const p=JSON.parse(txt);if(p.format!=='sv-alloc-pack')throw new Error('這不是分配資料包');if(p.v!==1)throw new Error('資料包版本 '+p.v+' 本工具不支援，請更新工具');return p}
+function usePack(p,name){
+ S.pack=p;CHANNELS=Object.fromEntries(Object.entries(p.channels||{}).map(([k,v])=>[k,{label:v}]));
+ const C=p.storeCols;S.stores=p.stores.map(r=>{const o={};C.forEach((c,i)=>o[c]=r[i]);o.hasXY=typeof o.lat==='number'&&typeof o.lng==='number';return o});
+ S.byCode=new Map(S.stores.map(s=>[s.code,s]));
+ S.offices=p.offices.map(a=>({branch:a.branch,office:a.office,staff:a.staff.map(x=>({code:x.code,name:x.name,cap:x.cap,capDays:x.capDays,stores:x.stores.map(c=>S.byCode.get(c)).filter(Boolean),branch:a.branch,office:a.office}))}));
+ S.cache.clear();S.branch='';S.office='';
+ $('packInfo').textContent=`${String(p.ym).replace(/(\d{4})(\d{2})/,'$1/$2')}・${name}`;
+ $('app').innerHTML=`<aside id="side"><h2 id="sideT">業務員</h2><div id="plist"><div class="empty">👆 先在上方選營業處、營業所</div></div><div id="sfoot"></div></aside><div id="mapwrap"><div id="map"></div><div id="tools"></div><div id="selbox"></div></div>`;
+ S.map=null;renderUnit();renderAll()}
+async function openFile(f){try{usePack(await readPack(f),f.name)}catch(e){console.error(e);alert('無法開啟：'+(e&&e.message||e))}}
+$('loadBtn').onclick=()=>$('fileIn').click();$('fileIn').onchange=e=>{const f=e.target.files[0];if(f)openFile(f);e.target.value=''};
+document.addEventListener('dragover',e=>e.preventDefault());document.addEventListener('drop',e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)openFile(f)});
+const STF_LS='alloc-tool-staff-v1';
+function stfGet(a){return lsGet(STF_LS)[a.branch+'|'+a.office]||{removed:[],added:[]}}
+function stfSet(a,v){const all=lsGet(STF_LS);all[a.branch+'|'+a.office]=v;lsSet(STF_LS,all);S.cache.clear()}
+// 人員增減後的營業所：調離者仍在名單（他的店才找得到），但標 removed；新人 stores 為空
+function curOffice(){const a=S.offices.find(o=>o.branch===S.branch&&o.office===S.office);if(!a)return null;const v=stfGet(a),rm=new Set(v.removed||[]);
+ return{branch:a.branch,office:a.office,base:a,staff:a.staff.map(s=>rm.has(s.code)?Object.assign({},s,{removed:true}):s).concat((v.added||[]).map(x=>({code:x.code,name:x.name,capDays:x.capDays,cap:x.capDays*60,stores:[],branch:a.branch,office:a.office,isNew:true})))}}
+function getR(a){const k=a.branch+'|'+a.office+'|'+[...svAllocExcl(a)].sort().join(',')+'|'+JSON.stringify(bulkGet(a))+'|'+JSON.stringify(stfGet(a));if(!S.cache.has(k))S.cache.set(k,allocOffice(a));return S.cache.get(k)}
+function lab(c){return CHANNELS[c]?CHANNELS[c].label:(c||'其他')}
+function colorMap(r){const names=r.staff.map(x=>x.name).sort(smZh);return new Map(names.map((n,i)=>[n,COLORS[i%COLORS.length]]))}
+function work(r){return r.ok?(r.schemes.man||r.schemes.now):r.schemes.now}
+/* ===== 頂列：營業處／營業所 ===== */
+function renderUnit(){
+ const br=[...new Set(S.offices.map(o=>o.branch))].sort(smZh),offs=S.offices.filter(o=>o.branch===S.branch).sort((x,y)=>smZh(x.office,y.office));
+ $('unitSel').innerHTML=`<select id="selB"><option value="">營業處…</option>${br.map(b=>`<option${b===S.branch?' selected':''}>${esc(b)}</option>`).join('')}</select> <select id="selO"${S.branch?'':' disabled'}><option value="">營業所…</option>${offs.map(o=>`<option${o.office===S.office?' selected':''}>${esc(o.office)}</option>`).join('')}</select>`;
+ $('selB').onchange=e=>{S.branch=e.target.value;S.office='';S.hl='';S.pick.sel.clear();S.pick.undo=[];renderUnit();renderAll()};
+ $('selO').onchange=e=>{S.office=e.target.value;S.hl='';S.pick.sel.clear();S.pick.undo=[];renderAll();fitMap()};}
+function renderAll(){renderSide();renderMap()}
+/* ===== 左：業務員負荷清單（也是圖例、也是指派按鈕） ===== */
+function selWork(r){const K=S.pack.chanK,byCode=new Map(r.stores.map(x=>[x.code,x]));let w=0;S.pick.sel.forEach(c=>{const st=byCode.get(c);if(st&&st.f>0)w+=st.f/(K[st.ch]||7)});return w}
+function renderSide(){
+ const a=curOffice(),pl=$('plist'),ft=$('sfoot');if(!pl)return;
+ if(!a){pl.innerHTML='<div class="empty">👆 先在上方選營業處、營業所</div>';ft.innerHTML='';$('sideT').textContent='業務員';return}
+ const r=getR(a),sc=work(r),col=colorMap(r),K=S.pack.chanK,sel=S.pick.sel.size;
+ $('sideT').textContent=sel?'點一個人，把選到的店交給他':'業務員（點名字＝地圖只看他）';
+ const w=sel?selWork(r):0,owners=new Map();if(sel)S.pick.sel.forEach(c=>{const p=sc.owner.get(c);owners.set(p,(owners.get(p)||0)+1)});
+ const people=sc.per.filter(x=>x.s.cap>0&&!x.s.removed).slice().sort((x,y)=>(!!x.s.isNew-!!y.s.isNew)||smZh(x.s.name,y.s.name));
+ const rads=people.map(x=>x.rad).filter(v=>v!=null).sort((p,q)=>p-q),medRad=rads.length?rads[Math.floor(rads.length/2)]:0;
+ const gone=sc.per.filter(x=>x.s.removed),orphan=gone.reduce((t,x)=>t+x.list.length+x.nm,0);
+ pl.innerHTML=people.map(x=>{const rate=isFinite(x.m.rate)&&x.m.rate!=null?x.m.rate:0,c=col.get(x.s.name);
+  const by={};x.list.forEach(st=>{by[lab(st.ch)]=(by[lab(st.ch)]||0)+1});
+  let pv='';if(sel){let mine=0;S.pick.sel.forEach(code=>{const st=r.stores.find(q=>q.code===code);if(st&&st.f>0&&sc.owner.get(code)===x.s)mine+=st.f/(K[st.ch]||7)});const nr=rate+(w-mine)/(x.s.capDays||22);pv=`<span class="pv">→ ${(nr*100).toFixed(0)}%</span>`}
+  const warn=[];if(x.rad!=null&&x.rad>8&&people.length>2&&x.rad>2*medRad)warn.push(`⚠ 範圍特別大（${x.rad.toFixed(0)} 公里，其他人約 ${medRad.toFixed(0)} 公里）`);if(!x.list.length)warn.push('⚠ 還沒有店');
+  return`<div class="pr${S.hl===x.s.code&&!sel?' hl':''}${sel?' go':''}" data-p="${smAttr(x.s.code)}" role="button" tabindex="0"><div class="top"><i style="background:${c}"></i><span class="nm">${esc(x.s.name)}${x.s.isNew?' <small style="color:#16a34a">新人</small>':''}</span><span class="pct${rate>1?' hi':''}">${(rate*100).toFixed(0)}%</span>${pv}<span class="xb" data-rm="${smAttr(x.s.code)}" title="${x.s.isNew?'移除這位新人':'調離：不再分配，他的店變成待分配'}">✕</span></div>
+   <div class="bar"><span style="width:${Math.min(100,rate/1.5*100)}%;background:${rate>1?'#dc2626':c}"></span></div><div class="sub">${Object.entries(by).sort((p,q)=>q[1]-p[1]).map(([n,v])=>`${esc(n)} ${v}`).join('・')||'沒有店'}</div>${warn.length?`<div class="wn">${warn.join('<br>')}</div>`:''}</div>`}).join('')||'<div class="empty">這個營業所沒有可分配的業務員。</div>';
+ if(gone.length)pl.innerHTML+=`<div class="gone"><b>調離（${gone.length} 人）</b>${gone.map(x=>`<div class="gr">${esc(x.s.name)}　<small>還有 ${x.list.length+x.nm} 家待分配</small> <span class="xb" data-back="${smAttr(x.s.code)}" title="取消調離">↩</span></div>`).join('')}${orphan?`<button type="button" id="refill">🔁 把待分配的 ${orphan} 家交給其他人（系統補位）</button><div class="sub">或用圈選自己分。灰色點＝待分配的店。</div>`:'<div class="sub">✓ 已全部分配</div>'}</div>`;
+ pl.querySelectorAll('[data-p]').forEach(b=>b.onclick=ev=>{if(ev.target.closest('[data-rm]'))return;const pc=b.dataset.p;if(S.pick.sel.size){assignTo(pc);return}S.hl=S.hl===pc?'':pc;renderAll()});
+ pl.querySelectorAll('[data-rm]').forEach(b=>b.onclick=ev=>{ev.stopPropagation();staffRemove(b.dataset.rm)});
+ pl.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>{const v=stfGet(a.base);v.removed=(v.removed||[]).filter(c=>c!==b.dataset.back);stfSet(a.base,v);renderAll()});
+ const rf=$('refill');if(rf)rf.onclick=()=>refill(r);
+ const rates=people.map(x=>x.m.rate).filter(v=>isFinite(v)),m=manGet(a)||{base:'now'};
+ ft.innerHTML=(r.ok?'':'<div class="empty" style="padding:0">這個營業所只有 1 位業務員，不需要分配。</div>')
+  +(rates.length>1?`<div id="fair">最忙 <b>${(Math.max(...rates)*100).toFixed(0)}%</b>・最閒 <b>${(Math.min(...rates)*100).toFixed(0)}%</b></div>`:'')
+  +`<div class="row"><button type="button" id="addB">＋ 新增人員</button></div>`
+  +(r.ok?`<div class="row"><button type="button" id="undoB"${S.pick.undo.length?'':' disabled'}>↶ 復原</button><button type="button" id="dlB">⬇ 換手清單</button></div>
+  <div class="row"><span style="font-size:.85rem;color:var(--mu)">起點</span><select id="baseSel">${[['now','現況'],['geo','系統先分：依區域'],['ch','系統先分：依通路'],['mix','系統先分：混合']].map(([k,t])=>`<option value="${k}"${m.base===k?' selected':''}>${t}</option>`).join('')}</select></div>`:'');
+ $('addB').onclick=()=>staffAdd(a);
+ if(!r.ok)return;
+ $('undoB').onclick=undo;$('dlB').onclick=()=>movesCsv(r);
+ $('baseSel').onchange=e=>{const k=e.target.value,mm=manGet(a);if(mm&&Object.keys(mm.assign||{}).length&&!confirm('換起點會清掉目前手動調整的結果，確定嗎？')){e.target.value=mm.base;return}manSet(a,{base:k,assign:{}});S.pick.undo=[];manRefresh(getR(a));renderAll()};
+}
+/* ===== 人員增減 ===== */
+function staffAdd(a){const v=stfGet(a.base),n=(v.added||[]).length+1;const name=prompt('新人名稱：','新人'+n);if(name===null)return;
+ const pct=prompt('產能（一般人＝100%；新人或兼職可填較低，例如 70）：','100');if(pct===null)return;const p=Math.max(10,Math.min(150,parseFloat(pct)||100));
+ const cd=a.base.staff.length?a.base.staff.reduce((t,s)=>t+(s.capDays||22),0)/a.base.staff.length:22;
+ v.added=(v.added||[]).concat([{code:'NEW-'+Date.now().toString(36),name:(name||'新人'+n).trim(),capDays:+(cd*p/100).toFixed(2)}]);stfSet(a.base,v);renderAll()}
+function staffRemove(code){const a=curOffice();if(!a)return;const v=stfGet(a.base),s=a.staff.find(x=>x.code===code);if(!s)return;
+ if(s.isNew){if(!confirm(`移除新人「${s.name}」？分給他的店會回到原本的人。`))return;v.added=(v.added||[]).filter(x=>x.code!==code);
+  const m=manGet(a.base);if(m){Object.keys(m.assign||{}).forEach(c=>{if(m.assign[c]===code)delete m.assign[c]});manSet(a.base,m)}}
+ else{if(!confirm(`「${s.name}」設為調離？他的店會變成待分配（灰點），可再交給其他人。`))return;v.removed=[...new Set((v.removed||[]).concat([code]))]}
+ stfSet(a.base,v);if(S.hl===code)S.hl='';renderAll()}
+// 系統補位：調離者的店，依「離他最近的人、負荷較低者優先」逐家交出去，寫成手動指派（可復原）
+function refill(r){const a=curOffice(),sc=work(r),K=S.pack.chanK,act=r.slots;if(!act.length)return;
+ const load=new Map(act.map(p=>{const x=sc.per.find(q=>q.s===p);return[p,x?x.m.load/60:0]}));
+ const ctr=new Map(act.map(p=>{const x=sc.per.find(q=>q.s===p);return[p,svAllocCenter(x?x.list:[],K)||svAllocCenter(r.stores.filter(s=>s.hasXY),K)]}));
+ const orph=r.stores.filter(st=>{const p=sc.owner.get(st.code);return p&&p.removed});
+ const totW=act.reduce((t,p)=>t+load.get(p),0)+orph.reduce((t,st)=>t+(st.f>0?st.f/(K[st.ch]||7):0),0),capT=act.reduce((t,p)=>t+(p.capDays||22),0);
+ const m=manGet(a.base)||{base:'now',assign:{}};S.pick.undo.push({m:JSON.stringify(m),bm:JSON.stringify(bulkGet(a.base)),key:a.branch+'|'+a.office});
+ orph.map(st=>{const d=act.map(p=>[st.hasXY&&ctr.get(p)?svAllocKm(ctr.get(p).lat,ctr.get(p).lng,st.lat,st.lng):0,p]).sort((x,y)=>x[0]-y[0]);return{st,d}})
+  .sort((x,y)=>((y.d[1]?y.d[1][0]:0)-y.d[0][0])-((x.d[1]?x.d[1][0]:0)-x.d[0][0]))
+  .forEach(({st,d})=>{const w=st.f>0?st.f/(K[st.ch]||7):0;let pk=d.slice(0,3).find(([,p])=>load.get(p)+w<=totW*(p.capDays||22)/capT*1.03);if(!pk)pk=d.slice(0,3).reduce((b,x)=>load.get(x[1])/(x[1].capDays||22)<load.get(b[1])/(b[1].capDays||22)?x:b,d[0]);
+   load.set(pk[1],load.get(pk[1])+w);if(st.ch==='bulk')bulkSet(a.base,st.code,pk[1].code);else m.assign[st.code]=pk[1].code});
+ manSet(a.base,m);S.cache.clear();renderAll()}
+/* ===== 指派／復原 ===== */
+function assignTo(pc){const a=curOffice();if(!a)return;const r=getR(a);if(!r.ok)return;
+ const m=manGet(a)||{base:'now',assign:{}};S.pick.undo.push({m:JSON.stringify(m),bm:JSON.stringify(bulkGet(a)),key:a.branch+'|'+a.office});if(S.pick.undo.length>50)S.pick.undo.shift();
+ const byCode=new Map(r.stores.map(x=>[x.code,x]));
+ S.pick.sel.forEach(code=>{const st=byCode.get(code);if(!st)return;if(st.ch==='bulk')bulkSet(a,code,pc);else m.assign[code]=pc});
+ manSet(a,m);S.pick.sel.clear();manRefresh(getR(a));renderAll()}
+function undo(){const u=S.pick.undo.pop();if(!u)return;const a=curOffice();if(!a||u.key!==a.branch+'|'+a.office){S.pick.undo=[];return}
+ manSet(a,JSON.parse(u.m));const all=lsGet(BULK_LS);all[u.key]=JSON.parse(u.bm);lsSet(BULK_LS,all);S.cache.clear();manRefresh(getR(a));renderAll()}
+function movesCsv(r){const sc=work(r),byCode=new Map(r.stores.map(x=>[x.code,x])),mv=[];sc.owner.forEach((s,code)=>{const from=r.cur.get(code)||null;if(from!==s)mv.push({st:byCode.get(code),from,to:s})});
+ if(!mv.length){alert('目前和現況一樣，沒有要換手的店。');return}
+ const cc=v=>{const s=v==null?'':String(v);return/[",\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s};
+ const lines=[['營業處','營業所','店碼','店名','通路','店家型態','店家等級','主要通路','原負責人','新負責人'].map(cc).join(',')];
+ mv.sort((a,b)=>smZh(a.to.name,b.to.name)||smZh(a.st.code,b.st.code)).forEach(m=>lines.push([r.a.branch,r.a.office,m.st.code,m.st.name,lab(m.st.ch),m.st.type,m.st.level,m.st.f>0?'是':'否',m.from?m.from.name:'（原本未分配）',m.to.name].map(cc).join(',')));
+ const bl=new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),x=document.createElement('a');x.href=URL.createObjectURL(bl);x.download=`${r.a.office}_換手清單_${new Date().toISOString().slice(0,10)}.csv`;document.body.appendChild(x);x.click();x.remove();setTimeout(()=>URL.revokeObjectURL(x.href),3000)}
+/* ===== 地圖 ===== */
+function ensureMap(){
+ if(S.map||!window.L)return;S.map=L.map('map',{preferCanvas:true,scrollWheelZoom:true});
+ const prov=[['https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri, HERE, Garmin, FAO, NOAA, USGS'}],['https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}]];
+ let pi=0,fail=0;const add=()=>{const t=L.tileLayer(prov[pi][0],prov[pi][1]).addTo(S.map);t.on('tileerror',()=>{if(++fail>=6&&pi<prov.length-1){S.map.removeLayer(t);pi++;fail=0;add()}})};add();
+ S.hullLay=L.layerGroup().addTo(S.map);S.lay=L.layerGroup().addTo(S.map);S.map.setView([23.7,121],7);bindPick()}
+function fitMap(){const a=curOffice();if(!S.map||!a)return;const pts=getR(a).stores.filter(s=>s.hasXY&&s.f>0).map(s=>[s.lat,s.lng]);if(pts.length)S.map.fitBounds(pts,{padding:[30,30]})}
+function visible(st){if(!st.hasXY||(S.chF&&st.ch!==S.chF))return false;if(!(st.f>0)&&!S.showNm)return false;return true}
+function setMode(m){S.pick.mode=m;if(!S.map)return;const draw=m==='lasso';if(draw){S.map.dragging.disable()}else S.map.dragging.enable();const c=S.map.getContainer&&S.map.getContainer();if(c)c.style.cursor=draw?'crosshair':''}
+function bindPick(){
+ if(!S.map||!S.map.getContainer)return;const c=S.map.getContainer(),ll=e=>S.map.mouseEventToLatLng(e);
+ c.addEventListener('pointerdown',e=>{const P=S.pick;if(P.mode!=='lasso'||e.button!==0)return;e.preventDefault();e.stopPropagation();P.drag=[ll(e)];if(P.shape){S.map.removeLayer(P.shape);P.shape=null}},true);
+ c.addEventListener('pointermove',e=>{const P=S.pick;if(!P.drag)return;P.drag.push(ll(e));if(P.shape)P.shape.setLatLngs(P.drag);else P.shape=L.polyline(P.drag,{color:'#1d4ed8',weight:3,dashArray:'6 4',interactive:false}).addTo(S.map)},true);
+ window.addEventListener('pointerup',()=>{const P=S.pick;if(!P.drag)return;const poly=P.drag.map(x=>({lat:x.lat,lng:x.lng}));P.drag=null;if(P.shape){S.map.removeLayer(P.shape);P.shape=null}if(poly.length>=3)lassoSel(poly)},true);}
+function lassoSel(poly){const a=curOffice();if(!a)return;const r=getR(a),sc=work(r);
+ r.stores.forEach(st=>{if(st.ch==='bulk'||!visible(st))return;if(S.hl){const p=sc.owner.get(st.code);if(!p||p.code!==S.hl)return}if(smInPoly(st.lat,st.lng,poly))S.pick.sel.add(st.code)});
+ renderAll()}
+function renderTools(r){
+ const chs=r?[...new Set(r.stores.filter(st=>st.f>0).map(st=>st.ch))]:[];if(S.chF&&!chs.includes(S.chF))S.chF='';
+ $('tools').innerHTML=`<button type="button" data-m=""${!S.pick.mode?' class="on"':''}>✋ 移動</button><button type="button" data-m="lasso"${S.pick.mode==='lasso'?' class="on"':''}>✎ 圈選</button><button type="button" data-m="point"${S.pick.mode==='point'?' class="on"':''}>👆 點選</button>
+  <select id="chSel" title="只看、只圈某個通路"><option value="">全部通路</option>${chs.map(c=>`<option value="${c}"${S.chF===c?' selected':''}>${esc(lab(c))}</option>`).join('')}</select><label><input type="checkbox" id="nmChk"${S.showNm?' checked':''}>含非主要通路</label>`;
+ $('tools').querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{setMode(b.dataset.m);renderTools(r)});
+ $('chSel').onchange=e=>{S.chF=e.target.value;renderMap()};$('nmChk').onchange=e=>{S.showNm=e.target.checked;renderMap()};}
+function renderMap(){
+ const a=curOffice(),r=a?getR(a):null;if(!$('tools'))return;renderTools(r);
+ const sb=$('selbox');
+ if(S.pick.sel.size&&r){const by={};const byCode=new Map(r.stores.map(x=>[x.code,x]));S.pick.sel.forEach(c=>{const st=byCode.get(c);if(st)by[lab(st.ch)]=(by[lab(st.ch)]||0)+1});
+  sb.innerHTML=`已選 <b>${S.pick.sel.size}</b> 家（${Object.entries(by).map(([n,v])=>`${esc(n)} ${v}`).join('、')}）　👈 點左邊的人交給他<button type="button" id="selClr">取消</button>`;sb.style.display='block';$('selClr').onclick=()=>{S.pick.sel.clear();renderAll()}}
+ else sb.style.display='none';
+ if(!window.L){$('map').innerHTML='<div class="empty">地圖元件載入失敗（需要連網）。</div>';return}
+ const first=!S.map;ensureMap();setMode(S.pick.mode);S.lay.clearLayers();S.hullLay.clearLayers();if(!r)return;if(first)setTimeout(()=>{S.map.invalidateSize();fitMap()},50);
+ const sc=work(r),col=colorMap(r),hlP=S.hl?r.staff.find(s=>s.code===S.hl):null;
+ // 每人範圍色塊（量販不畫進來）
+ sc.per.forEach(x=>{if(!(x.s.cap>0)||x.s.removed)return;if(hlP&&x.s!==hlP)return;const pts=x.list.filter(st=>st.hasXY&&st.ch!=='bulk'&&(!S.chF||st.ch===S.chF)).map(st=>[st.lat,st.lng]);if(!pts.length)return;
+  const c=col.get(x.s.name),h=smHull(pts),o={color:c,weight:2,fillColor:c,fillOpacity:0.1,interactive:false};(h.length>=3?L.polygon(h,o):h.length===2?L.polyline(h,{color:c,weight:3,interactive:false}):L.circle(h[0],Object.assign({radius:150},o))).addTo(S.hullLay)});
+ r.stores.forEach(st=>{if(!visible(st))return;const p=sc.owner.get(st.code);if(hlP&&p!==hlP)return;const c=p&&!p.removed?col.get(p.name):'#94a3b8',bk=st.ch==='bulk',sel=S.pick.sel.has(st.code),main=st.f>0;
+  const mk=L.circleMarker([st.lat,st.lng],{radius:bk?8:main?5:3,color:sel?'#1d4ed8':bk?'#111827':'#fff',weight:sel?3.5:bk?3:1,dashArray:bk?'3 2':null,fillColor:c,fillOpacity:main?0.9:0.5});
+  mk.on('click',()=>{if(S.pick.mode==='point'){mk.closePopup&&mk.closePopup();if(S.pick.sel.has(st.code))S.pick.sel.delete(st.code);else S.pick.sel.add(st.code);renderAll()}});
+  if(S.pick.mode!=='point')mk.bindPopup(`<b>${esc(st.name)}</b>${bk?'（量販）':''}<br>${esc(lab(st.ch))}・${esc(st.type)}・${esc(st.level)}<br>負責人：${esc(p?p.name+(p.removed?'（已調離，待分配）':''):'—')}`);
+  mk.addTo(S.lay)});
+}
+/* ---------- GitHub 檢查更新（與其他四個工具同一套做法） ---------- */
+const VERN=+String(VER).replace(/\D/g,'');
+const UPD={raw:'https://raw.githubusercontent.com/1061005ttl-lab/tool/main/',api:'https://api.github.com/repos/1061005ttl-lab/tool/contents/',key:'店家分配試算工具',min:10};
+const upKey=t=>String(t).replace(/[\s　_\-]/g,'').toLowerCase();
+const upParse=n=>{const m=String(n).match(/^(.+?)[v]0*(\d+)\.html?$/i);return m?{base:upKey(m[1]),ver:Number(m[2])}:null};
+async function checkUpdate(force){
+ if(!window.fetch){if(force)alert('此瀏覽器不支援檢查更新');return}
+ const btn=$('ubtn'),old=btn.textContent;if(force){btn.disabled=true;btn.textContent='查詢中⋯'}
+ const done=m=>{if(force){btn.disabled=false;btn.textContent=m||old;if(m)setTimeout(()=>btn.textContent=old,2500)}};
+ try{
+  let best=null;const now=Date.now(),CK='alloc_upd_cache';
+  try{const c=JSON.parse(localStorage.getItem(CK)||'null');if(!force&&c&&now-c.t<UPD.min*6e4)best=c.best||{ver:0}}catch(e){}
+  if(!best){const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),6000);
+   const r=await fetch(UPD.api,{signal:ac.signal,headers:{Accept:'application/vnd.github+json'}});clearTimeout(tm);
+   if(!r.ok){done(force?'查詢失敗（'+r.status+'）':'');if(force)alert('查詢失敗（'+r.status+'），可能是查詢次數用完，請稍後再試');return}
+   const list=await r.json();if(!Array.isArray(list)){done();return}best={ver:0};
+   for(const f of list){if(f.type!=='file')continue;const p=upParse(f.name);if(p&&p.base===upKey(UPD.key)&&p.ver>best.ver)best={ver:p.ver,name:f.name,url:f.html_url,dl:f.download_url}}
+   try{localStorage.setItem(CK,JSON.stringify({t:now,best}))}catch(e){}}
+  const nv=best.ver;if(!(nv>VERN)){done(force?'已是最新版 '+VER:'');return}
+  let sk=0;try{sk=Number(localStorage.getItem('alloc_skip'))||0}catch(e){}if(!force&&sk>=nv){done();return}
+  const u=$('upd');u.innerHTML=`<span class="t">🔔 有新版 <b>V${nv}</b>（目前 ${VER}）：${esc(best.name||'')}<br><span id="updMsg">按「直接下載」會把新版存到下載資料夾，再關掉這個頁面、改開新下載的檔案即可。</span></span><button class="p" id="updGo">直接下載</button><button id="updSkip">略過此版</button><button id="updLater">稍後再說</button>`;
+  u.classList.add('on');done();
+  $('updGo').onclick=async e=>{const b=e.currentTarget,m=$('updMsg');try{b.disabled=true;b.textContent='下載中…';const r=await fetch(best.dl||(UPD.raw+encodeURIComponent(best.name)),{cache:'no-store'});if(!r.ok)throw new Error(r.status);
+    const bl=new Blob([await r.blob()],{type:'text/html'}),a=document.createElement('a');a.href=URL.createObjectURL(bl);a.download=best.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    b.textContent='已下載 ✓';m.textContent='已存到下載資料夾：'+best.name+'。請關掉這個頁面，改開新下載的檔案。'}catch(err){b.disabled=false;b.textContent='重試';m.textContent='下載失敗（可能是網路不穩，或公司網路擋住 GitHub），請稍後按「重試」。'}};
+  $('updSkip').onclick=()=>{try{localStorage.setItem('alloc_skip',String(nv))}catch(e){}u.classList.remove('on')};$('updLater').onclick=()=>u.classList.remove('on');
+ }catch(e){done(force?'查不到更新':'');if(force)alert('查不到更新（可能離線，或公司網路擋住 GitHub）')}}
+$('ubtn').onclick=()=>checkUpdate(true);setTimeout(()=>checkUpdate(),1200);
+</script></body></html>
