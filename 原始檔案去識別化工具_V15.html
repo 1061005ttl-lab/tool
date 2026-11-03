@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<!--
+================================================================
+原始檔案去識別化工具｜開發紀錄（給後續 AI 助手／維護者先讀這一段）
+現行版本：V15（2026-11-04）。改版時「五處」版號一起改：①檔名 ②<title> ③畫面 #ver ④程式 const VER ⑤本註解（含下方【版本紀錄】）。
+  版本紀錄只寫在本註解，不放畫面（V15 使用者要求）。
+================================================================
+【版本紀錄】
+  V01 初版
+  V02 照片選項：保留原圖／去內嵌資訊／馬賽克
+  V03 刪除密語（代號由內建固定值決定）
+  V04 「去內嵌資訊」改為「遮蔽浮水印」
+  V05 重新設計：任何資料類型都依欄位內容自動偵測人員欄（不靠固定欄名）、問卷（雙行標題／照片）獨立設定、csv 也能拉平大小標題
+  V06 簡化操作：刪除逐欄下拉選單與加入欄位，改為唯讀摘要「會處理什麼」，全部自動判斷
+  V07 新增「內部閱讀版」：姓名中間改○、員編數字反轉；支援四字姓名與含間隔號的原住民姓名
+  V08 刪除反轉撞號／同名警告；修正內部閱讀版員編可能被二次反轉
+  V09 照片重新存檔品質 0.92→0.75，檔案大小與原檔相當
+  V10 「選擇檔案」標題旁註明支援的資料類型
+  V11 拖放框加註 ZIP 保留資料夾層級、只含 csv／xlsx／xlsm
+  V12 內部閱讀版：沒有員編的人遮蔽後同名時，名字後加字母區分（王○明A、王○明B）
+  V13 新增用途「只拉平標題（不去識別化）」
+  V14 新增自動檢查新版（GitHub）
+  V15 版本紀錄從畫面移除，只記在原始碼置頂註解
+【用途】把真實原始檔去識別化後，才拿去測試、除錯或交給他人／AI。與「原始檔案虛擬生產器」分開（一個處理真實資料、一個無中生有），
+  產出格式比照生產器：人名＝三字隨機姓名（同一份字庫）、「姓名-員編」、虛擬信箱網域 sample.test、資料夾結構原樣保留。
+【使用者需求（V05 重新設計的依據）】①不論什麼資料類型，都要能把人員資料去識別化 ②問卷：大小標題（1:2）拉平＋照片去識別化。
+【流程（V06：使用者要求「THE SIMPLE THE EASY」，V05 的逐欄下拉選單看不懂、已刪除）】拖入檔案 → 自動掃描並列出「會處理什麼」（唯讀摘要）
+  →（有照片才出現）選照片處理方式 → 按一個按鈕 → 下載。欄位判斷、大小標題拉平全部自動，畫面不給逐欄調整。
+【欄位偵測（不靠固定欄名，任何資料類型都適用）】先掃全部檔案所有文字，收集「姓名-員編」（姓名限中英文 2～10 字、員編 5 碼以上數字、
+  姓名不含組織字樣）→ 已知姓名／已知員編。逐欄抽樣前 500 筆非空值：
+  ・人員代號：「姓名-員編」＋「已知姓名」占 ≥30%，或欄名像人名欄（業務員、執行人員、指派者、陪同主管、最後編輯人員、人員名稱、姓名、訪員、
+    填寫人、建立者、負責人、承辦人、督導、主管…，排除 區域／代碼／電話 等）且有任何人名值或整欄空白。也處理信箱（本地部分是已知員編）。
+  ・員編代號：欄名含 員編／人員編號／工號，或 ≥50% 是已知員編。 ・聯絡人代號：欄名＝客戶名稱。 ・清空：欄名含 電話／手機／信箱／密碼／身分證。
+  店碼（7E-01-123456、PX-09-164300、1023-11400）因「姓名」部分不是中英文字，不會被誤判。
+【檢查更新（V14，比照儀表板備忘 63）】開啟 1.2 秒後讀 GitHub 公開 repo（1061005ttl-lab/tool）根目錄檔名，找檔名前綴＝「原始檔案去識別化工具」
+  且版號比 VER 大的檔（_V15／_v15 皆可），頂端顯示提示條（直接下載／略過此版／稍後再說）；10 分鐘內只查一次；查不到、離線、被擋一律靜默。
+  localStorage 鍵與儀表板分開（deid-upd-*），file:// 頁面共用同一份 localStorage，不可共用鍵。檔名前綴改了要同步改 UPD.key。
+【只拉平標題（V13）】用途選「只拉平標題（不去識別化）」：只處理有雙行標題的問卷，其餘內容（人名、照片、檔案資訊）完全不動；
+  沒有雙行標題的檔案不輸出（確認表註明）；不產生對照表；照片選項隱藏。拉平作法與去識別模式相同（照片錨點同步上移）。
+【兩種用途（V07）】①交給外部（預設）：姓名換隨機假名、員編換 9 開頭代號（下述雜湊）。②內部閱讀：姓名「保留頭尾、中間每字換○」
+  （2 字→王○；3 字→王○明；4 字→歐○○娜；原住民名字含間隔號「·．・‧」或空白者，間隔號保留、其餘同規則：瓦歷斯·諾幹→瓦○○·○幹），
+  員編「數字反轉」（使用者指定：1234567→7654321）。內部版可輕易還原，只供公司內部看。
+  V08 使用者定調：反轉撞號、迴文、遮蔽後同名都不需警告（要「遮蔽後同名」且「員編反轉後相同」才會混淆，機率極低）；員編一律接在姓名後當後綴，不會被 Excel 吃掉開頭 0。
+  ⚠️ 實作注意：反轉後的員編可能剛好等於另一位真實員編，所以「已處理過的格子」不可再被全文掃描處理一次（V07 曾發生二次反轉，V08 改為逐格：人名欄做替換、其他格才做全文掃描）。
+  V12：沒有員編的人（例如主管）只剩遮蔽後姓名，遮蔽後同名（王小明、王大明→王○明）時，名字後面加一個英文字母區分（王○明A、王○明B）；
+  只在撞名時才加，字母依完整姓名的雜湊值排序給（同一批人每次結果相同）；不用「-數字」，以免儀表板誤認成員編。
+  儀表板 v489 起前後筆比對以員編區分業務員，內部閱讀版匯入儀表板結果與原始資料相同。客戶聯絡人（如 順哥）內部版同規則遮蔽。
+【代號一致性】代號由「內建固定鹽值 SALT＋真實員編」雜湊決定（cyrb53）→ 假員編 9 開頭 7 碼、假姓名字庫三字；每次、每月、每檔都相同。
+  ⚠️ SALT 一改所有代號都變。只有姓名（問卷）：從同批檔案「姓名-員編」對回；同名多員編取出現最多者並在畫面列出；查無員編→依姓名雜湊給獨立假名。
+  純數字所碼（0401）、組織帳號（流通事業部、訪客帳號、○○_主任督導專用、○○-共用帳號）原樣保留。
+【問卷】判斷：有雙行標題或含照片（或檔名含 問卷／回報／調查）。
+  ・拉平：xlsx 以合併儲存格自動偵測（第 1 列有 A1:A2 這種上下合併，或橫向合併且第 2 列有字）；csv 無合併資訊，以「第 1 列空格、正下方第 2 列有字」
+    ≥3 處且占總欄數 ≥10% 推測（V06 起全自動、無開關，故門檻提高，避免一般 csv 有一兩個空白欄名就被誤拉平）。規則：上下合併或下列空→大標題；大標題空→小標題；小標題＝或以大標題開頭→小標題；其餘「大標題_小標題」。
+    xlsx 作法：第 1 列寫拉平標題、刪第 2 列、其下上移，合併儲存格／dimension／選取範圍與圖片錨點（xdr:row）同步上移 → 照片仍在原資料列。
+    有公式、表格、註解的工作表不拉平（畫面註明）。
+  ・照片：①保留原圖（預設，完全不動）②遮蔽浮水印 ③馬賽克。實測（全聯社巡補回報 44 張）：問卷系統上傳時已重新壓縮，手機 EXIF／GPS 早已不在
+    （JPEG 註解只剩「CREATOR: gd-jpeg v1.0」），改畫浮水印在左上角：經緯度、店家型態、店名、（部分）營業處＋業務員姓名-員編、日期時間，白字 5～6 行。
+    遮蔽＝左上角色塊，寬＝圖寬 55%、高＝圖寬 25%（WM_W／WM_H；以那 44 張校準：最長一行到圖寬 43%、六行到 20%）。②③經 canvas 重新編碼
+    （依檔頭判斷格式：實測副檔名 .png 內容是 JPEG；JPEG 品質 JPG_Q＝0.75，比照問卷系統原檔的 gd-jpeg 預設品質 75，V09 起檔案大小與原檔相當；V08 用 0.92 會大約 15%），檔名改流水號（副檔名沿用、同步改 rels）。保留原圖時畫面提醒浮水印含人名。
+【xlsx 作法】直接改 Excel 套件內 XML（JSZip），不經 SheetJS 重存（會丟圖片與格式）。文字格改 sharedStrings（同字串全檔一致，舊字串不殘留），
+  數字／inlineStr 格逐格改；docProps 建立者／修改者清空。.xls 舊格式不支援（請先另存 xlsx）。
+【全文掃描（可關）】所有文字中出現的已知真名（3 字以上）與「真名-員編」一併替換（備註等自由文字）。
+【輸出】ZIP（原資料夾結構）＋另下載「對照表」CSV（含真名，僅供使用者自留，不放進 ZIP）。
+【驗證方式】①輸出檔全部 XML／CSV 搜尋真名與真員編應為 0 ②去識別前後的虛擬生產器資料分別匯入儀表板，打卡異常八類件數應相同。
+================================================================
+-->
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>原始檔案去識別化工具 V15</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--tx:#1f2937;--mu:#6b7280;--bd:#e5e7eb;--ac:#2563eb;--hd:#f3f4f6;--warn:#b45309;--ok:#15803d;--q:#7c3aed;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111827;--card:#1f2937;--tx:#f3f4f6;--mu:#9ca3af;--bd:#374151;--ac:#60a5fa;--hd:#273244;--warn:#fbbf24;--ok:#4ade80;--q:#c4b5fd}}
+:root[data-theme="dark"]{--bg:#111827;--card:#1f2937;--tx:#f3f4f6;--mu:#9ca3af;--bd:#374151;--ac:#60a5fa;--hd:#273244;--warn:#fbbf24;--ok:#4ade80;--q:#c4b5fd}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.55 "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
+main{max-width:1100px;margin:0 auto;padding:16px}h1{font-size:1.25rem;margin:0 0 4px}.mu{color:var(--mu);font-size:.8rem}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px 14px;margin:12px 0}
+h3{margin:2px 0 8px;font-size:1rem}.step{display:inline-block;width:1.5em;height:1.5em;line-height:1.5em;text-align:center;border-radius:50%;background:var(--ac);color:#fff;font-size:.8rem;margin-right:6px}
+.row{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+input,button,select{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:4px 8px}
+button{cursor:pointer}button.p{background:var(--ac);color:#fff;border-color:var(--ac);font-weight:600}button:disabled{opacity:.5;cursor:default}
+#dz{border:2px dashed var(--bd);border-radius:10px;padding:20px;text-align:center;color:var(--mu)}#dz.on{border-color:var(--ac);color:var(--ac)}
+.warn{color:var(--warn)}.ok{color:var(--ok)}
+.badge{display:inline-block;border-radius:10px;padding:0 8px;font-size:.75rem;border:1px solid var(--bd);margin-left:4px;white-space:nowrap}
+.badge.q{border-color:var(--q);color:var(--q)}.badge.n{color:var(--mu)}
+details.f{border:1px solid var(--bd);border-radius:8px;margin:6px 0;padding:6px 10px}details.f>summary{cursor:pointer}
+.cols{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:4px 14px;margin:8px 0 4px}
+.col{display:flex;gap:6px;align-items:center;font-size:.82rem}.col span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.col select{font-size:.8rem;padding:2px 4px}select[data-add]{max-width:320px;font-size:.8rem}.ex{color:var(--mu);font-size:.72rem}
+label.opt{display:flex;gap:6px;align-items:center}
+.tw{overflow-x:auto;max-height:340px;border:1px solid var(--bd);border-radius:6px}table{border-collapse:collapse;font-size:.78rem;width:100%}
+th,td{border-bottom:1px solid var(--bd);padding:3px 7px;text-align:left;white-space:nowrap}th{background:var(--hd);position:sticky;top:0}
+</style></head><body><main>
+<h1>🛡️ 原始檔案去識別化工具 <span id="ver">V15</span></h1>
+<div class="mu">任何資料類型的人員資料都能去識別化；問卷可拉平大小標題、照片可去識別化。格式比照「原始檔案虛擬生產器」。檔案只在瀏覽器內處理，不上傳。</div>
+
+<div class="card">
+ <h3><span class="step">1</span>選擇檔案　<span class="mu" style="font-weight:normal">支援：工作管理、客戶資料、打卡異常、各類問卷</span></h3>
+ <div id="dz">把整個資料夾或檔案拖到這頁任何地方（可含多層子資料夾，支援 csv／xlsx／xlsm）<br><span style="font-size:.8rem">下載的 ZIP 會保留原資料夾層級，只含 csv／xlsx／xlsm</span><br><br>
+  <button id="pickDir">選擇資料夾</button> <button id="pickFile">選擇檔案</button>
+  <input id="inDir" type="file" webkitdirectory multiple hidden><input id="inFile" type="file" multiple accept=".csv,.xlsx,.xlsm" hidden></div>
+ <div id="scanMsg" class="mu" style="margin-top:6px"></div>
+</div>
+
+<div id="review" class="card" style="display:none">
+ <h3><span class="step">2</span>確認</h3>
+ <div class="row" style="margin-bottom:8px"><b>用途：</b>
+  <label class="opt"><input type="radio" name="mode" value="ext" checked>交給外部（姓名換成假名、員編換成代號）</label>
+  <label class="opt"><input type="radio" name="mode" value="inner">內部閱讀（王○明、員編數字反轉）</label>
+  <label class="opt"><input type="radio" name="mode" value="flat">只拉平標題（不去識別化）</label></div>
+ <div id="sumLine" style="margin-bottom:8px"></div>
+ <div class="tw"><table id="plan"></table></div>
+ <div id="qopt" style="display:none;margin-top:12px">
+  <b>照片要怎麼處理？</b>
+  <div class="row" style="margin-top:4px">
+   <label class="opt"><input type="radio" name="img" value="raw" checked>保留原圖</label>
+   <label class="opt"><input type="radio" name="img" value="wm">遮蔽浮水印</label>
+   <label class="opt"><input type="radio" name="img" value="mo">馬賽克</label></div>
+  <div class="mu">浮水印＝照片左上角的經緯度、店名、業務員、時間。</div>
+ </div>
+ <div class="row" style="margin-top:14px"><button id="go" class="p">🛡️ 開始去識別化</button><span id="msg" class="mu"></span></div>
+</div>
+<div id="out" class="card" style="display:none">
+ <h3><span class="step">3</span>下載</h3>
+ <div class="row"><button id="dlZip" class="p">📦 下載去識別化檔案（ZIP）</button><button id="dlMap">🔑 下載對照表（含真名，請自留，勿外傳）</button></div>
+ <div id="sum" class="mu" style="margin-top:6px"></div><div id="warns" style="margin-top:6px"></div>
+ <div class="tw" style="margin-top:8px"><table id="rep"></table></div>
+</div>
+<div class="mu warn">⚠️ 不在名單上的姓名（例如只在備註裡出現、其他檔案都沒有的人）、照片中的人臉與其他個資無法自動辨識，交出前請抽查。</div>
+</main>
+<script>
+const VER='V15';
+const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const pad=(n,l=2)=>String(n).padStart(l,'0');
+const SUR=[...'陳林黃張李王吳劉蔡楊許鄭謝郭洪曾邱廖賴徐周葉蘇莊呂江何蕭羅高潘簡朱鍾彭游詹胡施沈余盧梁顏柯孫魏翁戴范宋方石崔'],GIV=[...'家宏志偉俊明淑芬雅惠怡婷欣宜佳君文建國信哲涵凱誠軒豪翔睿庭宇安廷柏瑋芷琳珮萱瑜慧筠'];
+const cyrb53=(str,seed=0)=>{let h1=0xdeadbeef^seed,h2=0x41c6ce57^seed;for(let i=0;i<str.length;i++){const ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677)}
+ h1=Math.imul(h1^(h1>>>16),2246822507);h1^=Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507);h2^=Math.imul(h1^(h1>>>13),3266489909);return 4294967296*(2097151&h2)+(h1>>>0)};
+const SALT='deid-supervision-v1'; // 固定鹽值：決定所有代號，改了就和舊產出對不起來
+const WM_W=0.55,WM_H=0.25,JPG_Q=0.75; // JPG_Q：照片重新存檔品質（比照問卷系統原檔 gd-jpeg 預設 75）        // 浮水印遮蔽範圍（相對圖寬）
+// ================= 判斷規則 =================
+const ACTIONS=[['person','人員代號'],['code','員編代號'],['contact','聯絡人代號'],['blank','清空'],['none','不處理']];
+const ORG_RE=/營業|處|所|課|部|帳號|督導|專用|公司|事業|行銷|中心|小組|共用|訪客|系統|管理員|門市|店/;
+const NAME_CODE=/^([\u4e00-\u9fffA-Za-z][\u4e00-\u9fffA-Za-z·．・‧ ]{1,19})-(\d{5,})$/,SEP_RE=/[·．・‧\s]/; // V07：放寬長度並允許間隔號（原住民姓名）
+const HEAD_PERSON=/業務員|執行人員|指派者|陪同主管|最後編輯人員|人員名稱|姓名|訪員|填寫人|填表人|建立者|負責人|承辦人|督導|主管|編輯人員/,HEAD_NOT=/區域|代碼|編號|電話|手機|信箱|地址|數|率|時間|日期|是否/;
+const HEAD_CODE=/員編|人員編號|工號/,HEAD_BLANK=/電話|手機|信箱|密碼|身分證/,HEAD_CONTACT=/^客戶名稱$/;
+const KEEP_CONTACT=new Set(['','-','N','1','2','01','A001','訪員']);
+function classify(v){const s=String(v??'').trim();if(!s)return{k:'empty'};const m=NAME_CODE.exec(s);if(m&&!ORG_RE.test(m[1]))return{k:'nc',name:m[1],code:m[2]};
+ if(/^\d+$/.test(s))return{k:'num'};if((/^[\u4e00-\u9fff]{2,4}$/.test(s)||/^[\u4e00-\u9fff]{1,10}[·．・‧][\u4e00-\u9fff·．・‧]{1,14}$/.test(s))&&!ORG_RE.test(s))return{k:'name',name:s};if(/^[^@\s]+@[^@\s]+$/.test(s))return{k:'mail',lp:s.split('@')[0]};return{k:'other'}}
+// ================= 檔案收集 =================
+let FILES=[];
+const relOf=f=>(f.webkitRelativePath||f.name);
+$('pickDir').onclick=e=>{e.stopPropagation();$('inDir').click()};$('pickFile').onclick=e=>{e.stopPropagation();$('inFile').click()};
+['inDir','inFile'].forEach(id=>$(id).onchange=e=>{const L=[...e.target.files];L.forEach(f=>f.__p=relOf(f));onFiles(L);e.target.value=''});
+window.addEventListener('dragover',e=>{if([...(e.dataTransfer?.types||[])].includes('Files')){e.preventDefault();$('dz').classList.add('on')}});
+window.addEventListener('dragleave',e=>{if(!e.relatedTarget)$('dz').classList.remove('on')});
+window.addEventListener('drop',e=>{if(![...(e.dataTransfer?.types||[])].includes('Files'))return;e.preventDefault();$('dz').classList.remove('on');
+ const items=[...(e.dataTransfer.items||[])].filter(i=>i.kind==='file');const jobs=items.map(it=>({h:it.getAsFileSystemHandle?it.getAsFileSystemHandle().catch(()=>null):Promise.resolve(null),en:it.webkitGetAsEntry?it.webkitGetAsEntry():null,f:it.getAsFile()}));
+ (async()=>{const out=[];
+  async function walk(h,base){const p=base?base+'/'+h.name:h.name;if(h.kind==='file'){const f=await h.getFile();f.__p=p;out.push(f)}else for await(const c of h.values())await walk(c,p)}
+  async function walkE(en){if(en.isFile){const f=await new Promise((res,rej)=>en.file(res,rej));f.__p=(en.fullPath||f.name).replace(/^\//,'');out.push(f)}else if(en.isDirectory){const rd=en.createReader();let b;do{b=await new Promise((res,rej)=>rd.readEntries(res,rej));for(const c of b)await walkE(c)}while(b.length)}}
+  for(const j of jobs){const h=await j.h;try{if(h){await walk(h,'');continue}}catch(err){}try{if(j.en){await walkE(j.en);continue}}catch(err){}if(j.f&&!(j.en&&j.en.isDirectory)){j.f.__p=j.f.name;out.push(j.f)}}
+  onFiles(out)})()});
+// ================= 讀檔 =================
+const unx=s=>s.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&#(\d+);/g,(m,d)=>String.fromCharCode(+d)).replace(/&#x([0-9a-f]+);/gi,(m,h)=>String.fromCharCode(parseInt(h,16))).replace(/&amp;/g,'&');
+const xe=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const colIdx=L=>{let n=0;for(const ch of L)n=n*26+ch.charCodeAt(0)-64;return n-1},colL=i=>{let s='';i++;while(i){const m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=(i-m-1)/26}return s};
+function parseCSVText(t){const R=[];let row=[],f='',q=false;for(let i=0;i<t.length;i++){const c=t[i];
+ if(q){if(c==='"'){if(t[i+1]==='"'){f+='"';i++}else q=false}else f+=c}else if(c==='"')q=true;else if(c===','){row.push(f);f=''}else if(c==='\n'||c==='\r'){if(c==='\r'&&t[i+1]==='\n')i++;row.push(f);R.push(row);row=[];f=''}else f+=c}
+ if(f!==''||row.length){row.push(f);R.push(row)}return R}
+async function readCSV(file){const buf=new Uint8Array(await file.arrayBuffer());let t=new TextDecoder('utf-8').decode(buf),enc='utf-8';
+ if(t.includes('\ufffd')){try{t=new TextDecoder('big5').decode(buf);enc='big5'}catch(e){}}if(t.charCodeAt(0)===0xfeff)t=t.slice(1);return{rows:parseCSVText(t),enc}}
+const CELL_RE=/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g,ROW_RE=/<row\b([^>]*?)(?:\/>|>([\s\S]*?)<\/row>)/g,ATTR=(a,n)=>{const m=new RegExp('\\b'+n+'="([^"]*)"').exec(a);return m?m[1]:null};
+function sstParse(xml){const out=[];if(!xml)return out;const re=/<si>([\s\S]*?)<\/si>/g;let m;while((m=re.exec(xml))){const inner=m[1].replace(/<rPh\b[\s\S]*?<\/rPh>/g,'');let s='';inner.replace(/<t\b[^>]*>([\s\S]*?)<\/t>/g,(x,t)=>{s+=unx(t)});out.push(s)}return out}
+function cellText(attrs,inner,sst){const t=ATTR(attrs,'t');if(!inner)return'';if(t==='s'){const v=/<v>([\s\S]*?)<\/v>/.exec(inner);return v?(sst[+v[1]]??''):''}
+ if(t==='inlineStr'){let s='';inner.replace(/<t\b[^>]*>([\s\S]*?)<\/t>/g,(x,u)=>{s+=unx(u)});return s}const v=/<v>([\s\S]*?)<\/v>/.exec(inner);return v?unx(v[1]):''}
+const flatLabel=(t,s,vert)=>!s||vert?t:!t?s:(s===t||s.startsWith(t))?s:t+'_'+s;
+function xlsxHeader(xml,sst){const rows={};ROW_RE.lastIndex=0;let m,cnt=0;
+ while((m=ROW_RE.exec(xml))&&cnt<3){const r=+ATTR(m[1],'r');if(r>2)break;cnt++;rows[r]={};(m[2]||'').replace(CELL_RE,(x,a,inn)=>{const c=colIdx(/^[A-Z]+/.exec(ATTR(a,'r'))[0]);rows[r][c]={a,inn,v:cellText(a,inn,sst)}})}
+ ROW_RE.lastIndex=0;
+ const merges=[...xml.matchAll(/<mergeCell ref="([A-Z]+)(\d+):([A-Z]+)(\d+)"\/>/g)].map(x=>({c1:colIdx(x[1]),r1:+x[2],c2:colIdx(x[3]),r2:+x[4]}));
+ const r1=rows[1]||{},r2=rows[2]||{},has2=Object.values(r2).some(c=>c.v!=='');
+ const two=has2&&merges.some(g=>g.r1===1&&(g.r2===2||(g.r2===1&&g.c2>g.c1&&Object.keys(r2).some(k=>+k>=g.c1&&+k<=g.c2&&r2[k].v!==''))));
+ const maxC=Math.max(-1,...Object.keys(r1).map(Number),...(has2?Object.keys(r2).map(Number):[]));
+ const top=[],sub=[],vert=[];for(let c=0;c<=maxC;c++){let t=r1[c]?.v||'';const hm=merges.find(g=>g.r1===1&&c>=g.c1&&c<=g.c2);if(!t&&hm)t=r1[hm.c1]?.v||'';vert.push(!!(hm&&hm.r2>=2));top.push(t.trim());sub.push((r2[c]?.v||'').trim())}
+ return{two,top,sub,vert,rows}}
+function csvHeader(rows){const r1=(rows[0]||[]).map(x=>String(x).trim()),r2=(rows[1]||[]).map(x=>String(x).trim()),n=Math.max(r1.length,r2.length);
+ // csv 沒有合併資訊：「第 1 列有空格、正下方第 2 列有字」≥2 處才推測為雙行標題（可在檢查畫面改）
+ let gaps=0;for(let c=0;c<n;c++)if(!r1[c]&&r2[c])gaps++;gaps=(gaps>=3&&gaps/Math.max(1,n)>=.1)?gaps:0;const top=[];let last='';for(let c=0;c<n;c++){if(r1[c])last=r1[c];top.push(r1[c]||(r2[c]?last:''))}
+ return{two:gaps>0,top,sub:r2,vert:top.map((t,c)=>!!r1[c]&&!r2[c])}}
+// ================= 掃描 =================
+let DOCS=[],G=null;
+async function onFiles(list){FILES=list.filter(f=>/\.(csv|xlsx|xlsm|xls)$/i.test(f.name)&&!f.name.startsWith('~$'));
+ if(!FILES.length){$('scanMsg').textContent='沒有可處理的 csv／xlsx 檔';return}
+ $('scanMsg').textContent=`掃描 ${FILES.length} 個檔案…`;['review','out'].forEach(id=>$(id).style.display='none');
+ try{await loadAll();detectAll();renderReview();$('scanMsg').textContent=`已讀取 ${FILES.length} 個檔案`}catch(e){console.error(e);$('scanMsg').textContent='⚠️ '+e.message}}
+async function loadAll(){DOCS=[];
+ for(const f of FILES){const d={f,path:f.__p||f.name,notes:[],sheets:[],media:0};DOCS.push(d);
+  if(/\.xls$/i.test(f.name)){d.kind='skip';d.notes.push('舊版 .xls 不支援，請先另存為 .xlsx');continue}
+  if(/\.csv$/i.test(f.name)){d.kind='csv';Object.assign(d,await readCSV(f));const h=csvHeader(d.rows);
+   d.sheets=[{name:'',h,flat:h.two}];continue}
+  d.kind='xlsx';d.zip=await JSZip.loadAsync(await f.arrayBuffer());
+  const sf=d.zip.file('xl/sharedStrings.xml');d.sstXml=sf?await sf.async('string'):null;d.sst=sstParse(d.sstXml);
+  const wb=await d.zip.file('xl/workbook.xml').async('string'),rels=await d.zip.file('xl/_rels/workbook.xml.rels').async('string');
+  for(const[,name,rid]of wb.matchAll(/<sheet\b[^>]*?name="([^"]*)"[^>]*?r:id="([^"]+)"/g)){const t=new RegExp('Id="'+rid+'"[^>]*Target="([^"]+)"').exec(rels)||new RegExp('Target="([^"]+)"[^>]*Id="'+rid+'"').exec(rels);
+   const tg=t[1].replace(/^\//,''),path=tg.startsWith('xl/')?tg:'xl/'+tg,xml=await d.zip.file(path).async('string'),h=xlsxHeader(xml,d.sst);
+   d.sheets.push({name:unx(name),path,xml,h,flat:h.two})}
+  d.media=Object.keys(d.zip.files).filter(p=>/^xl\/media\/.+/.test(p)&&!d.zip.files[p].dir).length}}
+function sheetValues(d,sh,hr,maxRows){// 回傳 每欄的值陣列（資料列）
+ const cols=[];if(d.kind==='csv'){d.rows.slice(hr,hr+maxRows).forEach(r=>r.forEach((v,i)=>(cols[i]||(cols[i]=[])).push(v)));return cols}
+ ROW_RE.lastIndex=0;let m,n=0;while((m=ROW_RE.exec(sh.xml))&&n<maxRows){const r=+ATTR(m[1],'r');if(r<=hr||!m[2])continue;n++;
+  m[2].replace(CELL_RE,(x,a,inn)=>{const c=colIdx(/^[A-Z]+/.exec(ATTR(a,'r'))[0]);(cols[c]||(cols[c]=[])).push(cellText(a,inn,d.sst));return x})}ROW_RE.lastIndex=0;return cols}
+function detectAll(){// 全域：已知姓名／員編（所有文字中的「姓名-員編」）
+ const names=new Set(),codes=new Set(),see=v=>{const c=classify(v);if(c.k==='nc'){names.add(c.name);codes.add(c.code)}};
+ for(const d of DOCS){if(d.kind==='csv')d.rows.forEach(r=>r.forEach(see));else if(d.kind==='xlsx'){d.sst.forEach(see);for(const sh of d.sheets)sh.xml.replace(/<is>[\s\S]*?<t\b[^>]*>([\s\S]*?)<\/t>/g,(m,t)=>{see(unx(t));return m})}}
+ G={names,codes};
+ for(const d of DOCS)for(const sh of d.sheets){const hr=sh.h.two?2:1,vals=sheetValues(d,sh,hr,500),n=Math.max(sh.h.top.length,vals.length);sh.labels=[];sh.flatLabels=[];sh.act=[];sh.ex=[];
+  for(let c=0;c<n;c++){const sub=sh.h.two?(sh.h.sub[c]||''):'',fl0=flatLabel(sh.h.top[c]||'',sub,sh.h.vert[c]);sh.flatLabels.push(fl0);const lab=fl0||('第 '+colL(c)+' 欄'),ls=[lab,sh.h.top[c],sub].filter(Boolean),v=(vals[c]||[]).map(x=>String(x??'').trim()).filter(Boolean);
+   let pc=0,pd=0,pm=0;v.forEach(x=>{const k=classify(x);if(k.k==='nc'||(k.k==='name'&&names.has(k.name)))pc++;else if(k.k==='num'&&codes.has(x))pd++;else if(k.k==='mail'&&codes.has(k.lp))pm++});
+   const N=v.length||1,hp=ls.some(s=>HEAD_PERSON.test(s)&&!HEAD_NOT.test(s));
+   let a='none';
+   if(hp||pc/N>=.3||pm/N>=.5)a='person'; /* 欄名像人名欄就處理（組織帳號、所碼等值本來就會原樣保留） */else if(ls.some(s=>HEAD_CODE.test(s))||pd/N>=.5)a='code';
+   else if(ls.some(s=>HEAD_CONTACT.test(s)))a='contact';else if(ls.some(s=>HEAD_BLANK.test(s)))a='blank';
+   sh.labels.push(lab);sh.act.push(a);sh.ex.push(v.find(x=>{const k=classify(x);return k.k==='nc'||k.k==='name'||k.k==='mail'})||v[0]||'')}}}
+document.addEventListener('change',e=>{if(e.target.name==='mode'&&DOCS.length)renderReview()});
+const isQ=d=>d.sheets.some(s=>s.h.two)||d.media>0||/問卷|回報|調查/.test(d.path);
+const curMode=()=>(document.querySelector('input[name=mode]:checked')||{}).value||'ext';
+const willFlat=d=>d.kind!=='skip'&&d.sheets.some(s=>s.h.two&&s.flat);
+function renderReview(){const lab=(sh,a)=>sh.labels.filter((l,c)=>a.includes(sh.act[c]));let nP=0;
+ if(curMode()==='flat'){const n=DOCS.filter(willFlat).length;
+  $('plan').innerHTML='<tr><th>檔案</th><th>大小標題</th></tr>'+DOCS.map(d=>`<tr><td>${esc(d.path)}</td><td>${d.kind==='skip'?'<span class="warn">'+esc(d.notes.join('；'))+'</span>':willFlat(d)?'拉平':'<span class="mu">沒有雙行標題，不輸出</span>'}</td></tr>`).join('');
+  $('sumLine').innerHTML=n?`共 <b>${DOCS.length}</b> 個檔案，其中 <b>${n}</b> 個會拉平標題，內容完全不動。`:'<span class="warn">這些檔案都沒有雙行標題，不需要拉平。</span>';
+  $('qopt').style.display='none';$('go').disabled=!n;$('review').style.display='';$('out').style.display='none';return}
+ $('go').disabled=false;
+ $('plan').innerHTML='<tr><th>檔案</th><th>人名處理</th><th>內容清空</th><th>問卷</th></tr>'+DOCS.map(d=>{
+  if(d.kind==='skip')return`<tr><td>${esc(d.path)}</td><td colspan="3" class="warn">${esc(d.notes.join('；'))}</td></tr>`;
+  const p=[...new Set(d.sheets.flatMap(sh=>lab(sh,['person','code','contact'])))],b=[...new Set(d.sheets.flatMap(sh=>lab(sh,['blank'])))];nP+=p.length+b.length;
+  const q=[d.sheets.some(s=>s.h.two)?'大小標題拉平':'',d.media?`照片 ${d.media} 張`:''].filter(Boolean).join('、');
+  return`<tr><td>${esc(d.path)}</td><td>${p.length?esc(p.join('、')):'<span class="mu">（沒有人名欄）</span>'}</td><td>${esc(b.join('、'))}</td><td>${q}</td></tr>`}).join('');
+ $('sumLine').innerHTML=`共 <b>${DOCS.length}</b> 個檔案。確認沒問題就按「開始去識別化」。`;
+ $('qopt').style.display=DOCS.some(d=>d.media)?'':'none';$('review').style.display='';$('out').style.display='none'}
+// ================= 內部閱讀版：姓名遮蔽、員編反轉 =================
+function maskName(n){const ch=[...String(n)],idx=ch.map((c,i)=>SEP_RE.test(c)?-1:i).filter(i=>i>=0);if(idx.length<=1)return'○';
+ if(idx.length===2)return ch.map((c,i)=>i===idx[1]?'○':c).join('');const f=idx[0],l=idx[idx.length-1];return ch.map((c,i)=>(i===f||i===l||SEP_RE.test(c))?c:'○').join('')}
+const revCode=c=>[...String(c)].reverse().join('');
+// ================= 代號對照 =================
+function forEachCell(d,sh,hr,cols,fn){const set=new Set(cols);if(!set.size)return;
+ if(d.kind==='csv'){d.rows.slice(hr).forEach(r=>set.forEach(c=>fn(c,r[c]??'')));return}
+ ROW_RE.lastIndex=0;let m;while((m=ROW_RE.exec(sh.xml))){if(+ATTR(m[1],'r')<=hr||!m[2])continue;m[2].replace(CELL_RE,(x,a,inn)=>{const c=colIdx(/^[A-Z]+/.exec(ATTR(a,'r'))[0]);if(set.has(c))fn(c,cellText(a,inn,d.sst));return x})}ROW_RE.lastIndex=0}
+function buildMap(mode){const pass=SALT,inner=mode==='inner',name2codes=new Map(),codesSeen=new Set(G.codes),bare=new Set();
+ const note=(c,n)=>{codesSeen.add(c);if(n){const m=name2codes.get(n)||new Map();m.set(c,(m.get(c)||0)+1);name2codes.set(n,m)}};
+ for(const d of DOCS)for(const sh of d.sheets){const hr=sh.h.two?2:1,P=[],C=[];sh.act.forEach((a,c)=>{if(a==='person')P.push(c);else if(a==='code')C.push(c)});
+  forEachCell(d,sh,hr,P,(c,v)=>{const k=classify(v);if(k.k==='nc')note(k.code,k.name);else if(k.k==='name')bare.add(k.name)});
+  forEachCell(d,sh,hr,C,(c,v)=>{const s=String(v).trim();if(/^\d{5,}$/.test(s))note(s)})}
+ const P=new Map(),used=new Set(),nm=h=>SUR[h%SUR.length]+GIV[Math.floor(h/53)%GIV.length]+GIV[Math.floor(h/2909)%GIV.length];
+ if(inner)codesSeen.forEach(code=>P.set(code,{code:revCode(code),name:null}));
+ else [...codesSeen].sort().forEach(code=>{let k=0,pc;do{pc='9'+pad(cyrb53(pass+'|code|'+code+'|'+k++)%1000000,6)}while(used.has(pc));used.add(pc);P.set(code,{code:pc,name:nm(cyrb53(pass+'|name|'+code))})});
+ // V12：內部閱讀版，只有姓名（無員編）的人遮蔽後同名時加字母區分（王○明A、王○明B）
+ const tag=new Map();if(inner){const g=new Map();bare.forEach(n=>{const k=maskName(n);(g.get(k)||g.set(k,[]).get(k)).push(n)});
+  g.forEach(L=>{if(L.length<2)return;L.sort((a,b)=>cyrb53(pass+'|tag|'+a)-cyrb53(pass+'|tag|'+b)||(a<b?-1:1)).forEach((n,i)=>tag.set(n,String.fromCharCode(65+i%26)+(i>=26?Math.floor(i/26):'')))})}
+ const PN=n=>inner?maskName(n)+(tag.get(n)||''):nm(cyrb53(pass+'|bare|'+n));
+ const ncOut=(n,c)=>inner?maskName(n)+'-'+revCode(c):P.get(c).name+'-'+P.get(c).code;
+ const code2names=new Map();name2codes.forEach((m,n)=>m.forEach((v,c)=>{(code2names.get(c)||code2names.set(c,[]).get(c)).push(n)}));
+
+ const best=n=>{const m=name2codes.get(n);return m?[...m.entries()].sort((a,b)=>b[1]-a[1]||(a[0]<b[0]?-1:1))[0][0]:null};
+ const nameOf=n=>{if(inner)return PN(n);const c=best(n);return c?P.get(c).name:PN(n)};
+ const amb=[...name2codes.entries()].filter(([n,m])=>m.size>1).map(([n,m])=>({name:n,codes:[...m.keys()],use:best(n)}));
+ const bareOnly=[...bare].filter(n=>!name2codes.has(n));
+ const realNames=new Map();name2codes.forEach((m,n)=>{if(n.length>=3)realNames.set(n,nameOf(n))});bareOnly.forEach(n=>{if(n.length>=3)realNames.set(n,PN(n))});
+ const contact=v=>{const s=String(v??'').trim();if(KEEP_CONTACT.has(s)||/^[A-Z0-9\-]{1,6}$/i.test(s))return s;if(inner)return/^[\u4e00-\u9fffA-Za-z·．・‧\s]{1,20}$/.test(s)?maskName(s):s;return'聯絡人'+(100+cyrb53(pass+'|ct|'+s)%900)};
+  return{P,PN,nameOf,amb,bareOnly,realNames,contact,name2codes,ncOut,code2names,inner}}
+function makeXf(M,opt){
+ const tf=(a,v)=>{const s=String(v??''),t=s.trim();if(!t||a==='none')return s;
+  if(a==='blank')return'';if(a==='contact')return M.contact(t);
+  const k=classify(t);
+  if(k.k==='nc')return M.ncOut(k.name,k.code);
+  if(k.k==='num')return(t.length>=5&&M.P.has(t))?M.P.get(t).code:s;
+  if(a==='code')return s;
+  if(k.k==='name')return M.nameOf(k.name);
+  if(k.k==='mail')return(M.P.has(k.lp)?M.P.get(k.lp).code:'user'+(cyrb53(SALT+'|acc|'+t)%100000))+'@sample.test';
+  return s};
+ const keys=[...M.realNames.keys()].sort((a,b)=>b.length-a.length),re=keys.length?new RegExp(keys.map(k=>k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|'),'g'):null;
+ const scan=s=>{if(!opt.scan||!s)return s;let x=String(s).replace(/([\u4e00-\u9fffA-Za-z·．・‧]{0,20})-(\d{5,})/g,(m,pre,c)=>{if(!M.P.has(c))return m; // V07：只換「已知真名-員編」那一段，前面的字（如「已和」）保留
+   const n=(M.code2names.get(c)||[]).filter(n=>pre.endsWith(n)).sort((a,b)=>b.length-a.length)[0];return n?pre.slice(0,pre.length-n.length)+M.ncOut(n,c):pre+'-'+M.P.get(c).code});return re?x.replace(re,m=>M.realNames.get(m)):x};
+ return{tf,scan}}
+// ================= 照片 =================
+async function reImage(bytes,ext,mode){const mime=(bytes[0]===0xFF&&bytes[1]===0xD8)?'image/jpeg':(bytes[0]===0x89&&bytes[1]===0x50)?'image/png':/jpe?g$/i.test(ext)?'image/jpeg':'image/png';
+ let bmp;try{bmp=await createImageBitmap(new Blob([bytes],{type:mime}))}catch(e){return null}
+ const W=bmp.width,H=bmp.height,cv=document.createElement('canvas');cv.width=W;cv.height=H;const g=cv.getContext('2d');
+ if(mode==='mo'){const k=Math.max(8,Math.round(Math.max(W,H)/24)),w=Math.max(1,Math.round(W/k)),h=Math.max(1,Math.round(H/k)),t=document.createElement('canvas');t.width=w;t.height=h;
+  t.getContext('2d').drawImage(bmp,0,0,w,h);g.imageSmoothingEnabled=false;g.drawImage(t,0,0,w,h,0,0,W,H)}
+ else{g.drawImage(bmp,0,0);const bw=Math.min(W,Math.round(W*WM_W)),bh=Math.min(H,Math.round(W*WM_H));g.fillStyle='#3f3f46';g.fillRect(0,0,bw,bh);
+  g.fillStyle='#e4e4e7';g.font=`${Math.max(11,Math.round(W/28))}px sans-serif`;g.textBaseline='middle';g.fillText('浮水印已遮蔽',Math.round(W/40),Math.round(bh/2))}
+ const blob=await new Promise(r=>cv.toBlob(r,mime,JPG_Q));return new Uint8Array(await blob.arrayBuffer())}
+// ================= 拉平（xlsx） =================
+const shiftRef=s=>s.replace(/([A-Z]{1,3})(\d+)/g,(m,c,r)=>c+(+r>=2?+r-1:+r));
+function flattenSheet(xml,h,labels){const sd=/<sheetData\s*\/>|<sheetData>([\s\S]*?)<\/sheetData>/.exec(xml);if(!sd)return xml;let out='';
+ (sd[1]||'').replace(ROW_RE,(full,a,inner)=>{const r=+ATTR(a,'r');if(r===2)return'';
+  if(r===1){const st=c=>ATTR((h.rows[1]?.[c]||h.rows[2]?.[c]||{a:''}).a,'s');
+   out+=`<row${a.replace(/\bspans="[^"]*"/,'')}>`+labels.map((lab,c)=>{const s=st(c);return`<c r="${colL(c)}1"${s?` s="${s}"`:''} t="inlineStr"><is><t xml:space="preserve">${xe(lab)}</t></is></c>`}).join('')+'</row>';return''}
+  out+=`<row${a.replace(/\br="(\d+)"/,(m,n)=>`r="${n-1}"`)}>`+(inner||'').replace(/(<c\b[^>]*?\br=")([A-Z]+)(\d+)(")/g,(m,p,c,n,q)=>p+c+(n-1)+q)+'</row>';return''});
+ ROW_RE.lastIndex=0;
+ let x=xml.slice(0,sd.index)+'<sheetData>'+out+'</sheetData>'+xml.slice(sd.index+sd[0].length);
+ x=x.replace(/<mergeCells\b[^>]*>([\s\S]*?)<\/mergeCells>/,(m,inner)=>{const keep=[...inner.matchAll(/<mergeCell ref="([^"]+)"\/>/g)].map(y=>y[1]).filter(ref=>+/\d+/.exec(ref)[0]>2);
+  return keep.length?`<mergeCells count="${keep.length}">${keep.map(r=>`<mergeCell ref="${r}"/>`).join('')}</mergeCells>`:''});
+ return x.replace(/\b(ref|sqref|activeCell|topLeftCell)="([^"]*)"/g,(m,k,v)=>`${k}="${shiftRef(v)}"`)}
+// ================= 執行 =================
+let OUT=null;
+$('go').onclick=async()=>{const opt={img:(document.querySelector('input[name=img]:checked')||{}).value||'raw',scan:true,mode:curMode()};const FLAT=opt.mode==='flat';if(FLAT){opt.img='raw';opt.scan=false}
+ const ACT=sh=>FLAT?[]:sh.act; // 只拉平：所有欄位都不處理（不改 sh.act，切回其他用途時設定還在）
+ $('go').disabled=true;const t0=performance.now(),say=s=>{$('msg').textContent=s};
+ try{say('建立代號對照…');const M=buildMap(opt.mode),X=makeXf(M,opt),zipOut=new JSZip(),rep=[];let imgN=0;
+  for(const d of DOCS){const r={path:d.path,type:d.kind==='skip'?'—':isQ(d)?'問卷':'一般',flat:'',person:0,pii:0,img:'',notes:d.notes.slice()};rep.push(r);if(d.kind==='skip')continue;if(FLAT&&!willFlat(d)){r.notes.push('沒有雙行標題，未輸出');continue}
+   const cnt=a=>{if(a==='person'||a==='code')r.person++;else r.pii++};
+   if(d.kind==='csv'){const sh=d.sheets[0],flat=!!sh.flat,hr=flat?2:1,fLab=sh.h.two?sh.flatLabels:sh.h.top.map((t,c)=>flatLabel(t,sh.h.sub[c]||'',sh.h.vert[c]));
+    const rows=[flat?fLab:d.rows[0]].concat(d.rows.slice(hr).map(row=>row.map((v,i)=>{const a=ACT(sh)[i];if(a&&a!=='none'){const nv=X.tf(a,v);if(nv!==v)cnt(a);return nv}return X.scan(v)})));
+    if(flat)r.flat='已拉平';
+    zipOut.file(d.path,'\ufeff'+rows.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n'));if(d.enc==='big5')r.notes.push('原檔 Big5，已轉存 UTF-8');continue}
+   const z=d.zip,sstMap=new Map();
+   for(const sh of d.sheets){const hr=sh.h.two?2:1;let xml=sh.xml;
+    {xml=xml.replace(ROW_RE,(full,a,inner)=>{if(+ATTR(a,'r')<=hr||!inner)return full;
+      return full.replace(CELL_RE,(cx,ca,ci)=>{const c=colIdx(/^[A-Z]+/.exec(ATTR(ca,'r'))[0]),act=ACT(sh)[c];
+       if(!act||act==='none'){if(opt.scan&&ATTR(ca,'t')==='inlineStr')return cx.replace(/(<t\b[^>]*>)([\s\S]*?)(<\/t>)/g,(m,p,t,q)=>p+xe(X.scan(unx(t)))+q);return cx}
+       const v=cellText(ca,ci,d.sst),nv=X.tf(act,v);if(nv===v)return cx;cnt(act);/* 已處理的格子不再做全文掃描（避免二次處理） */
+       if(ATTR(ca,'t')==='s'){if(!sstMap.has(v))sstMap.set(v,nv);else if(sstMap.get(v)!==nv)return`<c${ca.replace(/\s*\bt="[^"]*"/,'')} t="inlineStr"><is><t xml:space="preserve">${xe(nv)}</t></is></c>`;return cx}
+       const ca2=ca.replace(/\s*\bt="[^"]*"/,'');return nv===''?`<c${ca2}/>`:`<c${ca2} t="inlineStr"><is><t xml:space="preserve">${xe(nv)}</t></is></c>`})});ROW_RE.lastIndex=0}
+    if(sh.h.two&&sh.flat){const bl=[/<f[\s>]/.test(xml)&&'公式',/<tableParts\b/.test(xml)&&'表格',/<legacyDrawing\b/.test(xml)&&'註解'].filter(Boolean);
+     if(bl.length)r.notes.push(`「${sh.name}」含${bl.join('、')}，未拉平`);
+     else{xml=flattenSheet(xml,sh.h,sh.flatLabels);r.flat='已拉平';
+      const rf=z.file(sh.path.replace(/([^/]+)$/,'_rels/$1.rels'));
+      if(rf){const rels=await rf.async('string');for(const m of rels.matchAll(/<Relationship\b[^>]*>/g)){if(!/\/drawing"/.test(m[0]))continue;const tg=/Target="([^"]+)"/.exec(m[0])[1],dp=new URL(tg,'http://x/'+sh.path).pathname.slice(1),df=z.file(dp);
+        if(df){const dx=await df.async('string');z.file(dp,dx.replace(/<xdr:row>(\d+)<\/xdr:row>/g,(mm,n)=>`<xdr:row>${+n>=1?+n-1:0}</xdr:row>`))}}}}}
+    z.file(sh.path,xml)}
+   if(d.sstXml){let i=-1;z.file('xl/sharedStrings.xml',d.sstXml.replace(/<si>([\s\S]*?)<\/si>/g,m=>{i++;const old=d.sst[i],nv=sstMap.has(old)?sstMap.get(old):X.scan(old);return nv===old?m:`<si><t xml:space="preserve">${xe(nv)}</t></si>`}))}
+   const core=FLAT?null:z.file('docProps/core.xml');if(core){const cx=await core.async('string');z.file('docProps/core.xml',cx.replace(/(<dc:creator>)[\s\S]*?(<\/dc:creator>)/,'$1$2').replace(/(<cp:lastModifiedBy>)[\s\S]*?(<\/cp:lastModifiedBy>)/,'$1$2'))}
+   if(d.media){if(opt.img==='raw')r.img=FLAT?'':`${d.media}（原圖）`;
+    else{const media=Object.keys(z.files).filter(p=>/^xl\/media\/.+/.test(p)&&!z.files[p].dir),ren=new Map();let n=0,ok=0;
+     for(const p of media){const ext=(p.split('.').pop()||'').toLowerCase();n++;imgN++;say(`處理照片 ${imgN}…`);
+      const nb=/^(png|jpe?g)$/.test(ext)?await reImage(await z.file(p).async('uint8array'),ext,opt.img):null;
+      if(!nb){r.notes.push(`照片 #${n}（${ext}）無法處理，保留原檔`);continue}
+      const np=`xl/media/image${pad(n,4)}.${ext}`;z.remove(p);z.file(np,nb);ren.set(p.split('/').pop(),np.split('/').pop());ok++}
+     for(const rp of Object.keys(z.files).filter(p=>/_rels\/[^/]+\.rels$/.test(p))){let rx=await z.file(rp).async('string'),ch=false;
+      rx=rx.replace(/Target="([^"]*media\/)([^"\/]+)"/g,(m,pre,fn)=>{if(ren.has(fn)){ch=true;return`Target="${pre}${ren.get(fn)}"`}return m});if(ch)z.file(rp,rx)}
+     r.img=`${ok}（${opt.img==='wm'?'遮蔽浮水印':'馬賽克'}）`}}
+   zipOut.file(d.path,await z.generateAsync({type:'uint8array',compression:'DEFLATE'}))}
+  const mapRows=[['類型','真實值','代號','備註']];M.P.forEach((p,code)=>{const nm=[...M.name2codes.entries()].filter(([n,m])=>m.has(code)).map(([n])=>n);mapRows.push(['員編',code,p.code,nm.length?'姓名：'+nm.join('／')+' → '+(M.inner?nm.map(maskName).join('／'):p.name):''])});
+  M.bareOnly.forEach(n=>mapRows.push(['只有姓名（查無員編）',n,M.PN(n),'']));M.amb.forEach(a=>mapRows.push(['同名多員編',a.name,M.nameOf(a.name),'員編 '+a.codes.join('、')+'；只有姓名時採 '+a.use]));
+  OUT={zipOut,mapCSV:'\ufeff'+mapRows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n'),stamp:new Date().toISOString().slice(0,10).replace(/-/g,'')};
+  $('dlMap').style.display=FLAT?'none':'';
+  $('dlZip').onclick=async()=>dl(`${FLAT?'拉平標題':'去識別化'}${opt.mode==='inner'?'_內部閱讀':''}_${OUT.stamp}.zip`,await OUT.zipOut.generateAsync({type:'blob'}));
+  $('dlMap').onclick=()=>dl(`對照表_請勿外傳_${OUT.stamp}.csv`,new Blob([OUT.mapCSV],{type:'text/csv'}));
+  const nPhoto=DOCS.reduce((a,d)=>a+d.media,0);
+  $('sum').textContent=FLAT?`已拉平 ${rep.filter(r=>r.flat).length} 個檔案（內容未做任何去識別）；耗時 ${((performance.now()-t0)/1000).toFixed(1)} 秒`:`共 ${DOCS.length} 個檔案；人員代號 ${M.P.size} 位（有員編）＋ ${M.bareOnly.length} 位（只有姓名）；照片 ${nPhoto} 張；耗時 ${((performance.now()-t0)/1000).toFixed(1)} 秒`;
+  $('warns').innerHTML=FLAT?'':(M.inner?`<div class="warn">⚠️ 內部閱讀版：姓名只遮中間、員編只是反轉，熟悉的人很容易還原，只供公司內部看，請勿外傳。</div>`:'')
+   +(opt.img==='raw'&&nPhoto?`<div class="warn">⚠️ 照片選了「保留原圖」：問卷照片左上角的浮水印可能含業務員姓名與員編、經緯度、店名、時間，這些沒有被去識別。要交給他人請改選「遮蔽浮水印」或「馬賽克」後重新處理。</div>`:'')
+   +(M.amb.length?`<div class="warn">⚠️ 同名多員編 ${M.amb.length} 組（只有姓名時無法分辨，採出現最多的員編）：${M.amb.map(a=>esc(a.name)+'（'+a.codes.map(esc).join('、')+'）').join('；')}</div>`:'')
+   +(M.bareOnly.length?`<div class="mu">只有姓名、其他檔案查無員編：${M.bareOnly.length} 位（已給獨立假名，詳見對照表）</div>`:'');
+  $('rep').innerHTML='<tr><th>檔案</th><th>替換人名（格）</th><th>清空（格）</th><th>問卷</th><th>說明</th></tr>'+rep.map(r=>`<tr><td>${esc(r.path)}</td><td>${r.person}</td><td>${r.pii}</td><td>${[r.flat,r.img?'照片 '+r.img:''].filter(Boolean).join('、')}</td><td class="warn">${esc(r.notes.join('；'))}</td></tr>`).join('');
+  $('out').style.display='';say('完成');window.__deid={M,rep};
+ }catch(e){console.error(e);say('⚠️ '+e.message)}finally{$('go').disabled=false;
+  // 原始 zip 物件已被改寫：重新掃描，讓使用者可改設定再跑一次
+  if(OUT){const keep=DOCS.map(d=>d.sheets.map(s=>({act:s.act.slice(),flat:s.flat})));await loadAll();detectAll();DOCS.forEach((d,i)=>d.sheets.forEach((s,j)=>{if(keep[i]&&keep[i][j]){s.act=keep[i][j].act;s.flat=keep[i][j].flat}}));renderReview();$('out').style.display=''}}};
+const dl=(n,b)=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4e3)};
+</script>
+<script>
+/* V14：檢查更新（比照儀表板備忘 63）。獨立 script；全程 try/catch，失敗靜默。 */
+(function(){
+ var UPD={api:'https://api.github.com/repos/1061005ttl-lab/tool/contents/',raw:'https://raw.githubusercontent.com/1061005ttl-lab/tool/main/',key:'原始檔案去識別化工具',min:10};
+ var CK='deid-upd-cache-v1',SK='deid-upd-skip-v1';
+ function norm(t){return String(t).replace(/[\s\u3000_\-]/g,'').toLowerCase()}
+ function parse(n){var m=String(n).match(/^(.+?)v0*(\d+)\.html?$/i);return m?{base:norm(m[1]),ver:Number(m[2])}:null}
+ function curVer(){var m=String(VER).match(/(\d+)/);return m?Number(m[1]):0}
+ function show(best,cv){if(document.getElementById('deid-upd-bar'))return;
+  var bar=document.createElement('div');bar.id='deid-upd-bar';
+  bar.style.cssText='position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:99999;max-width:min(94vw,720px);display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;background:#fff2cc;border:2px solid #d97706;border-radius:10px;padding:8px 14px;color:#000;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.25)';
+  var tx=document.createElement('span');tx.style.cssText='flex:1 1 260px;color:#000;font-weight:600';
+  var l1=document.createElement('div');l1.textContent='🔔 有新版 V'+best.ver+'（目前 V'+cv+'）';
+  var l2=document.createElement('div');l2.style.cssText='font-weight:400;font-size:12px;margin-top:2px;color:#000';l2.textContent='按「直接下載」存到下載資料夾，再改開新下載的檔案即可。';
+  tx.appendChild(l1);tx.appendChild(l2);bar.appendChild(tx);
+  function mk(label,primary,fn){var b=document.createElement('button');b.type='button';b.textContent=label;if(primary)b.className='p';b.onclick=fn;return b}
+  function close(){if(bar.parentNode)bar.parentNode.removeChild(bar)}
+  bar.appendChild(mk('直接下載',true,async function(ev){var btn=ev.currentTarget;
+   try{btn.disabled=true;btn.textContent='下載中…';var r=await fetch(best.dl||(UPD.raw+encodeURIComponent(best.name)),{cache:'no-store'});if(!r.ok)throw new Error(r.status);
+    var bl=new Blob([await r.blob()],{type:'text/html'}),a=document.createElement('a');a.href=URL.createObjectURL(bl);a.download=best.name;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(function(){URL.revokeObjectURL(a.href)},4000);btn.textContent='已下載 ✓';l2.textContent='已存到下載資料夾：'+best.name+'。請關掉這個頁面，改開新下載的檔案。'}
+   catch(err){btn.disabled=false;btn.textContent='重試';l2.textContent='下載失敗（可能是網路不穩，或公司網路擋住 GitHub），請稍後按「重試」。'}}));
+  bar.appendChild(mk('略過此版',false,function(){try{localStorage.setItem(SK,String(best.ver))}catch(e){}close()}));
+  bar.appendChild(mk('稍後再說',false,close));document.body.appendChild(bar)}
+ async function check(){try{if(!window.fetch)return;var cv=curVer(),best=null,now=Date.now();
+  try{var c=JSON.parse(localStorage.getItem(CK)||'null');if(c&&now-c.t<UPD.min*6e4)best=c.best||{ver:0}}catch(e){}
+  if(!best){var ac=new AbortController(),tm=setTimeout(function(){ac.abort()},6000);
+   var r=await fetch(UPD.api,{signal:ac.signal,headers:{Accept:'application/vnd.github+json'}});clearTimeout(tm);if(!r.ok)return;
+   var list=await r.json();if(!Array.isArray(list))return;best={ver:0};
+   list.forEach(function(f){if(f.type!=='file')return;var p=parse(f.name);if(p&&p.base===norm(UPD.key)&&p.ver>best.ver)best={ver:p.ver,name:f.name,dl:f.download_url}});
+   try{localStorage.setItem(CK,JSON.stringify({t:now,best:best}))}catch(e){}}
+  if(!(best.ver>cv))return;var sk=0;try{sk=Number(localStorage.getItem(SK))||0}catch(e){}if(sk>=best.ver)return;show(best,cv)}catch(e){/* 離線、被擋或超過查詢次數：靜默 */}}
+ window.deidUpdCheck=check;setTimeout(check,1200);
+})();
+</script></body></html>
