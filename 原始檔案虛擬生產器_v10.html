@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<!--
+================================================================
+原始檔案虛擬生產器｜開發紀錄（給後續 AI 助手／維護者先讀這一段）
+現行版本：V10（2026-11-04）。改版時「五處」版號一起改：①檔名 ②<title> ③畫面 h1 的 #ver ④程式 const VER ⑤本註解（含下方【版本紀錄】）。
+  版本紀錄只寫在本註解，不放畫面（V09 起，比照去識別化工具）。
+================================================================
+  V10 GitHub 檢查更新改為與打卡異常檢核工具同一套：標題旁新增「檢查更新」按鈕（手動重查、明確回應），提示條改為頁面頂端內嵌
+【版本紀錄】
+  V01 初版：工作管理／客戶資料／打卡異常／使用者／答案卷，可注入 9 種異常與 7 種排除陷阱，種子可重現，ZIP 打包
+  V02 依使用者要求移除「總公司」資料（不再產生、陷阱選項刪除）
+  V03 依真實客戶資料(75,600 筆)校正「店家型態→通路別／店家等級」因果，店家型態代碼＝型態名稱、客戶等級獨立於店家等級、拜訪頻率多為 0
+  V04 客戶資料改為「一店多列」，客戶等級依使用者定義產生：整店只有「-」＝無主訪、兩個以上 S＝重複主訪、恰一個 S＝主責訪員（該列執行人員）；答案卷新增「客戶主訪判定」分頁；注意同種子資料與 V03 不同
+  V05 刪除「APP 未讀」陷阱；客戶等級「A」確認為營業單位設錯、忽略；新增「產生範圍」：全部營業處／單一營業處／單一營業所（檔名帶範圍）
+  V06 月份預設＝本機當月；刪除「處本部人員數」（不再產生處本部業務員）；作業日改 7 格勾選（預設週一至週五）
+  V07 「組織」設定收進預設摺疊的「進階設定」
+  V08 判定門檻與歸類對齊督導管理系統儀表板 v488／檢核工具 V108：定位偏移與臨時點異地離站門檻 0.5 公里（注入距離改 ≥0.55）；處所／臨時點的衛星訊號異常改列「應排除」；即飲通路逾四小時改列「四小時備查」；同店誤建改列「備查」（非異常）；新增「定位偏移未達門檻」陷阱；可連續產生多個月份（共用同一批業務員與店家）；下載與 ZIP 改為每月一個 YYYYMM 資料夾；注意同種子資料與 V07 不同
+  V09 配合儀表板 v489／去識別化工具 V15：新增「同名同姓業務員」（不同員編、同名，測儀表板以員編區分業務員）、四字複姓與含間隔號的原住民姓名、工作管理「陪同主管」填入無員編的主管姓名（含一組遮蔽後同名，測去識別化內部閱讀版的字母區分）；新增自動檢查新版（GitHub）；版本紀錄從畫面移到本註解；注意同種子資料與 V08 不同
+【GitHub 檢查更新】（與打卡異常檢核工具 V83、督導管理系統儀表板同一套做法；四個工具內部統一稱「GitHub 檢查更新」，畫面按鈕一律叫「檢查更新」，
+  不叫「線上更新」「自動更新」——只負責偵測並讓使用者下載，不會原地替換）。開啟時 checkUpdate() 讀 api.github.com/repos/1061005ttl-lab/tool/contents/
+  列出 repo 根目錄檔名，找「名稱相同、版本號更大」的 .html，有的話顯示 #upd 提示條（直接下載／略過此版／稍後再說）；標題旁 #ubtn「檢查更新」＝checkUpdate(true)：
+  不看暫存與略過一律重查，已是最新版→按鈕文字提示，查詢失敗→alert。自動檢查暫存 10 分鐘（localStorage gen_upd_cache）、略過記在 gen_skip；失敗一律靜默。
+  ⚠️ UPD.key＝'原始檔案虛擬生產器' 必須與檔名前綴相同（比對時去掉空白、底線、連字號並轉小寫），改名要同步改；舊版請搬進子資料夾，只掃根目錄。
+  file:// 頁面共用同一份 localStorage，各工具暫存鍵不可共用。
+【測試情境（V09）】①同名同姓：c.dupName 組，每組兩位不同營業所、不同員編的業務員取同一姓名（儀表板 v488 以姓名分組會把兩人時間軸混在一起，
+  v489 起以員編區分；答案卷件數不受影響）②姓名約 3% 四字複姓（歐陽／司馬／諸葛／上官＋兩字）、2% 含間隔號的原住民姓名（音節隨機組合）
+  ③工作管理「陪同主管」約 3% 拜訪填入各營業處主管姓名（無員編），第一個營業處有兩位遮蔽後同名的主管（王○明 這類），供去識別化工具測試。
+【用途】憑空產生「像真的」原始檔，供測試「打卡異常檢核工具」與「督導管理系統_執行追蹤儀表板」，不用動到真實資料。單檔 HTML、純前端、本機開啟。
+【判定規則以儀表板為準（V08 定調）】儀表板（督導管理系統）＝打卡異常判定規則本身、無容錯；檢核工具＝儀表板判定＋門檻。答案卷的「應檢出」必須等於
+  儀表板「異常打卡檢核」逐筆結果（＝檢核工具容錯全填 0）。門檻集中在 gen() 上方的 RULE（offKm／farKm 0.5 公里、shortS 60 秒、longS 4 小時、
+  gap3S 3 小時、refType 即飲／量販→四小時備查）；儀表板規則改了，先改 RULE 與答案卷文字，再用產出檔跑儀表板與工具逐類比對。
+  V08 以 202610 預設參數驗證：儀表板 v488 與工具 V108 八類件數與答案卷完全相同。
+【輸出（欄位完全比照真實檔；V08 起每月一個 YYYYMM 資料夾，可連續產生 1～12 個月，業務員／店家／客戶資料各月共用，拜訪與打卡異常逐月以「種子＋月序」產生）】
+  工作管理_-_虛擬_YYYYMM.csv（24 欄，UTF-8 BOM）｜客戶資料_虛擬_YYYYMM.xlsx（26 欄）｜打卡異常_虛擬_YYYYMM.xlsx（14 欄）
+  ｜使用者_虛擬_YYYYMM.xlsx（15 欄，選填對照）｜答案卷_虛擬_YYYYMM.xlsx（本工具獨有：每一筆「注入」的異常與「陷阱」）｜或一次打包 ZIP。
+  檔名刻意保留「工作管理／客戶資料／打卡異常／使用者」字樣（儀表板靠檔名辨識來源）。
+【介面（V07）】組織 textarea（#org）收在預設摺疊的 <details>「進階設定」內，仍在 DOM 中，產生範圍選單照常讀取。
+【產生範圍（V05）】c.scope＝all(全部營業處)／chu(單一營業處，c.sChu)／so(單一營業所，c.sChu+c.sSo)。先依完整組織編好所碼、座標（所以同一個所在不同範圍下所碼不變），再過濾；
+  檔名會加上範圍字樣。V06 起不再產生「處本部」業務員（使用者認為無意義）；使用者檔仍保留每處一筆「行銷課承辦人」（營業所為空）作格式對照。
+  月份預設＝本機當月（頁面載入時以 new Date() 填入，可手改）；作業日＝7 個勾選（c.days 以 getUTCDay 索引，0=日…6=六，預設週一至週五）。
+【三檔彼此一致】同一批業務員(名-員編)、店家代碼、營業所、座標；打卡異常的 GPS／錯誤距離由座標算出；時間皆為「牆上時間」。
+【格式重點（來自真實檔）】打卡異常「打卡時間」只有時分秒、日期另欄；錯誤距離單位固定「公里」(例 0.55公里)；
+  客戶地址(目的地)＝「地址␣␣緯度␣,␣經度」；打卡地址(GPS)＝「␣␣緯度,經度」；到站打卡／離站打卡兩種類型；通路別結尾帶逗號(例「傳統通路,」)；
+  臨時點店名含「臨時」、店碼 所碼-0-0004；營業所店 店碼 所碼-0-0001、型態「其他類別」。
+【欄位因果（V03 以真實客戶資料 75,600 筆驗證）】店家型態 是源頭：
+  ①店家型態代碼＝店家型態（文字完全相同 100%，不是數字碼）。 ②通路別由店家型態決定（統一/全家/萊爾富/OK→CVS通路,；全聯社/美廉社→連鎖超市通路,；傳統通路→傳統通路,；
+  即飲通路/陌開即飲→即飲通路,；其他類別→其他類別,；結尾必帶逗號）。 ③店家等級由店家型態決定「等級體系」：CVS類→CVS(95%)/CVST(4%)/F(1%)；傳統通路→C/F/B/A/鋪貨商/五大x；
+  即飲通路→C/F/B/A；全聯社→連鎖超市A/B；其他類別→無分級。 ④店家代碼格式隨型態（7E-xx-6碼、FM-xx-6碼、HL-xx-4碼、PX-xx-6碼、所碼-5碼、所碼-2-4碼、所碼-0-4碼）。
+  ⑤工作流程隨型態。 ⑥客戶等級只用來標示「主訪」（使用者明定，V04）：客戶資料是「店家×客戶」一店可多列（真實：5萬店、7.6萬列；1列69%、2列25%…，客戶ID 每列唯一）。
+  以「同一店家代碼的所有列」判定：只有「-」＝無主訪（真實約0.7%）；恰一個 S＝單一主訪，該 S 列的「執行人員」就是主責訪員（約98%）；兩個以上 S＝重複主訪（約1.2%）。
+  「-」列的執行人員常是所碼虛擬帳號（純數字如 0401，約一半）或同所其他業務員。客戶等級與店家型態／店家等級無關。「A」(約0.2%)是營業單位設錯（使用者明定：忽略，不要理它），不產生。
+  工作管理的「客戶階級／客戶名稱」＝該次拜訪所屬客戶列的值（業務員＝客戶列的執行人員），所以三檔可對得起來。 ⑦拜訪頻率(月)幾乎都是 0；營業狀態約 92% 營業中。
+【答案卷邏輯】產生時就決定結果：應檢出（八類：不足一分、逾四小時、時間重疊、隔三小時、同店連打、衛星訊號異常、定位偏移、臨時點異地離站）／
+  應排除（陷阱，附原因：營業所店名不足一分、營業所／臨時點同店連打、處所／臨時點衛星訊號異常、非員編帳號、區間外打卡異常、定位偏移未達門檻、
+  臨時點到離站距離未達門檻）／備查（非異常、不計入：同店誤建、即飲通路四小時備查）。
+  間距類標在「後筆」；常態拜訪刻意避免意外異常（間隔 3~25 分、單日不跨午夜、不連續同店），讓答案卷精確。
+  用法：把產出餵給檢核工具，比對各類件數與答案卷（已用 node 自動比對驗證）。
+【使用者明定】V02 起「不產生總公司資料」（檢核工具雖會排除總公司，但此生產器刻意不造）。
+【設計決定】種子可重現；人名為隨機組合（巧合雷同純屬意外）；虛擬帳號域名 sample.test。
+【已知限制／可做】尚無「客戶資料覆蓋不全」情境；不產生量販通路、美廉社等型態（未取得真實檔的代碼／等級／流程樣本，避免亂猜）；下載 ZIP 需 cdnjs 的 JSZip。
+================================================================
+-->
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>原始檔案虛擬生產器 V10</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--tx:#1f2937;--mu:#6b7280;--bd:#e5e7eb;--ac:#2563eb;--hd:#f3f4f6;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111827;--card:#1f2937;--tx:#f3f4f6;--mu:#9ca3af;--bd:#374151;--ac:#60a5fa;--hd:#273244}}
+:root[data-theme="dark"]{--bg:#111827;--card:#1f2937;--tx:#f3f4f6;--mu:#9ca3af;--bd:#374151;--ac:#60a5fa;--hd:#273244}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.5 "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
+main{max-width:1150px;margin:0 auto;padding:16px}h1{font-size:1.25rem;margin:0 0 4px}.mu{color:var(--mu);font-size:.8rem}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px;margin:12px 0}
+.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px 12px}.g label{display:flex;flex-direction:column;font-size:.8rem;color:var(--mu)}
+input,select,textarea,button{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:5px 8px}
+textarea{width:100%;font-size:.8rem}button{cursor:pointer}button.p{background:var(--ac);color:#fff;border-color:var(--ac);font-weight:600}
+h3{margin:10px 0 6px;font-size:.95rem}.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tw{overflow-x:auto;max-height:260px;border:1px solid var(--bd);border-radius:6px}table{border-collapse:collapse;font-size:.76rem}
+th,td{border-bottom:1px solid var(--bd);padding:3px 7px;text-align:left;white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis}th{background:var(--hd);position:sticky;top:0}
+.chip{display:inline-block;border:1px solid var(--bd);border-radius:12px;padding:1px 9px;margin:2px;font-size:.78rem}.ok{border-color:#16a34a}.no{border-color:#d97706}
+
+#upd{display:none;align-items:center;gap:10px;flex-wrap:wrap;background:#fff2cc;color:#000;border:1px solid #d97706;border-radius:8px;padding:8px 12px;margin:0 0 8px;font-size:13px}#upd.on{display:flex}#upd .t{flex:1 1 300px}#upd .mu{color:#333}#upd button.p{background:var(--ac);color:#fff;border-color:var(--ac);font-weight:600}#ubtn{padding:3px 12px;border-radius:999px;cursor:pointer;font-size:.8rem;margin-left:8px;vertical-align:middle}@media print{#ubtn,#upd{display:none!important}}
+</style></head><body><main>
+<div id="upd"></div>
+<h1>🧪 原始檔案虛擬生產器 <span id="ver">V10</span><button type="button" id="ubtn" title="立即到 GitHub 查有沒有新版">檢查更新</button></h1>
+<div class="mu">憑空產生工作管理、客戶資料、打卡異常（另附使用者、答案卷），欄位比照真實檔、三檔彼此對得起來。檔案只在瀏覽器內產生，不上傳。</div>
+<div class="card">
+ <h3>基本設定</h3>
+ <div class="g">
+  <label>產生範圍<select id="scope"><option value="all">全部營業處</option><option value="chu">單一營業處</option><option value="so">單一營業所</option></select></label><label id="pickL" style="display:none">選擇<select id="pick"></select></label>
+  <label>起始月份<input id="ym" type="month" value="2026-09"></label><label>連續月份數（1～12）<input id="nMonths" type="number" value="1" min="1" max="12"></label><label>隨機種子（相同種子＝相同資料）<input id="seed" type="number" value="20261005"></label>
+  <label>每個營業所業務員數<input id="perSo" type="number" value="4" min="0"></label>
+  <label>同名同姓業務員（組）<input id="dupName" type="number" value="1" min="0" max="5"></label>
+  <label>每人客戶店家數<input id="stores" type="number" value="60" min="15"></label>
+  <label>每日拜訪家數 最少<input id="vmin" type="number" value="8" min="2"></label><label>每日拜訪家數 最多<input id="vmax" type="number" value="14" min="2"></label>
+  <label>出勤率 %<input id="att" type="number" value="92" min="1" max="100"></label>
+ </div>
+ <div class="row" style="margin-top:8px">作業日：<label><input type="checkbox" data-d="1" checked>一</label><label><input type="checkbox" data-d="2" checked>二</label><label><input type="checkbox" data-d="3" checked>三</label><label><input type="checkbox" data-d="4" checked>四</label><label><input type="checkbox" data-d="5" checked>五</label><label><input type="checkbox" data-d="6">六</label><label><input type="checkbox" data-d="0">日</label></div>
+ <details style="margin-top:10px"><summary><b>進階設定：組織（營業處／營業所／座標）</b>　<span class="mu">預設不用動，點開才編輯</span></summary>
+  <div class="mu" style="margin:6px 0">每行：營業處|營業所,營業所…|中心緯度,經度；營業所名稱不含「營業所」三字。影響營業處／營業所名稱、所碼（依順序從 0401 起編）、店家與打卡座標，以及上方「產生範圍」的選項。</div>
+  <textarea id="org" rows="7">北部營業處|三重,士林,中和,中正|25.05,121.50
+桃園營業處|龍潭,中壢,苗栗|24.95,121.10
+臺中營業處|大甲,豐原,沙鹿|24.20,120.65
+嘉義營業處|西螺,嘉義,民雄|23.60,120.45
+臺南營業處|永康,新營|23.00,120.25
+高雄營業處|鳳山,苓雅,岡山,潮州|22.70,120.40
+花蓮營業處|花蓮,臺東|23.90,121.50</textarea>
+ </details>
+ <h3>異常注入比例（每筆拜訪的 %）</h3>
+ <div class="g">
+  <label>同店連打<input id="r_same" type="number" value="0.2" step="0.1"></label><label>同店誤建<input id="r_mis" type="number" value="0.1" step="0.1"></label>
+  <label>時間重疊<input id="r_ovl" type="number" value="0.2" step="0.1"></label><label>隔三小時<input id="r_gap3" type="number" value="0.4" step="0.1"></label>
+  <label>不足一分<input id="r_short" type="number" value="0.5" step="0.1"></label><label>逾四小時<input id="r_long" type="number" value="0.3" step="0.1"></label>
+  <label>衛星訊號異常<input id="r_sat" type="number" value="1" step="0.1"></label><label>定位偏移（打卡異常檔）<input id="r_off" type="number" value="5" step="0.5"></label><label>定位偏移未達門檻（陷阱）<input id="r_offn" type="number" value="1" step="0.5"></label>
+  <label>臨時點拜訪（每筆 %）<input id="pTemp" type="number" value="1.5" step="0.5"></label><label>臨時點中「異地離站」占 %<input id="r_far" type="number" value="30" step="5"></label>
+ </div>
+ <h3>陷阱（應被排除、不該被算成異常的資料）</h3>
+ <div class="row"><label><input id="t_office" type="checkbox" checked> 營業所店名（不足一分／同店連打）</label><label><input id="t_temp" type="checkbox" checked> 臨時點連打</label>
+  <label><input id="t_emp" type="checkbox" checked> 非員編帳號</label>
+  <label>區間外打卡異常筆數 <input id="bg" type="number" value="300" min="0" style="width:90px"></label></div>
+ <div class="row" style="margin-top:12px"><button id="go" class="p">🎲 產生資料</button><span id="msg" class="mu"></span></div>
+</div>
+<div id="out" style="display:none">
+ <div class="card"><div class="row"><b>下載：</b><span id="dl"></span><button id="zip" class="p">📦 全部打包 ZIP</button></div><div id="sum" class="mu" style="margin-top:6px"></div></div>
+ <div class="card"><h3>答案卷摘要（拿去對儀表板「異常打卡檢核」或檢核工具的結果；工具卡片容錯請全填 0）</h3><div id="ans"></div></div>
+ <div class="card"><h3>預覽（各檔前 8 列）</h3><div id="pv"></div></div>
+</div>
+</main>
+<script>
+const VER='V10';
+const rng=s=>{let a=s>>>0;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}};
+const hav=(p,q)=>{const r=Math.PI/180,x=(q[0]-p[0])*r,y=(q[1]-p[1])*r,a=Math.sin(x/2)**2+Math.cos(p[0]*r)*Math.cos(q[0]*r)*Math.sin(y/2)**2;return 12742*Math.asin(Math.sqrt(a))};
+const mv=(p,km,b)=>[p[0]+km*Math.cos(b)/111,p[1]+km*Math.sin(b)/(111*Math.cos(p[0]*Math.PI/180))];
+const pad=(n,l=2)=>String(n).padStart(l,'0'),ts=ms=>new Date(ms).toISOString().slice(0,19).replace('T',' '),km2=x=>Math.max(0.01,Math.round(x*100)/100)+'公里';
+
+/* V08：判定門檻與歸類對齊「督導管理系統儀表板 v488／打卡異常檢核工具 V108」（儀表板＝規則本身）。
+   門檻集中在 RULE，日後規則改了只改這裡＋答案卷文字。 */
+const RULE={offKm:0.5,farKm:0.5,shortS:60,longS:4*3600,gap3S:3*3600,refType:/即飲通路|量販/};
+function gen(c){
+ if(!c.days.some(Boolean))throw new Error('請至少勾選一個作業日');
+ let R=rng(c.seed);
+ const ri=(a,b)=>a+Math.floor(R()*(b-a+1)),pick=a=>a[Math.floor(R()*a.length)],ch=p=>R()*100<p;
+ const CITY={北部:'新北市',桃園:'桃園市',臺中:'臺中市',嘉義:'嘉義縣',臺南:'臺南市',高雄:'高雄市',花蓮:'花蓮縣'};
+ const SUR=[...'陳林黃張李王吳劉蔡楊許鄭謝郭洪曾邱廖賴徐周葉蘇莊呂江何蕭羅高潘簡朱鍾彭游詹胡施沈余盧梁顏柯孫魏翁戴范宋方石崔'],GIV=[...'家宏志偉俊明淑芬雅惠怡婷欣宜佳君文建國信哲涵凱誠軒豪翔睿庭宇安廷柏瑋芷琳珮萱瑜慧筠'];
+ const PL=['福興','新生','中山','光明','和平','忠孝','仁愛','信義','民權','民生','中正','復興','大同','文化','建國','平安','永樂','成功','自強','北勢','東湖','西屯','頂埔','溪洲','山腳'],RD=['中山路','中正路','民生路','光復路','成功路','忠孝街','和平街','文化路','自強路','建國路'];
+ const TY=[['統一',22],['全家',20],['萊爾富',6],['全聯社',12],['傳統通路',30],['即飲通路',10]],CHN={統一:'CVS通路',全家:'CVS通路',萊爾富:'CVS通路',全聯社:'連鎖超市通路',傳統通路:'傳統通路',即飲通路:'即飲通路',其他類別:'其他類別'};
+ const WF={統一:'到站打卡,「※必填－訪店紀錄」,「統一」查核(114)',全家:'到站打卡,「※必填－訪店紀錄」,「全家」查核(114)',萊爾富:'到站打卡,「※必填－訪店紀錄」,「萊爾富」查核(114)',全聯社:'到站打卡,「※必填－訪店紀錄」,「全聯社」巡補回報',傳統通路:'到站打卡,「※必填－訪店紀錄」',即飲通路:'到站打卡,新「即飲通路」店家樣貌,「※必填－訪店紀錄」',其他類別:'到站打卡'};
+ const wp=l=>{let x=R()*l.reduce((a,b)=>a+b[1],0);for(const[v,w]of l)if((x-=w)<0)return v;return l[0][0]};
+ const LV={統一:[['CVS',95],['CVST',4],['F',1]],全家:[['CVS',95],['CVST',4],['F',1]],萊爾富:[['CVS',95],['CVST',4],['F',1]],傳統通路:[['C',38],['F',32],['B',18],['A',7],['鋪貨商',2],['五大C',1.5],['五大B',.7],['五大A',.5]],即飲通路:[['C',70],['F',16],['B',9],['A',5]],全聯社:[['連鎖超市A',50],['連鎖超市B',50]]};
+ const mkCL=()=>wp([['S',68],['-',32]]);
+ const stayOf=t=>({統一:[180,720],全家:[180,720],萊爾富:[180,600],全聯社:[480,1800],傳統通路:[300,1500],即飲通路:[600,2400]}[t]||[300,1800]);
+ const names=new Set(),codes=new Set();let emp=1000,wid=2700000,cid=60000;
+ const FUX=['歐陽','司馬','諸葛','上官'],YA=['瓦歷斯','馬耀','伊萬','達少','比令','巴奈','尤幹','拉娃'],YB=['諾幹','谷木','瓦旦','亞布','烏杜','吉拉','帕蘭','阿浪'];
+ const mkName=()=>{let n;do{const x=R()*100;n=x<3?pick(FUX)+pick(GIV)+pick(GIV):x<5?pick(YA)+'·'+pick(YB):pick(SUR)+pick(GIV)+pick(GIV)}while(names.has(n));names.add(n);return n},mkEmp=()=>String(ri(101,115))+pad(++emp,4);
+ const pickTy=()=>{let x=R()*100;for(const[t,w]of TY)if((x-=w)<0)return t;return'傳統通路'};
+ const mkCode=(o,t)=>{let k;do k=t==='統一'?`7E-${pad(o.ci)}-${ri(100000,299999)}`:t==='全家'?`FM-${pad(o.ci)}-${pad(ri(1,99999),6)}`:t==='萊爾富'?`HL-${pad(o.ci)}-${ri(1000,9999)}`:t==='全聯社'?`PX-${pad(o.ci)}-${pad(ri(1,999999),6)}`:t==='傳統通路'?`${o.code}-${ri(10000,99999)}`:`${o.code}-2-${pad(ri(1,9999),4)}`;while(codes.has(k));codes.add(k);return k};
+ const mkSN=t=>{const p=pick(PL);return t==='全聯社'?`A${pad(ri(1,20))}-${p}${pick('AB')}`:t==='全家'||t==='萊爾富'?p+'店':t==='統一'?p+pick(['','門','']):t==='傳統通路'?pick(SUR)+pick(GIV)+pick(['商行','雜貨店','食品行','商店']):p+pick(['小吃','燒烤','餐酒館'])};
+ // ==== 一、世界（組織／業務員／店家／客戶列／使用者）：多個月份共用同一份，只依種子決定 ====
+ const orgsAll=[];let oi=0,ci=0;
+ c.org.split('\n').map(s=>s.trim()).filter(Boolean).forEach(l=>{const[chu,sos='',ll='25,121']=l.split('|'),[la,lo]=ll.split(',').map(Number);ci++;
+  const add=(so,n,code)=>{if(n>0)orgsAll.push({chu,so,code,n,ci,c:[la+(R()-.5)*.12,lo+(R()-.5)*.12],city:CITY[chu.replace('營業處','')]||'臺灣省'})};
+  sos.split(',').filter(Boolean).forEach(s=>add(s+'營業所',c.perSo,pad(401+oi++,4)))});
+ const orgs=orgsAll.filter(o=>c.scope==='chu'?o.chu===c.sChu:c.scope==='so'?(o.chu===c.sChu&&o.so===c.sSo):true);
+ if(!orgs.length)throw new Error('產生範圍內沒有任何營業所，請檢查組織設定');
+ const staff=[],stores=[],area=o=>o.so?o.so.replace('營業所','')+'區':'中正區';
+ orgs.forEach(o=>{
+  o.office=o.so?{code:`${o.code}-0-0001`,name:o.so,type:'其他類別',pos:o.c,addr:`${o.city}${area(o)}${pick(RD)}${ri(1,200)}號`,lv:'無分級',cl:mkCL(),cid:++cid,freq:'0'}:null;
+  o.temp={code:`${o.code}-0-0004`,name:(o.so?o.so.replace('營業所','所'):'處本部')+'-臨時點',type:'其他類別',pos:o.c,addr:`${o.city}${area(o)}${pick(RD)}${ri(1,200)}號`,lv:'無分級',cl:'S'};
+  o.staff=[];for(let i=0;i<o.n;i++){const s={name:mkName(),emp:mkEmp(),o,pool:[]};s.id=s.name+'-'+s.emp;o.staff.push(s);staff.push(s)}});
+ if(!staff.length)throw new Error('沒有任何業務員，請檢查組織與人數設定');
+ // V09：同名同姓（不同營業所、不同員編），測儀表板以員編區分業務員
+ const dupPairs=[];for(let k=0;k<(c.dupName||0)&&staff.length>=2;k++){const a=staff[(k*7)%staff.length],cand=staff.filter(x=>x!==a&&x.o!==a.o&&!dupPairs.some(p=>p.includes(x)));
+  const b=cand.length?cand[(k*13)%cand.length]:null;if(!b)break;b.name=a.name;b.id=b.name+'-'+b.emp;dupPairs.push([a,b])}
+ // V09：各營業處主管（無員編，只有姓名），填在工作管理「陪同主管」；第一個營業處放一組遮蔽後同名的主管（姓與最後一字相同）
+ const sups=new Map();[...new Set(orgs.map(o=>o.chu))].forEach((chu,i)=>{const L=[mkName(),mkName()];
+  if(i===0){const f=pick(SUR),l=pick(GIV);let m1=pick(GIV),m2;do m2=pick(GIV);while(m2===m1);L[0]=f+m1+l;L[1]=f+m2+l;names.add(L[0]);names.add(L[1])}sups.set(chu,L)});
+ const ent=(st,r)=>{const e=Object.create(st);e.cl=r.cl;e.cname=r.cname;if(r.who.pool)r.who.pool.push(e);return e},other=s=>{const L=s.o.staff.filter(x=>x!==s);return L.length?pick(L):s},own={n:0,z:0,d:0};
+ staff.forEach(s=>{const o=s.o;for(let j=0;j<c.stores;j++){const t=pickTy(),st={type:t,code:mkCode(o,t),name:mkSN(t),pos:[o.c[0]+(R()-.5)*.1,o.c[1]+(R()-.5)*.1],lv:wp(LV[t]),o,rows:[],open:ch(92)?'營業中':'結束營業'};
+  st.addr=`${o.city}${area(o)}${pick(RD)}${ri(1,300)}號`;
+  let k=wp([[1,69],[2,25],[3,2],[4,1],[5,1],[7,2]]);const cls=wp([['n',98.1],['z',.7],['d',1.2]]);if(cls==='d'&&k<2)k=2;st.cls=cls;own[cls]++;
+  const va={id:o.code},sS=w=>({cl:'S',who:w||s,cname:wp([['-',72],['N',7],['順哥',21]])}),dash=()=>({cl:'-',who:R()<.5?va:other(s),cname:wp([['1',30],['2',25],['01',15],['A001',10],['-',10],['N',10]])});
+  for(let r=0;r<k;r++)st.rows.push(cls==='n'?(r?dash():sS()):cls==='z'?dash():(r===0?sS():r===1?sS(R()<.5?s:other(s)):dash()));
+  st.rows.forEach(r=>{r.cid=++cid;r.freq=ch(.2)?'2':'0';r.e=ent(st,r)});stores.push(st)}});
+ const ch6=['新增/更新/刪除','客戶ID','店家型態代碼','店家型態','店家代碼','店家名稱','通路別','店家標註','店家等級','店家所屬區域','店家地址','營業狀態','客戶名稱','客戶等級','客戶電話','客戶手機','拜訪頻率(月)','營業處代碼','營業處名稱','營業所/課','執行人員','是否顯示給所有業務員','其他聯絡方式','備註','緯度','經度'];
+ const crow=(st,o,r)=>['更新',String(r.cid),st.type,st.type,st.code,st.name,CHN[st.type]+',','',st.lv,`${o.chu.replace('營業處','')}-${o.so?o.so.replace('營業所',''):'行銷課'}`,st.addr,st.open||'營業中',r.cname,r.cl,'','',r.freq||'0',o.chu,o.chu,o.so,r.who?r.who.id:'','否','','',st.pos[0].toFixed(7),st.pos[1].toFixed(7)];
+ const cust=[ch6].concat(stores.flatMap(st=>st.rows.map(r=>crow(st,st.o,r))),orgs.filter(o=>o.office).map(o=>crow(o.office,o,{cname:'-',cl:o.office.cl,cid:o.office.cid,freq:'0',who:null})));
+ const owner=[['店家代碼','店家名稱','店家型態','營業處','營業所/課','客戶列數','S 的個數','判定','主責訪員(S 列的執行人員)']].concat(stores.map(st=>{const S=st.rows.filter(r=>r.cl==='S');return[st.code,st.name,st.type,st.o.chu,st.o.so,st.rows.length,S.length,S.length===0?'無主訪':S.length===1?'單一主訪':'重複主訪',S.map(r=>r.who.id).join('、')]}));
+ let uid=0;const users=[['人員ID','營業處代碼','營業處名稱','營業所/課','人員名稱','權限','階級','所屬區域','帳號','密碼','備用信箱','電話','到職日期','是否需收到所有信件','是否可以成為專案負責人(PM)']];
+ const ur=(o,so,nm,rk,ar2,acc)=>users.push([++uid,o.chu,o.chu,so||null,nm,'一般使用者',rk,ar2,acc+'@sample.test',null,null,null,'0000-00-00','否','否']);
+ staff.forEach(s=>ur(s.o,s.o.so,s.id,pick(['訪銷員、專員','訪銷員、專員','訪銷員、專員','督導兼訪銷員']),'未分區',s.emp));
+ orgs.filter(o=>o.so).forEach(o=>ur(o,o.so,o.code,'營業所(虛擬帳號)','未分區',o.code));
+ [...new Set(orgs.map(o=>o.chu))].forEach(chu=>{const o=orgs.find(x=>x.chu===chu);ur(o,'',mkName(),'行銷課承辦人',chu.replace('營業處','')+'-行銷課',pad(++emp,7))});
+ const wk=['批次刪除','工作可執行期間','營業處','業務員','陪同主管','APP讀取狀態','工作主題','工作流程','店家型態','店家代碼','店家名稱','客戶名稱','店家地址','客戶階級','建立時間','任務狀態','指派者','打卡時間','是否衛星訊號異常','是否刷機','工作完成日期','備註','工作ID','管理'];
+ const anH=['#','日期','類型','打卡時間','店家型態','店家','客戶','營業處','營業所/課','執行人員','工作主題','錯誤距離','客戶地址(目的地)','打卡地址(GPS)'];
+ const trH=['類別','結果','原因／說明','人員','打卡時間','店家','工作ID'];
+ // ==== 二、逐月產生拜訪、打卡異常、答案卷（每月各自的亂數流：種子＋月序，加月份不影響前面月份） ====
+ const [Y0,M0]=c.ym.split('-').map(Number),O=c.rates,nM=Math.max(1,Math.min(12,c.nMonths||1)),months=[];
+ for(let mi=0;mi<nM;mi++){
+  R=rng((c.seed+mi*7919)^0x5bd1e995);
+  const Y=Y0+Math.floor((M0-1+mi)/12),M=(M0-1+mi)%12+1,ym=Y+pad(M),D0=Date.UTC(Y,M-1,1),nd=new Date(Date.UTC(Y,M,0)).getUTCDate();
+  const visits=[];
+  function genDay(s,d,o={}){
+   const base=D0+(d-1)*864e5,lim=base+20.5*36e5;let t=base+ri(28800,34200)*1000,pv=null,dup=null;const used=new Set(),n=o.n||ri(c.vmin,c.vmax);
+   for(let q=0;q<n;q++){
+    const v={s,day:d,k:q,flags:[],rd:o.rd||'已讀',chu:o.chu||s.o.chu,excl:o.excl||''};if(!o.quiet&&sups.has(v.chu)&&ch(3))v.acc=pick(sups.get(v.chu));let gap=ri(180,1500)*1000,rel='',store=null;const pst=pv?(pv.out-pv.in)/1000:0,isDup=!!dup;
+    if(dup){store=dup.store;gap=ri(60,600)*1000;v.trap=dup.trap;dup=null}
+    else{
+     if(pv&&!pv.temp&&!pv.office&&pst>=240&&!o.quiet){let x=R()*100;for(const[kn,p]of[['同店連打',O.same],['同店誤建',O.mis],['時間重疊',O.ovl],['隔三小時',O.gap3]])if((x-=p)<0){rel=kn;break}}
+     if(rel==='同店連打'){store=pv.store;gap=ri(60,1200)*1000}
+     else if(rel==='同店誤建'){store=pv.store;gap=-ri(30,Math.min(1200,pst-60))*1000}
+     else if(rel==='時間重疊')gap=-ri(30,Math.min(1200,pst-60))*1000;
+     else if(rel==='隔三小時')gap=ri(RULE.gap3S+300,14400)*1000;
+     if(!store){
+      if(!rel&&!o.quiet&&ch(c.pTemp))store=s.o.temp;
+      else if(!rel&&!o.quiet&&c.t_office&&s.o.office&&ch(1.5))store=s.o.office;
+      else{let i=0;do store=pick(s.pool);while((used.has(store.code)||(pv&&store===pv.store))&&++i<30)}}}
+    if(pv)t=pv.out+gap;
+    if(rel==='隔三小時'&&t+36e5>lim){rel='';gap=ri(180,1500)*1000;t=pv.out+gap}
+    if(t>=lim)break;
+    v.store=store;v.temp=store===s.o.temp;v.office=store===s.o.office;v.rel=rel;used.add(store.code);
+    let[a,b]=stayOf(store.type),stay=ri(a,b);
+    if(isDup)stay=ri(180,900);
+    else if(v.temp){stay=ri(600,2400);if(c.t_temp&&!o.quiet&&ch(30))dup={store,trap:['同店連打','臨時點連打']}}
+    else if(v.office){stay=ri(15,55);v.trap=['不足一分','營業所店名不足一分'];if(ch(50))dup={store,trap:['同店連打','營業所店名同店連打']}}
+    else{const x=R()*100;
+     if(o.fh===q||(!o.quiet&&x<O.short)){stay=ri(10,RULE.shortS-5);v.flags.push('不足一分')}
+     else if(!o.quiet&&x<O.short+O.long&&t+(RULE.longS+600)*1000<=base+22*36e5){stay=ri(RULE.longS+120,19800);v.flags.push('逾四小時')}}
+    v.sat=o.fs===q||(!o.quiet&&ch(O.sat));
+    if(v.temp){if(!o.quiet&&!isDup){if(ch(O.far))v.far=1;else if(ch(35))v.near=1}}
+    else if(o.fo===q||(!o.quiet&&ch(O.off)))v.off=1;
+    else if(!o.quiet&&ch(O.offn))v.offn=1;
+    v.in=t;v.out=t+stay*1000;visits.push(v);pv=v}}
+  staff.forEach(s=>{for(let d=1;d<=nd;d++){const dw=new Date(D0+(d-1)*864e5).getUTCDay();if(!c.days[dw])continue;if(ch(c.att))genDay(s,d)}});
+  const okDays=[];for(let d=1;d<=nd;d++)if(c.days[new Date(D0+(d-1)*864e5).getUTCDay()])okDays.push(d);
+  const sp=(id,chu,rd,why,days)=>{const s={id,name:id.split('-')[0],o:orgs[0],pool:staff[0].pool};for(let i=0;i<days;i++)genDay(s,pick(okDays),{quiet:1,n:6,fs:1,fh:2,fo:3,chu,rd,excl:why})};
+  if(c.t_emp){sp('訪客帳號',orgs[0].chu,'已讀','非員編帳號',2);sp(orgs[0].chu.replace('營業處','')+'_主任督導專用',orgs[0].chu,'已讀','非員編帳號',2);sp(orgs[0].chu+'-共用帳號',orgs[0].chu,'已讀','非員編帳號',2)}
+  visits.sort((a,b)=>a.day-b.day||(a.s.id<b.s.id?-1:a.s.id>b.s.id?1:0)||a.k-b.k);visits.forEach(v=>v.wid=++wid);
+  // ---- 打卡異常列 & 答案卷（結果：應檢出／應排除／備查）
+  const T=[],AR=[],ang=()=>R()*6.283185;
+  const ar=(v,type,tm,pos,dest,cat,why,ex)=>{AR.push(['',ts(tm).slice(0,10),type,ts(tm).slice(11),v.store.type,v.store.name,'-',v.chu,v.s.o.so,v.s.id,'常態工作',km2(hav(pos,dest)),`${v.store.addr}  ${dest[0].toFixed(7)} , ${dest[1].toFixed(7)}`,`  ${pos[0].toFixed(7)},${pos[1].toFixed(7)}`]);if(cat)T.push([cat,v.excl?'應排除':ex||'應檢出',v.excl||why||'',v.s.id,ts(tm),v.store.name,String(v.wid)])};
+  const offKm=()=>RULE.offKm+0.05+R()*5,offTxt=`錯誤距離≥${RULE.offKm}公里`;
+  visits.forEach(v=>{const w=(cat,ex,why)=>T.push([cat,ex,why,v.s.id,ts(v.in),v.store.name,String(v.wid)]),x=v.excl;
+   if(v.rel==='同店誤建')w('同店誤建','備查',x||'同店前後筆時間重疊（同店誤建），不列時間重疊、非異常');
+   else if(v.rel)w(v.rel,x?'應排除':'應檢出',x||'');
+   v.flags.forEach(f=>{if(f==='逾四小時'&&!x&&RULE.refType.test(v.store.type))w('四小時備查','備查',`${CHN[v.store.type]}停留≥4小時，列備查、非異常`);else w(f,x?'應排除':'應檢出',x||'')});
+   if(v.sat)w('衛星訊號異常',x?'應排除':(v.temp||v.office)?'應排除':'應檢出',x||((v.temp||v.office)?'處所／臨時點的衛星訊號異常不列':''));
+   if(v.trap)w(v.trap[0],'應排除',v.trap[1]);
+   if(v.off){const a=ch(50),l=ch(80)||!a;if(a)ar(v,'到站打卡',v.in,mv(v.store.pos,offKm(),ang()),v.store.pos,'定位偏移',offTxt);if(l)ar(v,'離站打卡',v.out,mv(v.store.pos,offKm(),ang()),v.store.pos,'定位偏移',offTxt)}
+   if(v.offn){const l=ch(50);ar(v,l?'離站打卡':'到站打卡',l?v.out:v.in,mv(v.store.pos,0.40+R()*0.07,ang()),v.store.pos,'定位偏移',`錯誤距離未達門檻（<${RULE.offKm}公里）`,'應排除')}
+   if(v.far||v.near){const d=v.s.o.temp.pos,A=mv(d,.05+R()*.1,ang()),B=v.far?mv(A,RULE.farKm+0.05+R()*5,ang()):mv(A,.02+R()*.18,ang());
+    ar(v,'到站打卡',v.in,A,d);ar(v,'離站打卡',v.out,B,d,'臨時點異地離站',v.far?`同一次拜訪到站與離站 GPS 相距≥${RULE.farKm}公里`:'到離站距離未達門檻',v.far?'應檢出':'應排除')}});
+  for(let i=0;i<c.bg;i++){const s=pick(staff),st=pick(s.pool),dd=ri(1,28),pm=ch(50),yy=pm?(M===1?Y-1:Y):(M===12?Y+1:Y),mm=pm?(M===1?12:M-1):(M===12?1:M+1),tm=Date.UTC(yy,mm-1,dd,ri(8,18),ri(0,59),ri(0,59)),v={store:st,chu:s.o.chu,s};ar(v,pick(['到站打卡','離站打卡']),tm,mv(st.pos,offKm(),ang()),st.pos)}
+  if(c.bg)T.push(['區間外打卡異常','應排除',`共 ${c.bg} 筆，日期不在工作規劃區間內（對不回工作規劃）`,'','','','']);
+  AR.sort((a,b)=>(b[1]+b[3]<a[1]+a[3]?-1:b[1]+b[3]>a[1]+a[3]?1:0));AR.forEach((r,i)=>r[0]=String(i+1));
+  const work=[wk].concat(visits.slice().sort((a,b)=>b.day-a.day||a.wid-b.wid).map(v=>{const b=D0+(v.day-1)*864e5,st=v.store;return['',ts(b).slice(0,10)+' 05:30',v.chu,v.s.id,v.acc||'',v.rd,'常態工作',WF[st.type]||'到站打卡',st.type,st.code,st.name,v.temp?'訪員':(st.cname||'-'),st.addr,st.cl,ts(b+(5*3600+120+v.k*30+(v.wid%20))*1000),'完成',v.s.id,ts(v.in),v.sat?'是':'否','否',ts(v.out),'',String(v.wid),'']}));
+  const truth=[trH].concat(T.sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:(a[4]<b[4]?-1:1)));
+  const hit={},exc={},ref={};T.forEach(r=>{if(r[1]==='應檢出')hit[r[0]]=(hit[r[0]]||0)+1;else if(r[1]==='備查')ref[r[0]]=(ref[r[0]]||0)+1;else{const k=r[2]||'其他';exc[k]=(exc[k]||0)+1}});
+  months.push({ym,work,anom:[anH].concat(AR),truth,hit,exc,ref,visits:visits.length});
+ }
+ return{months,cust,users,owner,own,staff:staff.length,stores:stores.length,dupPairs:dupPairs.map(p=>p.map(x=>x.id))};
+}
+/*==UI==*/
+const $=id=>document.getElementById(id),num=id=>+$(id).value,esc=s=>String(s??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const csvB=a=>new Blob(['\ufeff'+a.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n')],{type:'text/csv'});
+const xlsB=(a,sh)=>{const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a),sh);return new Blob([XLSX.write(wb,{type:'array',bookType:'xlsx'})],{type:'application/octet-stream'})};
+const xlsB2=l=>{const wb=XLSX.utils.book_new();l.forEach(([n,a])=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a),n));return new Blob([XLSX.write(wb,{type:'array',bookType:'xlsx'})],{type:'application/octet-stream'})};
+const dlf=(n,b)=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4e3)};
+let FILES=[];
+const parseOrg=()=>$('org').value.split('\n').map(x=>x.trim()).filter(Boolean).map(l=>{const[a,b='']=l.split('|');return{chu:a,sos:b.split(',').filter(Boolean)}});
+function refreshPick(){const sc=$('scope').value,old=$('pick').value,L=parseOrg();$('pickL').style.display=sc==='all'?'none':'';
+ $('pick').innerHTML=(sc==='chu'?L.map(o=>`<option value="${esc(o.chu)}">${esc(o.chu)}</option>`):L.flatMap(o=>o.sos.map(x=>`<option value="${esc(o.chu)}|${esc(x)}營業所">${esc(o.chu)}／${esc(x)}營業所</option>`))).join('');
+ if([...$('pick').options].some(o=>o.value===old))$('pick').value=old}
+(()=>{const t=new Date();$('ym').value=t.getFullYear()+'-'+pad(t.getMonth()+1)})();
+$('scope').onchange=refreshPick;$('org').oninput=refreshPick;
+function cfg(){const sc=$('scope').value,pk=($('pick').value||'').split('|');return{scope:sc,sChu:pk[0],sSo:pk[1],ym:$('ym').value,seed:num('seed'),perSo:num('perSo'),stores:num('stores'),vmin:num('vmin'),vmax:Math.max(num('vmin'),num('vmax')),days:[0,1,2,3,4,5,6].map(d=>document.querySelector(`input[data-d="${d}"]`).checked),att:num('att'),org:$('org').value,pTemp:num('pTemp'),
+ nMonths:num('nMonths'),dupName:num('dupName'),rates:{same:num('r_same'),mis:num('r_mis'),ovl:num('r_ovl'),gap3:num('r_gap3'),short:num('r_short'),long:num('r_long'),sat:num('r_sat'),off:num('r_off'),offn:num('r_offn'),far:num('r_far')},
+ t_office:$('t_office').checked,t_temp:$('t_temp').checked,t_emp:$('t_emp').checked,bg:num('bg')}}
+const tbl=a=>'<div class="tw"><table>'+a.slice(0,8).map((r,i)=>'<tr>'+r.map(v=>i?`<td>${esc(v)}</td>`:`<th>${esc(v)}</th>`).join('')+'</tr>').join('')+'</table></div>';
+$('go').onclick=()=>{$('msg').textContent='產生中…';setTimeout(()=>{try{
+ const c=cfg(),g=gen(c),sc=c.scope==='chu'?'_'+c.sChu:c.scope==='so'?'_'+c.sSo:'',tag=g.months[0].ym+(g.months.length>1?'-'+g.months[g.months.length-1].ym:'')+sc;
+ // V08：每月一個 YYYYMM 資料夾（儀表板以資料夾名判定客戶資料月份；ZIP 解壓後整個資料夾直接拖進儀表板即可）
+ FILES=[];g.months.forEach(mo=>{const m=mo.ym+sc,d=mo.ym+'/';
+  FILES.push([d+'工作管理_-_虛擬_'+m+'.csv',()=>csvB(mo.work),mo.work],[d+'客戶資料_虛擬_'+m+'.xlsx',()=>xlsB(g.cust,'客戶資料'),g.cust],[d+'打卡異常_虛擬_'+m+'.xlsx',()=>xlsB(mo.anom,'打卡異常'),mo.anom],
+   [d+'使用者_虛擬_'+m+'.xlsx',()=>xlsB(g.users,'使用者'),g.users],[d+'答案卷_虛擬_'+m+'.xlsx',()=>xlsB2([['答案卷',mo.truth],['客戶主訪判定',g.owner]]),mo.truth])});
+ $('dl').innerHTML='';FILES.forEach(([n,mk,a])=>{const b=document.createElement('button');b.textContent=`${n}（${a.length-1} 列）`;b.onclick=()=>dlf(n.split('/').pop(),mk());$('dl').appendChild(b);$('dl').append(' ')});
+ $('zip').onclick=async()=>{const z=new JSZip();FILES.forEach(([n,mk])=>z.file(n,mk()));dlf(`虛擬原始檔案_${VER}_${tag}.zip`,await z.generateAsync({type:'blob'}))};
+ const nv=g.months.reduce((a,m)=>a+m.visits,0);
+ $('sum').textContent=`業務員 ${g.staff} 人、客戶店家 ${g.stores} 家、${g.months.length} 個月共拜訪 ${nv} 筆（含陷阱用的特殊帳號）；主訪判定：單一主訪 ${g.own.n}／無主訪 ${g.own.z}／重複主訪 ${g.own.d} 家；${g.dupPairs.length?'同名同姓：'+g.dupPairs.map(p=>p.join(' ＆ ')).join('、')+'；':''}範圍 ${c.scope==='chu'?c.sChu:c.scope==='so'?c.sChu+'／'+c.sSo:'全部營業處'}；種子 ${c.seed}`;
+ const chips=(o,cl)=>Object.entries(o).map(([k,v])=>`<span class="chip ${cl}">${esc(k)} ${v}</span>`).join('')||'<span class="mu">（無）</span>';
+ $('ans').innerHTML=g.months.map(mo=>`<div style="margin:4px 0"><b>${mo.ym}</b>　<b>應檢出：</b>${chips(mo.hit,'ok')}<br><b>應排除（陷阱）：</b>${chips(mo.exc,'no')}<br><b>備查（非異常，不計入）：</b>${chips(mo.ref,'')}</div>`).join('<hr style="border:0;border-top:1px solid var(--bd)">');
+ $('pv').innerHTML=FILES.filter(f=>f[0].startsWith(g.months[0].ym+'/')).map(([n,,a])=>`<h3>${esc(n)}</h3>`+tbl(a)).join('');
+ $('out').style.display='block';$('msg').textContent='完成';}catch(e){$('msg').textContent='⚠️ '+e.message}},30)};
+</script>
+<script>
+/* ---------- GitHub 檢查更新（比照打卡異常檢核工具 V83；四個工具同一套做法） ----------
+   掃描 GitHub repo 根目錄的檔名，找同名稱、版本號更大的檔案。檔名容許：名稱_v8.html／名稱_V05.html（v 大小寫皆可、底線可有可無、版本號可補 0）。
+   開啟時自動檢查（10 分鐘暫存、失敗靜默）；標題旁「檢查更新」按鈕＝checkUpdate(true)：不看暫存與略過，並明確回應。 */
+const VERN=+String(VER).replace(/\D/g,'');
+const UPD={raw:'https://raw.githubusercontent.com/1061005ttl-lab/tool/main/',api:'https://api.github.com/repos/1061005ttl-lab/tool/contents/',key:'原始檔案虛擬生產器',min:10};
+const upKey=t=>String(t).replace(/[\s　_\-]/g,'').toLowerCase();
+const upParse=n=>{const m=String(n).match(/^(.+?)[v]0*(\d+)\.html?$/i);return m?{base:upKey(m[1]),ver:Number(m[2])}:null};
+async function checkUpdate(force){
+ if(!window.fetch){if(force)alert('此瀏覽器不支援檢查更新');return}
+ const btn=$('ubtn'),old=btn.textContent;if(force){btn.disabled=true;btn.textContent='查詢中⋯'}
+ const done=m=>{if(force){btn.disabled=false;btn.textContent=m||old;if(m)setTimeout(()=>btn.textContent=old,2500)}};
+ try{
+  let best=null;const now=Date.now(),CK='gen_upd_cache';
+  try{const c=JSON.parse(localStorage.getItem(CK)||'null');if(!force&&c&&now-c.t<UPD.min*6e4)best=c.best||{ver:0}}catch(e){}
+  if(!best){
+   const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),6000);
+   const r=await fetch(UPD.api,{signal:ac.signal,headers:{Accept:'application/vnd.github+json'}});clearTimeout(tm);
+   if(!r.ok){done(force?'查詢失敗（'+r.status+'）':'');if(force)alert('查詢失敗（'+r.status+'），可能是查詢次數用完，請稍後再試');return}
+   const list=await r.json();if(!Array.isArray(list)){done();return}
+   best={ver:0};
+   for(const f of list){if(f.type!=='file')continue;const p=upParse(f.name);if(p&&p.base===upKey(UPD.key)&&p.ver>best.ver)best={ver:p.ver,name:f.name,url:f.html_url,dl:f.download_url}}
+   try{localStorage.setItem(CK,JSON.stringify({t:now,best}))}catch(e){}}
+  const nv=best.ver;if(!(nv>VERN)){done(force?'已是最新版 '+VER:'');return}
+  let sk=0;try{sk=Number(localStorage.getItem('gen_skip'))||0}catch(e){}
+  if(!force&&sk>=nv){done();return}
+  const u=$('upd');
+  u.innerHTML=`<span class="t">🔔 有新版 <b>V${nv}</b>（目前 ${VER}）：${esc(best.name||'')}<br><span id="updMsg" class="mu">按「直接下載」會把新版存到下載資料夾，再關掉這個頁面、改開新下載的檔案即可。</span></span><button class="p" id="updGo">直接下載</button><button id="updSkip">略過此版</button><button id="updLater">稍後再說</button>`;
+  u.classList.add('on');done();
+  $('updGo').onclick=async e=>{const b=e.currentTarget,m=$('updMsg');
+   try{b.disabled=true;b.textContent='下載中…';
+    const r=await fetch(best.dl||(UPD.raw+encodeURIComponent(best.name)),{cache:'no-store'});if(!r.ok)throw new Error(r.status);
+    const bl=new Blob([await r.blob()],{type:'text/html'}),a=document.createElement('a');a.href=URL.createObjectURL(bl);a.download=best.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    b.textContent='已下載 ✓';m.textContent='已存到下載資料夾：'+best.name+'。請關掉這個頁面，改開新下載的檔案。'}
+   catch(err){b.disabled=false;b.textContent='重試';m.textContent='下載失敗（可能是網路不穩，或公司網路擋住 GitHub），請稍後按「重試」。'}};
+  $('updSkip').onclick=()=>{try{localStorage.setItem('gen_skip',String(nv))}catch(e){}u.classList.remove('on')};
+  $('updLater').onclick=()=>u.classList.remove('on');
+ }catch(e){done(force?'查不到更新':'');if(force)alert('查不到更新（可能離線，或公司網路擋住 GitHub）')}}
+$('ubtn').onclick=()=>checkUpdate(true);
+checkUpdate();
+</script>
+</body></html>

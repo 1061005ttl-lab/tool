@@ -1,0 +1,977 @@
+<!--
+版本紀錄（只記在這裡，不放在網頁畫面上；改版時在最下面加一行，並同步更新各處版號，見下方開發紀錄「改版必做」）
+v04 修正 v03 既有錯誤（h() 收到文字當第二參數會讓「解析現有工具」頁整頁畫不出來）；加入「🧭 開始」白話問答頁（預設首頁）：六個問題、40 個白話選項（附說明與例子）對應到原本 112 個功能模組，自動勾選；有六支現成工具的一句話介紹與「我想做類似的」、「填入範例」、即時白話摘要（可複製給同事確認）；原三個分頁保留為「進階」。
+v03 再解析兩支「線上型看板」：加入 patrol_board（節慶巡補看板 1.55.1）與 coverage_board（覆蓋率看板 3.17.0）（內建解析卡、資料來源範例、功能對照欄、23 個新模組，共 112 個）；analyzeHtml 能分辨「同資料夾的 shared/*.js」與外連程式庫。
+v02 再解析兩支工具：加入「問卷照片檢視工具 v193」「督導管理系統 執行追蹤儀表板 v390」（內建解析卡、資料來源範例、功能對照欄、24 個新模組，共 89 個）；修正 a_classify／a_link／f_zip／b_header 四條偵測誤判。
+v01 初版：解析「打卡異常檢核工具 V70」與「全聯18天銷售分析工具 v39」的匯入／讀取／解析／篩選／排版／匯出做法，整理成 65 個可勾選的功能模組；可上傳其他工具的 HTML 自動偵測用了哪些模組；勾選後輸出「開發需求書」（Markdown，給 AI 開發下一支工具用）。
+-->
+<!DOCTYPE html>
+<!--
+================================================================
+工具需求規格產生器｜開發紀錄（給後續 AI 助手／維護者先讀這一段）
+現行版本：v04（2026-10-14）
+改版必做：版號多處一起改——①檔名 ②<title> ③畫面 h1 的 #ver ④程式 const VER ⑤檔案最上方「版本紀錄」註解 ⑥本註解。
+================================================================
+【用途】把已經做好的單檔 HTML 工具，拆成「匯入 → 讀取原始資料 → 解析與清洗 → 篩選 → 排版 → 匯出」六個階段的功能模組，讓使用者勾選、補充指定，輸出下一支工具的開發需求書。
+【結構】單檔、純前端、不連網、不依賴任何外部程式庫（所以沒有 cdnjs 問題）。三個分頁：①解析現有工具（內建六支工具的白話解析＋上傳 HTML 自動偵測＋功能對照表）②指定需求（基本資料、資料來源、六階段勾選、業務規則／口徑／輸出欄位）③產出需求書（Markdown，可複製、下載、存成 JSON 再載入）。
+【功能目錄 CAT】每個模組有 id、階段 st、來源 src（p＝打卡異常檢核工具 V70、x＝全聯18天銷售分析工具 v39、q＝問卷照片檢視工具 v193、s＝督導管理系統 執行追蹤儀表板 v390、r＝patrol_board 節慶巡補看板 1.55.1、v＝coverage_board 覆蓋率看板 3.17.0，是人工讀程式後標的）、做法 how、踩坑 pit、參考函式 ref、偵測規則 det（正規表示式）。新增模組只要在 CAT 加一筆；det 沒寫就不會被自動偵測，但仍可手動勾選。
+【自動偵測 analyzeHtml】先把 <script src> 外連與內嵌大型程式庫（開頭是授權橫幅、超過 30KB）切出去，只對「工具自己的程式與 HTML」套 det；偵測前先去掉 HTML 註解與 /*…*/ 註解，避免開發紀錄裡提到的字被算進去。偵測結果是字串特徵推測，不是語意分析，畫面上已標示「請人工確認」。
+【驗證方式】用 node 載入 CORE 區塊，對原始檔跑 analyzeHtml，逐項比對 src 與偵測結果；v02 只拿到 q、s 兩支原始檔，p、x 的對照仍是 v01 的結論（v02 改動的四條 det 沒有用 p、x 原檔重跑，下次拿到原檔要補驗）；v02 對 q、s 跑出的結果已逐項比對 src；沒有特徵可偵測的項目（單檔 HTML、名詞對照表等）以人工標註為準。改 CAT 或 det 後要重跑。
+【踩過的坑】
+  - 打卡工具的開發紀錄註解裡寫了 haversine，實際程式用的是 Math.asin(Math.sqrt()) 與 12742000；det 以程式為準。
+  - 打卡工具的 .seg 是匯出對話框的格式選擇，不是篩選；d_chips 只認 class="chips"。
+  - 打卡工具的 type="date" 在「下載區間」對話框，不是資料篩選；d_date 改認 mFrom／cutoff／ytd。
+  - 18天工具沒有說明書、沒有檔頭開發紀錄；z_manual、z_notes 只標 p。
+  - 問卷工具的 window.open('') 是開列印視窗不是下載捷徑；classifyDupPair 是重複照片分類不是檔案辨識；JSZip 用在讀 xlsx 不是匯出 ZIP；toISOString().slice(0,10) 不是表頭列偵測——這四條 det 已收緊；另外 analyzeHtml 去註解的方式改成只剝「前面是空白或符號」的 /*…*/ 與 // 行註解（舊寫法遇到字串裡的 /* 會把一大段程式吃掉，造成 PptxGenJS 這類真的存在的做法偵測不到、也讓註解裡的 window.open() 被算進去）。
+  - 督導工具靠「檔名」分流、不靠表頭；它的 showDirectoryPicker 是「依營業處拆分來源檔」小工具用的，不是記住資料夾；DecompressionStream 是還原靜態副本用的，不是讀 .gz。
+  - r、v 兩支都依賴同資料夾的 shared/*.js 與 shared/dashboard-common.css，這些檔案沒有拿到，所以它們「匯出、照片牆、逐題彙整、彙整看板」的實作細節只能依主檔裡的呼叫與說明推測，標在對照表上的 ✓ 只代表主檔有用到。
+  - r、v 的 d_keep 偵測會誤中（localStorage 只用在登入檢查），src 不標。
+【v04 白話層】WQ（問答選項）→ 對應模組 id 清單 → wzApply() 只改動「WQ 有涉及的模組」的勾選，不動其他模組的手動勾選。新增白話選項只要在 WQ 加一筆 [id,標題,說明,例子,[模組id]]。WINTRO 是六支工具的一句話介紹。wzFromTool 以「該選項的模組有一半以上屬於某工具」推算套用，不需另外維護。白話文字不放函式名稱與技術名詞。
+【未決／可做】上傳 JSON（存檔）時尚未檢查版本相容；可考慮加「從需求書反推缺少的模組」。
+================================================================
+-->
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>工具需求規格產生器 v04</title>
+<style>
+:root{--bg:#f5edd8;--card:#fffdf6;--soft:#faf3df;--ink:#2b2416;--ink2:#6a5d43;--line:#dccfae;--acc:#b7791f;--acc2:#8a5a12;--accbg:#fbefd0;--ok:#2f6b4f;--okbg:#e3f0e8;--warn:#a8470f;--warnbg:#fbe9db;color-scheme:light}
+*{box-sizing:border-box}
+html{font-size:15px;scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;line-height:1.6}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--acc2);outline-offset:2px}
+header.top{padding:14px 24px 10px;display:flex;gap:12px 20px;align-items:center;flex-wrap:wrap}
+header.top h1{margin:0;font-size:1.25rem;letter-spacing:.02em}
+header.top h1 span{font-size:.8rem;font-weight:500;color:var(--ink2);margin-left:8px}
+header.top p{margin:0;color:var(--ink2);font-size:.9rem;flex:1 1 320px}
+.btn{background:var(--card);border:1px solid var(--line);border-radius:7px;padding:5px 13px;cursor:pointer}
+.btn:hover{border-color:var(--acc);background:var(--accbg)}
+.btn.pri{background:var(--acc2);border-color:var(--acc2);color:#fff;font-weight:600}
+.btn.pri:hover{background:#6f470e}
+.btn.sm{padding:2px 9px;font-size:.84rem}
+nav.tabs{display:flex;gap:2px;padding:0 24px;background:var(--card);border-top:1px solid var(--line);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30;overflow-x:auto}
+nav.tabs button{background:none;border:0;border-bottom:3px solid transparent;padding:11px 18px;cursor:pointer;font-weight:600;color:var(--ink2);white-space:nowrap}
+nav.tabs button.on{color:var(--acc2);border-color:var(--acc)}
+main{padding:16px 24px 80px;max-width:1280px;margin:0 auto}
+.panel{display:none}.panel.on{display:block}
+details.help{margin:0 24px 8px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 14px}
+details.help summary{cursor:pointer;font-weight:600}
+details.help ol{margin:8px 0 4px;padding-left:20px}
+h2{font-size:1.1rem;margin:26px 0 4px}
+h2 small{font-weight:400;color:var(--ink2);margin-left:8px;font-size:.86rem}
+.lead{color:var(--ink2);margin:0 0 12px;font-size:.93rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 18px}
+.drop{border:2px dashed var(--line);border-radius:10px;padding:16px;text-align:center;background:var(--soft);cursor:pointer}
+.drop.over{border-color:var(--acc);background:var(--accbg)}
+.drop b{display:block}.drop span{color:var(--ink2);font-size:.88rem}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(460px,1fr));gap:14px;align-items:start}
+.card h3{margin:0 0 2px;font-size:1.02rem}
+.card h3 small{font-weight:500;color:var(--ink2);margin-left:6px}
+.meta{color:var(--ink2);font-size:.85rem;margin:2px 0 8px}
+.frow{display:grid;grid-template-columns:92px 1fr;gap:8px;padding:7px 0;border-top:1px solid var(--line);font-size:.9rem}
+.fk{font-weight:700;color:var(--acc2)}
+.fv{min-width:0}
+.tag{display:inline-block;background:var(--accbg);border:1px solid var(--line);border-radius:5px;padding:0 7px;margin:1px 4px 1px 0;font-size:.82rem}
+.tag.dim{background:none;color:var(--ink2)}
+.empty{color:var(--ink2);font-size:.88rem}
+.cardfoot{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+details.sub{margin-top:8px;font-size:.88rem}
+details.sub summary{cursor:pointer;color:var(--acc2);font-weight:600}
+details.sub pre{white-space:pre-wrap;background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:8px 10px;max-height:300px;overflow:auto;font-size:.8rem;line-height:1.5}
+.tblwrap{overflow:auto;border:1px solid var(--line);border-radius:8px;background:var(--card);max-height:70vh}
+table.m{border-collapse:collapse;width:100%;font-size:.9rem}
+table.m th,table.m td{padding:6px 10px;border-bottom:1px solid var(--line);text-align:center;vertical-align:top}
+table.m th{position:sticky;top:0;background:var(--soft);z-index:2;white-space:nowrap}
+table.m td.l,table.m th.l{text-align:left}
+table.m tr.st td{background:var(--accbg);font-weight:700;text-align:left;color:var(--acc2)}
+table.m tr.r{cursor:pointer}
+table.m tr.r:hover td{background:var(--soft)}
+table.m tr.d td{background:var(--soft);text-align:left;font-size:.86rem}
+.y{color:var(--ok);font-weight:700}.n{color:#b9ad8c}
+.mut{color:var(--ink2);font-size:.86rem}
+.pipe{display:flex;gap:0;list-style:none;margin:0 -24px 14px;padding:8px 24px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:var(--navh,50px);z-index:20;overflow-x:auto}
+.pipe li{flex:1 0 auto;position:relative;min-width:96px}
+.pipe li::before{content:"";position:absolute;top:19px;left:-50%;right:50%;height:2px;background:var(--line)}
+.pipe li:first-child::before{display:none}
+.pipe button{background:none;border:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;width:100%;position:relative;padding:0 6px}
+.pipe .dot{width:24px;height:24px;border-radius:50%;border:2px solid var(--line);background:var(--card);display:grid;place-items:center;font-size:.78rem;font-weight:700;color:var(--ink2)}
+.pipe .on .dot{background:var(--acc);border-color:var(--acc);color:#fff}
+.pipe .nm{font-size:.84rem;font-weight:600;white-space:nowrap}
+.pipe .ct{font-size:.76rem;color:var(--ink2)}
+.sec{scroll-margin-top:calc(var(--navh,50px) + 78px)}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px 14px}
+.form label{display:flex;flex-direction:column;gap:3px;font-size:.86rem;font-weight:600;color:var(--ink2)}
+.form .wide{grid-column:1/-1}
+input[type=text],textarea,select{background:#fff;border:1px solid var(--line);border-radius:6px;padding:5px 9px;width:100%;font-weight:400;color:var(--ink)}
+textarea{resize:vertical;min-height:64px}
+.opts{display:grid;gap:8px}
+.opt{display:grid;grid-template-columns:22px 1fr;gap:0 8px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+.opt.on{border-color:var(--acc);background:var(--accbg)}
+.opt input[type=checkbox]{margin:4px 0 0;width:17px;height:17px;accent-color:var(--acc2)}
+.ol{font-weight:600;cursor:pointer}
+.src{display:inline-block;font-size:.74rem;font-weight:600;border:1px solid var(--acc);color:var(--acc2);border-radius:4px;padding:0 5px;margin-left:6px;vertical-align:1px;background:var(--card)}
+.src.x{border-style:dashed}.src.q{border-style:dotted;border-width:2px}.src.s{background:var(--accbg)}.src.r{border-style:double;border-width:3px}.src.v{background:var(--soft);border-style:dashed}.src.u{background:var(--ink);border-color:var(--ink);color:#fff}
+.opt details{margin-top:3px;font-size:.88rem}
+.opt summary{cursor:pointer;color:var(--ink2)}
+.opt .dt p{margin:4px 0}
+.opt .pit{color:var(--warn)}
+.opt .note{margin-top:6px;display:none}
+.opt.on .note{display:block}
+.stbar{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.stbar .grow{flex:1}
+table.src td{padding:3px 4px;border:0}
+table.src th{font-size:.82rem;text-align:left;color:var(--ink2);padding:2px 4px}
+table.src{width:100%;border-collapse:collapse}
+.outbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.outbar label{font-size:.9rem;display:flex;gap:5px;align-items:center}
+#md{width:100%;min-height:62vh;font-family:ui-monospace,"Noto Sans Mono CJK TC","Microsoft JhengHei",monospace;font-size:.86rem;line-height:1.6;background:#fff}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:7px 16px;border-radius:8px;font-size:.9rem;opacity:0;pointer-events:none;transition:opacity .2s;z-index:99}
+#toast.on{opacity:1}
+@media (max-width:640px){main{padding:12px}.cards{grid-template-columns:1fr}.frow{grid-template-columns:1fr}.pipe{margin:0 -12px 12px;padding:8px 12px}header.top{padding:12px}nav.tabs{padding:0 8px}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}#toast{transition:none}}
+.wgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin:8px 0}
+.wopt{display:flex;gap:10px;align-items:flex-start;background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:11px 13px;cursor:pointer}
+.wopt.on{border-color:var(--acc);background:var(--accbg)}
+.wopt input{margin-top:4px;width:18px;height:18px;accent-color:var(--acc2);flex:none}
+.wopt b{display:block;font-size:15px}.wopt .wd{display:block;color:var(--ink2);font-size:13px;margin-top:2px;line-height:1.5}.wopt small{display:block;color:var(--acc2);margin-top:4px}
+.wzhero{background:var(--accbg);border-color:var(--acc)}
+.wzsum{white-space:pre-wrap;font:inherit;line-height:1.8;margin:0}
+</style></head><body>
+<header class="top">
+ <h1>工具需求規格產生器<span id="ver">v04</span></h1>
+ <p>不用懂程式：用白話回答幾個問題，就能整理出你想要的工具，再產出給 AI 開發的需求書。</p>
+ <button class="btn" id="btnReset">清除全部重來</button>
+</header>
+<details class="help"><summary>第一次用？看這裡</summary>
+ <ol><li><b>🧭 開始：回答問題</b>：用白話選出你想要的功能，下方會即時出現「你的工具會長這樣」的摘要。不確定就按「填入範例給我看」。</li><li><b>確認摘要</b>：可複製給同事確認方向對不對。</li><li><b>產出需求書</b>：按下去會得到一份給 AI 的開發需求書，貼給 AI 就能開始做。</li></ol>
+ <div class="mut">想逐項微調或研究現有工具，請看「進階」分頁。檔案只在你的瀏覽器內處理，不會上傳。</div>
+</details>
+<nav class="tabs" id="tabs"></nav>
+<main>
+ <section class="panel" id="p-wz"></section>
+ <section class="panel" id="p-an"></section>
+ <section class="panel" id="p-pick"></section>
+ <section class="panel" id="p-out"></section>
+</main>
+<div id="toast" role="status"></div>
+<input type="file" id="jsonIn" accept=".json,application/json" hidden>
+<input type="file" id="htmlIn" accept=".html,.htm,text/html" multiple hidden>
+<script>
+// ==CORE==
+/* 階段定義：z 是共通規範，a～f 對應「匯入 → 讀取 → 解析 → 篩選 → 排版 → 匯出」 */
+const STAGES=[
+ {id:'z',name:'共通規範',hint:'整支工具都要遵守的規矩'},
+ {id:'a',name:'匯入',hint:'檔案怎麼進來'},
+ {id:'b',name:'讀取原始資料',hint:'檔案怎麼變成一列一列的資料'},
+ {id:'c',name:'解析與清洗',hint:'原始列怎麼變成可分析的資料'},
+ {id:'d',name:'篩選',hint:'使用者怎麼縮小範圍'},
+ {id:'e',name:'排版',hint:'畫面怎麼呈現'},
+ {id:'f',name:'匯出',hint:'結果怎麼帶走'}
+];
+const TOOLS={p:{k:'p',name:'打卡異常檢核工具',ver:'V70',short:'打卡 V70'},x:{k:'x',name:'全聯18天銷售分析工具',ver:'v39',short:'18天 v39'},q:{k:'q',name:'問卷照片檢視工具',ver:'v193',short:'問卷 v193'},s:{k:'s',name:'督導管理系統 執行追蹤儀表板',ver:'v390',short:'督導 v390'},r:{k:'r',name:'節慶巡補看板 patrol_board',ver:'1.55.1',short:'巡補 1.55'},v:{k:'v',name:'覆蓋率看板 coverage_board',ver:'3.17.0',short:'覆蓋 3.17'}};
+const TK=['p','x','q','s','r','v'];
+
+/* 功能目錄。src：p＝打卡異常檢核工具 V70、x＝全聯18天 v39、q＝問卷照片檢視 v193、s＝督導管理系統 v390、r＝巡補看板 1.55.1、v＝覆蓋率看板 3.17.0 有。
+   det：用來在「上傳的 HTML」裡找特徵的正規表示式（字串特徵推測，需人工確認）。ref：各工具裡可以回頭看的函式。 */
+const CAT=[
+/* ---- 共通規範 ---- */
+{id:'z_single',st:'z',src:'pxqs',def:1,label:'單檔 HTML、純前端，資料只在瀏覽器內計算、不上傳',
+ how:'CSS、JS、說明書全放同一個 .html；不呼叫後端；檔案用 File API 讀取。',
+ pit:'這是「本機開啟的 HTML 檔」，不要改成線上發布頁：發布頁內的下載連結不能用，匯出會失效。'},
+{id:'z_cdn',st:'z',src:'px',def:1,label:'外部程式庫只用 cdnjs，或直接內嵌',
+ how:'打卡工具用 cdnjs 載入 SheetJS 0.18.5、JSZip 3.10.1、html2canvas 1.4.1；18天工具把 SheetJS、Chart.js 4.4.1、html2canvas 全部內嵌，離線也能開。',
+ pit:'用 cdnjs 時，沒網路會載不到：用到元件前要檢查並提示（例如 JSZip 未載入就 alert 請連網）。沒有地圖元件（Leaflet 載不進來），地圖欄位用 Google 地圖外連。 問卷 v193 的 PPTX 匯出要臨時從 jsDelivr 載 PptxGenJS；督導 v390 用 cdn.sheetjs.com 與 unpkg（Leaflet）。這幾個來源在公司內網或沙盒可能連不到，新工具請優先 cdnjs 或內嵌。',
+ det:/cdnjs\.cloudflare\.com/},
+{id:'z_ver',st:'z',src:'pxqsrv',def:1,label:'版號管理：多處同步，且不放在網頁畫面上的版本紀錄',
+ how:'檔名、<title>、畫面標題、程式裡的 const VER（匯出檔名用）、檔頭「版本紀錄」註解、開發紀錄註解，改版時一起改。',
+ pit:'使用者很在意版號，不要漏改任何一處。',
+ det:/const\s+VER\b|版本紀錄/},
+{id:'z_notes',st:'z',src:'pqsrv',def:1,label:'檔頭開發紀錄註解（給下一位 AI／維護者先讀）',
+ how:'HTML 註解寫：用途、輸入欄位、使用者明定的規則（不可擅改）、畫面與匯出規格、踩過的坑、驗證方式、未決事項。',
+ pit:'規則改動時，註解、內建說明書、判定程式三處要同步。 巡補看板、覆蓋率看板的檔頭註解另有「版本更新作業流程」與「已知問題與診斷紀錄」（症狀→根因→處理原則），可借用。',
+ det:/開發紀錄|DEV NOTES/i},
+{id:'z_theme',st:'z',src:'px',def:1,label:'暖色淺色系，不做深色模式（投影用）',
+ how:'打卡工具是米黃底（#f5edd8 一帶）；18天工具是暖灰白底＋古銅金強調色；兩者皆宣告 color-scheme: light。報表本身白底。',
+ pit:'會被截圖的主畫面，CSS 不可用 color-mix()、color() 等 html2canvas 1.4.1 不支援的色彩函式。',
+ det:/color-scheme\s*:\s*light|f5edd8|--acc\s*:\s*#b7791f/i},
+{id:'z_manual',st:'z',src:'p',label:'內建說明書（標題旁「📖 說明書」，摺疊式）',
+ how:'<details> 純靜態文字，面向一般使用者；不放版本字樣、函式名稱、網址參數等開發者內容。',
+ pit:'說明書要和判定規則、排除值同步；開發者資訊只寫在開發紀錄註解。',ref:{p:'說明書（</body> 前獨立 <script>）'},
+ det:/說明書/},
+/* ---- 匯入 ---- */
+{id:'a_pick',st:'a',src:'pxqs',label:'檔案選擇鈕（xlsx／xls／csv）',
+ how:'<input type="file" accept=".xlsx,.xls,.csv" hidden>，由按鈕或上傳區觸發；過濾掉 ~$ 開頭的暫存檔。',
+ ref:{p:'okf()',x:'scanFiles()'},det:/type\s*[:=]\s*["']file["']/},
+{id:'a_multi',st:'a',src:'pxqs',label:'一次選多檔，可分次累加、可個別移除',
+ how:'multiple；已匯入的檔案以清單列出，每個檔案有 ✕ 可移除，移除後重算。',
+ ref:{p:'renderFl()',x:'PENDING 清單'},det:/\bmultiple\b/},
+{id:'a_drag',st:'a',src:'pxqs',label:'拖曳上傳（整頁任何位置都能丟）',
+ how:'監聽 dragover／drop；檔案用 getAsFile() 取得。',
+ pit:'DataTransfer 必須在第一個 await 之前同步取完，否則 EncodingError 會被靜默吞掉；也要 preventDefault 避免瀏覽器直接開檔。',
+ ref:{p:'dropFiles()／addFiles()',x:'drop 區塊'},det:/dragover|dataTransfer/},
+{id:'a_folder',st:'a',src:'ps',label:'選資料夾，自動展開底下所有檔案',
+ how:'<input webkitdirectory>；拖曳資料夾時用 webkitGetAsEntry 遞迴展開（只有資料夾才用，一般檔案仍用 getAsFile）。',
+ ref:{p:'walk()'},det:/webkitdirectory|webkitGetAsEntry/},
+{id:'a_fsapi',st:'a',src:'x',label:'記住資料夾，一鍵重新掃描（只匯入新檔）',
+ how:'File System Access API（Chrome／Edge）：資料夾控制代碼存進 IndexedDB，記錄 seenFiles，重掃時只列出沒匯入過的檔案。',
+ pit:'僅 Chrome／Edge 支援，要先檢查 typeof showDirectoryPicker。 督導 v390 也用 showDirectoryPicker，但只用在「依營業處拆分來源檔」小工具，沒有記住資料夾。',
+ ref:{x:'pickFolder()／rescanFolder()／walkDir()／markSeen()'},det:/showDirectoryPicker/},
+{id:'a_slots',st:'a',src:'p',label:'分欄上傳：每種資料各一個上傳區，放錯欄自動歸位',
+ how:'上傳區以 data-slot 區分（工作規劃／打卡異常／對照表），各自累加；依表頭判斷真正的類型，放錯欄會自動移到對的欄。',
+ pit:'判斷順序要明定：打卡異常報表也有「營業所/課」「執行人員」，不先判它就會被誤當客戶資料。缺欄時顯示「未放」。',
+ ref:{p:'addFiles()／renderFl()／SF'},det:/data-slot|dataset\.slot/},
+{id:'a_classify',st:'a',src:'px',label:'依表頭自動辨識檔案類型（不靠檔名、不靠分頁名）',
+ how:'掃檔案前 10～15 列，用「必要表頭」比對；比對不到就視為無法辨識、不採用，並列出看到的表頭。',
+ pit:'督導 v390 反過來靠「檔名」分流（見 a_byname）；兩種流派擇一，不要混用。',
+ ref:{p:'NEED／pickRows()',x:'classify()／TYPE_LABEL'},det:/function\s+classify\s*\(|NEED\s*=|function\s+pickRows/},
+{id:'a_preview',st:'a',src:'x',label:'匯入前先出清單（檔案×工作表×辨識結果×列數），勾選才匯入',
+ how:'scanFile 回傳可匯入項目 → 清單用核取方塊讓使用者勾選；無法辨識者灰色略過；同時有原始調查與整理後調查時，預設不勾整理後的。',
+ ref:{x:'scanFiles()／renderScan()／doImport()'},det:/renderScan|PENDING/},
+{id:'a_persist',st:'a',src:'x',label:'資料留存在瀏覽器（IndexedDB），重開不必重匯',
+ how:'資料庫物件 DB（orders／survey／master／settings）存進 IndexedDB，開啟時載入。',
+ pit:'IndexedDB 不可用時要降級（不讀寫資料庫）並提示。',
+ ref:{x:'idbOpen()／kvGet()／kvSet()／dbLoad()／dbSave()'},det:/indexedDB/},
+{id:'a_backup',st:'a',src:'x',label:'備份與還原（gzip 壓縮的 JSON）',
+ how:'備份把整個 DB 轉 JSON，用 CompressionStream 壓成 gzip；不支援時退回純 JSON；還原時依副檔名與魔術位元組判斷。',
+ ref:{x:'makeBackup()／restoreBackup()'},det:/makeBackup|restoreBackup/},
+{id:'a_link',st:'a',src:'ps',label:'來源系統下載捷徑（選日期區間／類別後開新分頁去下載）',
+ how:'對話框選「下載區間」（快速鍵＋起訖日）或通路類別核取方塊，組出來源系統的匯出網址後 window.open。',
+ pit:'檢查起訖日完整、起日不可晚於迄日；至少勾一個類別。',
+ ref:{p:'dlOpenDate()／dlGoDate()／dlOpenCust()／dlGoCust()'},det:/window\.open\(\s*(?!['"]{2}\s*[,)])/},
+{id:'a_report',st:'a',src:'pxqs',label:'匯入結果訊息：讀了幾筆、採用幾筆、排除幾筆與原因',
+ how:'狀態列或匯入記錄顯示「讀取 N 筆，符合條件 M 筆（已排除 K 筆：原因）」；缺資料或區間不符時用 ⚠️ 提醒。',
+ ref:{p:'onFiles0() 狀態列',x:'importOrdersRaw() 回傳 msg'},det:/已排除|採用/},
+/* ---- 讀取原始資料 ---- */
+{id:'b_xlsx',st:'b',src:'pxqs',label:'SheetJS 讀 xlsx／xls',
+ how:'XLSX.read(buf,{type:"array",dense:true})；sheet_to_json(ws,{header:1,raw:true,defval:""}) 取成二維陣列。18天工具辨識階段只讀前 8 列（sheetRows:8），確定要匯入再讀整檔。',
+ pit:'27MB 的檔案可讀但慢，要有忙碌提示。',
+ ref:{p:'parseWb()',x:'scanFile()／importItems()'},det:/XLSX\.read\(/},
+{id:'b_csv',st:'b',src:'pxs',label:'CSV／TSV 讀取',
+ how:'打卡工具：TextDecoder 解 UTF-8 後交給 XLSX.read（type:"string"）。18天工具：自寫 parseDelimited，探測前 20 行判斷 Tab 或逗號，處理引號與雙引號跳脫。',
+ ref:{p:'parseWb()',x:'parseDelimited()'},det:/parseDelimited|Papa\.parse|type\s*:\s*["']string["']/},
+{id:'b_enc',st:'b',src:'xs',label:'編碼偵測（BOM、UTF-16、UTF-8，失敗退 Big5）',
+ how:'先看 BOM（FF FE／FE FF／EF BB BF），再看偶數位元組是否多為 0 判斷 UTF-16，再試 UTF-8 fatal 模式，失敗改用 Big5。',
+ pit:'打卡工具固定以 UTF-8 解 CSV；來源若是 Excel 另存的 CSV 可能是 Big5。',
+ ref:{x:'decodeText()'},det:/TextDecoder\([^)]*(big5|utf-16)/i},
+{id:'b_gzip',st:'b',src:'x',label:'讀 .gz 壓縮檔',
+ how:'DecompressionStream("gzip") 串流解壓成文字。',ref:{x:'gunzip()'},det:/DecompressionStream/},
+{id:'b_sheets',st:'b',src:'pxs',label:'多分頁處理：逐分頁比對表頭，取「欄位吻合且列數最多」者',
+ how:'不靠分頁名；每個分頁都試，吻合的留下，同一檔有多個吻合者取最多列。18天工具則把每個吻合的分頁各自列成一個匯入項目。',
+ pit:'問卷 v193 只讀第一個分頁，不做逐分頁比對。',
+ ref:{p:'pickRows()',x:'scanFile()'},det:/SheetNames/},
+{id:'b_header',st:'b',src:'pxs',label:'表頭列偵測（跳過標題列、說明列）',
+ how:'只在前 10～15 列內找表頭列；找到才把下面的列轉成資料。表頭先 trim／正規化。',
+ pit:'問卷 v193 固定第一列當標題，只在「雙列標題」時攤平（見 b_header2）。',
+ ref:{p:'pickRows()／hdrs()',x:'classify()'},det:/(?<!toISOString\(\)\.)slice\(0,\s*1[05]\)|Math\.min\(\s*1[05]\s*,/},
+{id:'b_rowobj',st:'b',src:'pxqs',label:'依表頭名稱取欄（支援別名），不靠欄位位置',
+ how:'打卡工具：每列轉成 {表頭:值} 物件，重複欄名取第一個。18天工具：colIdx(h,"營業處名稱","營業處") 依別名找欄位索引。',
+ pit:'來源欄位名偶爾改字（營業處／營業處名稱），別名清單要留。',
+ ref:{p:'pickRows()',x:'colIdx()'},det:/colIdx|\(\s*k\s+in\s+o\s*\)/},
+{id:'b_cache',st:'b',src:'p',label:'解析快取（同一檔不重讀）',
+ how:'以「檔名｜大小｜最後修改時間」當 key 存 Map，重算時直接取用。',
+ ref:{p:'readFile()／RC／fk()'},det:/\bRC\.(get|set|has)\(/},
+{id:'b_perf',st:'b',src:'pxqs',label:'大檔處理：讓出執行緒＋忙碌提示',
+ how:'處理一批後 await setTimeout(0) 讓畫面更新；顯示遮罩與文字（讀取並辨識檔案中…）。',
+ ref:{x:'busy()／nextTick()'},det:/nextTick|dense\s*:\s*true|busy\(/},
+/* ---- 解析與清洗 ---- */
+{id:'c_date',st:'c',src:'pxqsrv',label:'日期／時間解析，統一成可比較的數值',
+ how:'Excel 序號、字串、含時間字串都轉成固定格式（18天工具用 yyyymmdd 整數；打卡工具用 UTC 毫秒）。',
+ pit:'打卡時間若只有時分秒，要用「日期」欄補齊；Excel 序號用 (n-25569)*86400 當「牆上時間 UTC」，全程只用 UTC 方法取值，避免時區位移。',
+ ref:{p:'tms2()',x:'parseDateTime()／parseD()'},det:/25569|parseDateTime|parseD\s*\(/},
+{id:'c_norm',st:'c',src:'pxsr',label:'文字正規化（空白、全半形、台／臺、店名前綴）',
+ how:'欄名去掉所有空白（含全形）；台／臺視為同字；店名前面業務自加的代碼前綴（A13、A10-）只在顯示與分析時去除，原始資料不動。',
+ pit:'巡補看板 1.55.1：處理層「執行人員」偶爾多帶「-員編」，在讀入源頭就把尾端「-數字」去掉；前提是「-數字」永遠代表同一人，若出現同名不同人會誤併。',
+ ref:{p:'bOrd()',x:'norm()／cleanNm()／storeKey()'},det:/const\s+norm\s*=|replace\(\/台\/g|cleanNm/},
+{id:'c_dedupe',st:'c',src:'pxsr',label:'重複資料處理（定義「同一筆」的 key）',
+ how:'打卡工具：工作規劃以工作ID、打卡異常以「人員｜日期｜時間｜類型｜店家」為 key，重複列跳過。18天工具：同一店家＋預計訂單日只留最後一筆調查，並記錄重複次數。',
+ pit:'巡補看板 1.55.1：同店同天多筆只算 1 次（依年-月-日去重），但明細時間軸仍列全部原始紀錄並標「同日N筆」。',
+ ref:{p:'load()',x:'finishSurvey()／mergeOrders()'},det:/seen\.has\(|dedup/i},
+{id:'c_filter',st:'c',src:'px',label:'讀進來就先排除的規則（資料清洗層）',
+ how:'打卡：排除總公司、APP 未讀、無店碼、無到站打卡時間、任務狀態非完成；只看員編後綴者。18天：訂單只取「本單狀態＝3」、只取指定 18 天品項、排除大全聯。排除筆數要回報。',
+ pit:'這些是「使用者明定的規則」，要寫進開發紀錄，不可擅改。',
+ ref:{p:'analyze()',x:'importOrdersRaw()'},det:/skipped\s*\+\+|excludeBig|isExcluded|已排除/},
+{id:'c_join',st:'c',src:'pxqsrv',label:'跨檔對照補欄位（主檔、使用者表、客戶資料）',
+ how:'建立 Map（人員／店碼 → 營業處、營業所、負責人）。打卡工具的營業所優先序：打卡異常檔自帶 → 使用者 → 客戶資料 → 都沒有歸「處本部」。18天工具：對不到主檔的顯示「(未對應)」。',
+ pit:'客戶資料同一人有多個所時取筆數最多者；主檔全為「結束營業」時只補不覆蓋。',
+ ref:{p:'onFiles0()',x:'importMaster()／mergeMaster()／rebuild()'},det:/DB\.master|users\s*\[|cust\s*\[|\(未對應\)/},
+{id:'c_status',st:'c',src:'pxsrv',label:'規則判定／分類（衍生欄位、樣態標籤）',
+ how:'打卡：同日同人依時間排序，間距類標在「後筆」，有優先序（時間重疊 → 隔三小時 → 同店連打）。18天：把調查與訂單互相對回，產生「正常銷售」「缺貨」「有調查無訂單」等狀態。',
+ pit:'分類規則改動時，附表／說明書／判定程式要同步。',
+ ref:{p:'analyze()',x:'storeTracking()／viewAnomaly()'},det:/function\s+analyze\s*\(|\.flag\b/},
+{id:'c_geo',st:'c',src:'ps',label:'GPS 距離計算（haversine）',
+ how:'打卡地址 GPS（含前導空白的「緯度 , 經度」）解析後與店家座標算公里。',ref:{p:'analyze()'},det:/haversine|6371|12742|Math\.asin\(\s*Math\.sqrt/},
+{id:'c_tol',st:'c',src:'px',label:'可調門檻（輸入格即時重算）',
+ how:'打卡：各樣態「≤ N 筆排除」與公里門檻，畫面、Excel、報表三處一致。18天：樣態追蹤的容許後延、可無訂單天數。',
+ pit:'被隱藏的筆數不計入異常筆數，但分母不變，要在欄位旁註明。',
+ ref:{p:'TOL／applyMin()／tolVals()',x:'surveyForOrder(tol)'},det:/\bTOL\b|tolVals|tol\s*=/},
+{id:'c_agg',st:'c',src:'pxqsrv',label:'彙總層（groupBy、樞紐、小計與總計）',
+ how:'先把明細聚合成 {筆數、下單、出貨…} 的彙總物件，再交給表格與圖表；畫面和匯出共用同一份彙總。',
+ ref:{p:'storeAgg()',x:'groupBy()／pivotYears()／addAgg()'},det:/function\s+(groupBy|pivot\w*|\w*Agg)\s*\(/},
+{id:'c_yoy',st:'c',src:'x',label:'同期比較（年增率、同期截止）',
+ how:'每一年只算到同一個月／日，避免本月未結束造成假衰退；另有「整月全部」模式。',
+ ref:{x:'yoyTable()／F.mode'},det:/ytd|yoy/i},
+/* ---- 篩選 ---- */
+{id:'d_geo',st:'d',src:'pxqsrv',label:'階層連動下拉：營業處 → 營業所 → 人員',
+ how:'選上層後，下層選項重算；只有單一選項時隱藏篩選器；重算資料時保留原本的選擇。',
+ ref:{p:'buildSel()／buildSp()／buildOf()',x:'fillGeo()'},det:/fillGeo|buildSel|buildSp|buildOf|<datalist/},
+{id:'d_search',st:'d',src:'pxqsr',label:'搜尋框（即時過濾）',
+ how:'input 事件即時過濾；人員可輸入姓名或員編。',ref:{p:'#q',x:'資料管理搜尋'},det:/type\s*[:=]\s*["']search["']|id="q"/},
+{id:'d_date',st:'d',src:'xsv',label:'年度、月份區間、比較方式與截止日',
+ how:'年度用 chips 多選（至少留一個）、月份起迄下拉、分段鈕切換「同期截止／整月全部」、截止日用 date 輸入；全域篩選物件 F 一處管理。',
+ ref:{x:'buildFilters()／passCore()'},det:/mFrom|cutoff|\bytd\b/},
+{id:'d_chips',st:'d',src:'xsrv',label:'chips／分段按鈕當篩選',
+ how:'年度 chips 可多選；分段按鈕互斥；選中者填滿強調色。',ref:{x:'buildFilters()'},det:/class\s*[:=]\s*["']chips?\b/},
+{id:'d_kpi',st:'d',src:'pxsrv',label:'點 KPI 卡片或圖表長條當篩選（再點取消）',
+ how:'卡片、長條與下方明細用同一套逐列資料計算，筆數一致；被選取的卡片加框、「正常」類淡化。',
+ ref:{p:'KPI 卡片',x:'樣態追蹤彙總'},det:/\bkpi/i},
+{id:'d_drill',st:'d',src:'pxsrv',label:'下鑽到明細，並可返回（Esc 同效）',
+ how:'從彙總點進逐筆明細時記錄上一層狀態（NAV），顯示「← 返回」；18天工具用覆蓋層顯示明細，Esc 關閉。',
+ pit:'m1～m4 的 className 由 modeUi() 整個覆寫，不要在這些按鈕上加其他 class，樣式掛在群組選擇器上。',
+ ref:{p:'drill()／goBack()／NAV',x:'openDrill()／closeDrill()'},det:/goBack|openDrill|closeDrill/},
+{id:'d_order',st:'d',src:'pxsr',label:'固定排序（營業處：北部→桃處→臺中→嘉義→臺南→高雄→花蓮）',
+ how:'排序表加別名（桃園／桃處、台中／臺中），名稱帶「營業處」也能對上；查無者排最後。全工具通用。',
+ ref:{p:'BORD／bOrd()',x:'CH_ORDER／chRank()'},det:/BORD|CH_ORDER/},
+{id:'d_keep',st:'d',src:'x',label:'記住各分頁自己的篩選',
+ how:'篩選條件存起來，切分頁或重開後還原；各分頁各自記住，不互相影響。',ref:{x:'refreshView()'},det:/kvSet\(\s*['"]scope|localStorage/},
+/* ---- 排版 ---- */
+{id:'e_tabs',st:'e',src:'pxsv',label:'分頁籤／檢視切換（資料未備妥時鎖定）',
+ how:'18天：總覽／同期比較／交叉分析／樣態追蹤／資料管理；沒資料時分頁加 .off 並搖動提示，資料到位時解鎖動畫。打卡：m1 人員彙總、m2 逐筆明細、m4 店家排行、m3 備查事項、m5 原始資料。',
+ ref:{p:'modeUi()／view()',x:'goTab()／updateTabs()／tabReady()'},det:/nav\.tabs|id="tabs"|modeUi|class="tabs"/},
+{id:'e_toolbar',st:'e',src:'p',label:'工具列依功能分三群（篩選｜檢視｜輸出）',
+ how:'.tf 篩選、.tv 檢視、.to 輸出，各自成組。',ref:{p:'.tf／.tv／.to'},det:/\.tf\b/},
+{id:'e_kpi',st:'e',src:'pxsrv',label:'KPI 卡片（數字＋副標＋差異色）',
+ how:'依性質分組（打卡：時間性／衛星訊號／空間性／備查事項）；卡內可放小設定（≤N筆排除）。',
+ ref:{p:'KPI 卡片區',x:'.kpis／.kpi'},det:/class\s*[:=]\s*["'][^"']*\bkpi/},
+{id:'e_table',st:'e',src:'pxqsrv',label:'資料表：固定表頭、點欄標題排序、小計／總計列、數字格式',
+ how:'表頭 sticky、數字等寬；欄位類型決定格式（千分位、%、+/−、pt、日期）；超過上限只顯示前 1,500 筆並提供「顯示全部」。',
+ pit:'畫面與 CSV／Excel 要共用同一份欄位定義，格式才一致。',
+ ref:{x:'renderTable()／fmtCell()'},det:/position\s*:\s*sticky|tbl-wrap/},
+{id:'e_spec',st:'e',src:'x',label:'用 spec 物件描述表格（cols＋rows），畫面與匯出共用',
+ how:'spec={cols:[{k,label,kind,cls}],rows:[…]}；renderTable 畫畫面、specToAoA 轉陣列給 CSV／Excel。新增一張表只要產出 spec。',
+ ref:{x:'renderTable()／specToAoA()／exportSpec()'},det:/specToAoA|renderTable\s*\(/},
+{id:'e_tree',st:'e',src:'pxs',label:'樹狀展開表（處 → 所 → 人，▶▼ 與縮排）',
+ how:'每列帶 _lvl／_has／_open，點列切換展開；匯出對話框的「對象樹」用核取方塊（含半選狀態）。',
+ ref:{p:'xRow()／xRender()',x:'orgTree()／orgBlock()'},det:/treeCol|orgTree|_lvl\b|xRow\s*\(/},
+{id:'e_chart',st:'e',src:'x',label:'圖表（Chart.js）',
+ how:'mkChart(id,cfg) 統一建立並記錄，重繪前先銷毀；年度用固定色盤。',
+ pit:'Chart.js 4.4.1 內嵌在檔案裡；重繪要 destroy 舊圖，否則會疊圖。',ref:{x:'mkChart()'},det:/new\s+Chart\(/},
+{id:'e_pivot',st:'e',src:'x',label:'樞紐表／交叉分析（自選列、欄、多組值欄）',
+ how:'值欄可新增多組並排、同一指標可重複；顯示方式：實際數值／占整體／占列／占欄；點欄標題排序（降冪→升冪→取消）；列可再分一層。',
+ ref:{x:'viewCross()／crossData()／xCmp()'},det:/viewCross|crossData/},
+{id:'e_modal',st:'e',src:'pxqsrv',label:'對話框／覆蓋層',
+ how:'打卡：<dialog>.showModal() 做匯出對話框與下載對話框，點背景或 Esc 關閉；18天：覆蓋層顯示明細。',
+ ref:{p:'#xd 匯出對話框',x:'openDrill()'},det:/showModal|<dialog|drill-ov/},
+{id:'e_busy',st:'e',src:'pxqs',label:'忙碌遮罩／進度條',
+ how:'長工作前顯示遮罩與文字；匯出時用 <progress> 顯示「產生中… n / m」。',ref:{p:'#xs／progress',x:'busy()'},det:/busy\(|<progress|id="busy"/},
+{id:'e_empty',st:'e',src:'pxqs',label:'空狀態提示（告訴使用者下一步）',
+ how:'沒有資料時顯示「請先匯入檔案」；篩完沒有結果顯示「沒有符合條件的資料」。',det:/沒有符合條件|請先匯入/},
+/* ---- 匯出 ---- */
+{id:'f_xlsx',st:'f',src:'pxqs',label:'Excel 匯出（多分頁、欄寬、數字格式、篩選列、壓縮）',
+ how:'打卡：預設 4 個結果分頁（人員彙總／異常明細／店家排行／備查事項），勾選才加原始資料分頁（以序號對回明細）；aoa_to_sheet＋autofilter＋壓縮。18天：每張表一份，依欄位類型套 #,##0／0.0%。',
+ pit:'工作表名稱最多 31 字。',ref:{p:'xlsxBook()／xXlsx()',x:'exportSpec()'},det:/XLSX\.(writeFile|write)\(/},
+{id:'f_csv',st:'f',src:'xsrv',label:'CSV 匯出（UTF-8 含 BOM）',
+ how:'前面加 \\uFEFF，Excel 開啟才不會亂碼；含逗號、換行、雙引號的欄位用雙引號包起來並跳脫。',ref:{x:'exportSpec()'},det:/text\/csv/},
+{id:'f_html',st:'f',src:'pqs',label:'靜態 HTML 報表（白底、樣式自成一包）',
+ how:'樣式全包在 .rp 底下，避免被畫面全域 th／td 污染；內容為純 HTML 字串，離線可開。',
+ pit:'靜態 HTML 另有自己的 CSS（RCSS），和 PDF 版面各自維護。',ref:{p:'xHtml()／RCSS'},det:/function\s+xHtml|RCSS/},
+{id:'f_pdf',st:'f',src:'pqs',label:'PDF 匯出（不需網路）',
+ how:'固定列高分頁（planPages）→ Canvas 逐頁畫（1122×794）→ 16 階灰階索引 PNG → 自組 PDF＋隱形文字層；不用 html2canvas／jsPDF。',
+ pit:'解析度固定 1.4 倍（調高檔案暴增，使用者反映過太大）；預估超過 150 頁先詢問；改版面時 xDraw 欄寬／列高要和 XP 一起改。 問卷 v193、督導 v390 的 PDF 走瀏覽器「列印→另存 PDF」（window.print），不是自己組 PDF；要讓底色出現在 PDF，列印樣式必須加 print-color-adjust: exact。',
+ ref:{p:'xPdf()／xDraw()／planPages()／xPdfBuild()'},det:/xPdfBuild|%PDF|jsPDF|window\.print\(/},
+{id:'f_zip',st:'f',src:'ps',label:'多份報告打包 ZIP（一處一份、一所一份、一人一份）',
+ how:'JSZip 把每份檔案放進去，最後一個 ZIP 下載；份數超過一份才需要。',
+ pit:'JSZip 沒載入要提示請連網，不要讓按鈕靜默失敗。',ref:{p:'xGo()'},det:/generateAsync\(\s*\{\s*type\s*:\s*['"](?:blob|uint8array|base64)['"]/},
+{id:'f_dialog',st:'f',src:'pqs',label:'匯出對話框：格式、份數、排序、樣態、對象樹、統計列',
+ how:'①格式（PDF／靜態HTML／Excel）②份數（整份／一處／一所／一人一份）③排序 ④樣態（預設帶入畫面已選 KPI，沒選＝全選）⑤對象樹 ⑥統計列與「匯出」。對象樹不受畫面篩選影響；篩完沒有筆數的對象不產生報告。',
+ ref:{p:'xRender()／xGroups()／xBuild()／xSumCmp()'},det:/xGroups|xBuild\s*\(|xSumCmp/},
+{id:'f_shot',st:'f',src:'pxsrv',label:'畫面截圖（下載 PNG 或複製到剪貼簿）',
+ how:'html2canvas 擷取主畫面；不想入鏡的元素加 data-shot-skip。',
+ pit:'主畫面 CSS 不可用 color-mix()／color()（html2canvas 1.4.1 不支援）；沒載入 html2canvas 要提示。',
+ ref:{p:'shot()',x:'截圖複製剪貼簿（v37）'},det:/html2canvas\s*\(|ClipboardItem/},
+{id:'f_snap',st:'f',src:'xqs',label:'靜態副本：把整個網頁連同資料存成一個可離線開的 HTML',
+ how:'啟動時先記下 document.documentElement.outerHTML；匯出時把資料 gzip＋base64 塞進 <script type="text/plain" id="embdata">，開啟副本時偵測到就改走唯讀模式。',
+ pit:'base64 一定要先轉（v23 漏了，副本整頁空白）；標題與檔名帶存檔時間，同一天多份才不會混淆。',
+ ref:{x:'exportSnapshot()／loadEmbedded()／SRC0'},det:/embdata|exportSnapshot/},
+{id:'f_name',st:'f',src:'pxqs',label:'檔名規則：名稱＋版號＋區間＋對象＋時間',
+ how:'例：打卡異常報告_V70_20260901-0930_北部.pdf；非法字元清掉；Blob＋<a download>＋revokeObjectURL 下載。',
+ ref:{p:'xFile()／xSafe()／xSave()',x:'download()'},det:/\.download\s*=|\bdownload\s*\(/},
+/* ---- v02 新增：問卷照片檢視工具 v193（q）與督導管理系統 v390（s） ---- */
+{id:'z_terms',st:'z',src:'s',label:'名詞對照表：畫面上同一件事全站只有一個名稱',
+ how:'維護一張「現行名稱／舊稱」對照表；新增或改名任何按鈕、欄名、提示前先查表；改完用舊稱全文掃描，結果必須 0 筆。圖示全站不重複。督導 v390 另規定禁灰色系字體、日期一律新到舊。',
+ pit:'來源檔的欄名、匯出與外部試算表對齊的欄名可刻意保留原樣，要在表上註明。',ref:{s:'說明書 H 節、J 節'}},
+{id:'z_modules',st:'z',src:'s',label:'程式碼模組標籤＋說明書分章（讓下一位 AI 能快速找到程式）',
+ how:'每個功能區塊上方放「// @@模組：名稱」；說明書分章（版號、工作原則、功能用途、技術備忘、現行設計、版本對照、名詞、畫面對照、專案地圖、驗證手冊、待辦）。',
+ pit:'行號會漂移，找程式一律用文字錨點 grep。章節字母與備忘編號一旦被程式註解引用就不可重編。',ref:{s:'說明書 K 節'},det:/@@模組/},
+{id:'z_verify',st:'z',src:'qs',label:'驗證手冊：優化、刪除、合併前後必須「逐項相同」，交付說明分「已驗證／未驗證」',
+ how:'用無頭瀏覽器（Playwright／headless Chrome）灌合成資料，依序開各畫面，取文字＋尺寸＋計算樣式前後比對；純函式用隨機輸入比對新舊輸出。沒做的測試不可寫成做過。',
+ pit:'比對前要關動畫、去掉時間字串與版號；真實印表機、Firefox、Safari、真實手機通常驗不到，要老實列在「未驗證」。',ref:{s:'說明書 L 節、M 節'}},
+{id:'a_byname',st:'a',src:'s',label:'依「檔名」分流來源檔（檔名含關鍵字、或以某字開頭）',
+ how:'逐檔看檔名：含「工作管理」「客戶資料」「打卡異常」；開頭為 cardtime、attendance；另有專屬檔名的業績檔。只收 csv／xlsx／xls，略過 ~$ 暫存檔；一個都對不上就整批中止並告訴使用者要什麼檔名。',
+ pit:'與「依表頭辨識」是兩種流派：檔名快但使用者一改名就失效。SAP 匯出常是 UTF-16 文字檔卻叫 .xls，所以解析時還要另外判斷真實格式。',ref:{s:'processFiles()'},det:/\.name\.includes\(\s*["'][\u4e00-\u9fff]/},
+{id:'a_period',st:'a',src:'s',label:'資料所屬年月讀資料夾名（YYYYMM）；選填來源檔須與主檔同一次拖入',
+ how:'年月優先取資料夾名，抓不到才退回檔名猜；選填檔（打卡異常、刷卡、請假）要和主檔一起拖，因為每次匯入先清空全部資料。',
+ pit:'檔名數字常是匯出時間戳，會與資料夾月份對不上；沒有「事後補拖」，單獨拖選填檔要擋下並提示。',ref:{s:'getFolderYearMonth()／resetApp()'},det:/getFolderYearMonth/},
+{id:'b_header2',st:'b',src:'q',label:'雙層標題列攤平成單列欄名',
+ how:'第一列是大題、第二列是小題時，兩列合併成一個欄名，之後仍依欄名取欄。',ref:{q:'攤平雙列標題()'},det:/攤平雙列標題/},
+{id:'b_photo',st:'b',src:'q',label:'取出 xlsx 儲存格內嵌的照片，依錨點列對回那一筆資料',
+ how:'xlsx 其實是壓縮包：用 JSZip 打開，讀 xl/drawings（圖片貼在哪一列）與 xl/media（圖片本體），再依列號對回資料列。',
+ pit:'只適用「插入圖片→置於儲存格內」；SheetJS 讀不到圖片，必須另用 JSZip。',ref:{q:'extractPhotosFromXlsx()'},det:/xl\/media|xl\/drawings/},
+{id:'b_zlite',st:'b',src:'q',label:'大 xlsx 先瘦身再讀（拿掉圖片等大塊內容再交給 SheetJS）',
+ how:'用 JSZip 重新打包一份不含圖片的精簡 zip，只讀資料；圖片另外處理。失敗時退回整檔讀取，只是比較慢。',ref:{q:'buildLiteZipBuffer()'},det:/buildLiteZipBuffer|liteZip/},
+{id:'b_worker',st:'b',src:'q',label:'Web Worker 平行運算（解析 xlsx、算照片簽章），單檔、不另放 .js',
+ how:'Worker 程式碼放 <script type="text/plain">，用時讀 textContent、包成 Blob 開 Worker；先抽樣讓主執行緒與 worker 各算一次比對，對不上就整個退回主執行緒；單筆逾時 30 秒也退回。',
+ pit:'Worker 沒有 DOM、拿不到全域變數，同一段演算法會有兩份要一起維護；file:// 下少數環境會擋 blob Worker，一定要有退路。',ref:{q:'checkWorkerSupport()／getParseWorkerSrcUrl()'},det:/new\s+Worker\(/},
+{id:'c_photomatch',st:'c',src:'q',label:'照片對回資料列：名稱前綴完全吻合＋日期分層比對（不做天數容錯）',
+ how:'先要求「店家型態＋店家＋業務員」前綴完全吻合；再比日期，依序用打卡時間→回報時間→月份，每一層都要求日期逐字相同；月份欄只在前兩層都缺值才用，並提示使用者精度較低。',
+ pit:'同店高頻回訪（最短隔 2 天）若用 ±N 天容錯，同一張照片會同時落進兩次回訪。',ref:{q:'matchAndAttachPhotos()／buildRowPrefixes()'},det:/matchAndAttachPhotos|buildRowPrefixes/},
+{id:'c_dupphoto',st:'c',src:'q',label:'重複／相似照片檢測（雜湊簽章→配對複驗→分群→樣態與判定依據）',
+ how:'每張照片縮圖算簽章（dHash、灰階相關、色彩差）→ 用分段索引列舉候選配對 → 對齊複驗 → 分群。樣態：跨店異日／跨店同日／同店異日；判定依據：完全重複／裁切縮放／疑似同場景（拿不準降級成疑似，請人工確認，也可標記誤判並排除、可復原）。',
+ pit:'浮水印不可當「不同次拍攝」的證據；邊緣案例別用放寬門檻去救，交給「疑似＋人工確認」；手機畫面截圖（高寬比>2）會被特徵比對誤認；簽章計算不平行，7 萬張約要 5 分鐘。',ref:{q:'dupSignatureFromPixels()／classifyDupPair()／dupCurrentAllGroups()'},det:/dupSignatureFromPixels|classifyDupPair/},
+{id:'c_roster',st:'c',src:'q',label:'名冊勾稽：下載範本→使用者填寫→匯入→標示每家已完成／未完成',
+ how:'提供名冊範本 xlsx；匯入填好的名冊，以店家代碼為 key 與資料比對，每家店標示有無完成；勾稽結果可匯出 xlsx。',ref:{q:'exportRosterTemplate()／handleRosterFileImport()／computeRosterMatch()'},det:/computeRosterMatch|handleRosterFileImport/},
+{id:'c_ver',st:'c',src:'s',label:'資料世代號：每次匯入遞增，所有衍生索引與快取靠它判斷是否過期',
+ how:'匯入完成後 dataVersion++；畫面層只讀來源資料、不回頭改；需要衍生資料就建快取，快取以「資料版本＋參數」為鍵。',
+ pit:'不要手動清快取，否則漏清就會顯示舊資料而且不報錯。',ref:{s:'runPostParsePipeline()／svDataVersion'},det:/DataVersion/},
+{id:'c_channel',st:'c',src:'s',label:'多通路並行：先不依通路過濾原始列，建快取時才分通路',
+ how:'同一份工作管理資料供 CVS／連鎖超市／傳統／量販／即飲共用；通路篩選在建快取層處理；不同通路的達成規則各自獨立，不強抽共用函式。',
+ pit:'若在讀入時就依通路型態過濾，同店連打、重疊等區間判斷會斷掉。',ref:{s:'buildChannelCaches()'}},
+{id:'e_gallery',st:'e',src:'qrv',label:'卡片＋縮圖清單、燈箱大圖、上一組／下一組導覽',
+ how:'每筆回覆一張卡片；點開看大圖與完整答案；重複照片可在「縮圖分組」與「總覽表格」兩種看法間切換，誤判可一鍵排除並跳下一組。',det:/lightbox|燈箱/i},
+{id:'e_annot',st:'e',src:'q',label:'圖片標註（畫筆、圓圈、箭頭）',how:'在大圖上畫標註，存回報告。'},
+{id:'e_edit',st:'e',src:'q',label:'報告可直接編輯：復原快照＋自動草稿',
+ how:'報告區 contenteditable；復原快照照片只存編號一份；自動草稿用 localStorage，照片超過 3MB 就直接略過（一定寫不進去）。存成 HTML 後再打開要沿用成品區，不可重新分頁把編輯洗掉。',
+ pit:'存檔時照片別存兩份（原始區＋成品區），檔案會大一倍；控制面板不要存進檔案。',ref:{q:'rptSaveAsHtml()'},det:/contenteditable/},
+{id:'e_gantt',st:'e',src:'s',label:'時段圖（甘特）：一天內到站～離站色塊，重疊自動分道，離群值另設區',
+ how:'用「連續重疊群集」演算法分道；逾四小時或跨午夜的色塊延伸到軸線底／右緣；離群時間另開一區，區內仍按真實時間比例畫，不可畫成等寬格；格線用逐列背景。',
+ pit:'不可「整天只要有一處重疊就全部變矮」；離群區不可疊在正常時間刻度上。',ref:{s:'業務員日誌：時段圖模式'},det:/連續重疊|gantt/i},
+{id:'e_map',st:'e',src:'s',label:'地圖：店家分布、當日路線、開工收工與臨時點（各圖層獨立開關）',
+ how:'Leaflet；每個圖層各自一個 LayerGroup，開關只清自己那層；畫點只看座標表，與統計排除規則是兩件事。',
+ pit:'Leaflet 要連 unpkg，內網或沙盒可能載不到（18天工具就曾載不進）；要有降級（外連 Google 地圖）。',ref:{s:'店家分布地圖／路線圖模式'},det:/\bL\.map\s*\(|[Ll]eaflet/},
+{id:'e_calendar',st:'e',src:'s',label:'月曆檢視（每天一格看出勤與拜訪量）',how:'依日期排成月曆格；日期排序一律新到舊。',ref:{s:'業務員日誌：月曆模式'},det:/月曆/},
+{id:'e_chunk',st:'e',src:'s',label:'大表格分段渲染：先畫一小段，其餘捲到才補',
+ how:'先同步塞約 200 列，其餘用 requestAnimationFrame 延後補；列印與截圖前自動補完。',
+ pit:'瀏覽器 Ctrl+F 只找得到已畫出來的列；「卡頓」的真因多半是一次插入太多 DOM，不是演算法慢，先量測再動。',ref:{s:'svRenderTableChunked()'},det:/Chunked\(/},
+{id:'e_print',st:'e',src:'qs',label:'列印版面：A4 直式、靠底色傳達意義的元素強制印出底色',
+ how:'@media print 規則；時段圖色塊、徽章、表格標題列、圖例等靠 background 顯色者，都要加 print-color-adjust: exact。',
+ pit:'瀏覽器預設不印背景色與背景圖；用 page.pdf 的 printBackground 測試會繞過這個行為，看不出問題。',det:/print-color-adjust/},
+{id:'f_pptx',st:'f',src:'q',label:'PPTX 匯出（滿版照片格線）',
+ how:'用 PptxGenJS 動態載入，每張投影片只有一塊滿版照片區，依張數排成接近正方形的格線。',
+ pit:'要連網（jsDelivr）；載不到要提示，不可靜默失敗。',ref:{q:'rvpExportPptx()'},det:/PptxGenJS/},
+{id:'f_share',st:'f',src:'s',label:'其他送出管道：同步 Google 試算表、LINE 名冊文字、郵件',
+ how:'同步走 Google Apps Script 網頁應用程式（要連網）；LINE 名冊與追蹤清單轉成純文字複製；郵件用 mailto: 帶主旨與內文。',
+ pit:'這是唯一會把資料送出瀏覽器的功能，要讓使用者明確點選，且不能和「資料只在瀏覽器內處理」的說法互相矛盾。',det:/script\.google\.com|mailto:/},
+
+/* ---- v03 新增：線上型看板 巡補看板 1.55.1（r）與覆蓋率看板 3.17.0（v） ---- */
+{id:'z_shared',st:'z',src:'rv',label:'共用骨架放在同資料夾 shared/（不是單檔）',
+ how:'共用的複製、CSV、截圖、燈箱照片、逐題彙整、彙整看板、版面外殼放 shared/*.js 與 shared/dashboard-common.css；每個看板自己的業務計算不共用。',
+ pit:'這和「單檔 HTML」互相衝突：只拿到單支看板時，AI 看不到 shared 內容，不能保證渲染結果，也不敢動共用邏輯；要整併功能前先拿到 shared 檔。要單檔交付時須把共用檔內嵌回來。',det:/shared\//},
+{id:'z_auth',st:'z',src:'rv',label:'簡易登入閘（前端檢查 localStorage，沒登入就導回首頁）',
+ how:'頁首一小段 script：localStorage 的登入旗標不是 1 就 location.replace 回入口頁；獨立部署不經登入頁時整段拿掉。',
+ pit:'這只是前端擋一下，不是真的安全。試算表若是「知道連結就能看」，直接開連結照樣讀得到資料。',det:/localStorage\.getItem\(\s*['"]\w*auth/i},
+{id:'a_sheet',st:'a',src:'rv',label:'資料不上傳，進站時從 Google 試算表線上讀（網址帶 ?sheetId=）',
+ how:'用 URLSearchParams 取 sheetId；每個專案一份試算表；進站依序讀設定分頁→名冊→紀錄→問卷；互不相依的請求同時發出，並預先 preconnect docs.google.com 加速。',
+ pit:'斷網或沙盒讀不到真實資料，測試只能用合成資料；試算表要設成「知道連結的人可檢視」；管理表的 ID 寫死在程式裡，別貼到公開處。',ref:{r:'fetchBoardConfig()／fetchPopulation()',v:'啟動流程（讀設定→專案管理→主資料）'},det:/\/gviz\/tq/},
+{id:'a_cfgsheet',st:'a',src:'rv',label:'設定放試算表分頁，不放 HTML（業務改設定就好）',
+ how:'「看版設定」分頁由多個【區塊標題】小表上下排列，程式自己掃出每個區塊（檔期、等級對照、通路設定、必訪規則…）；先讀設定、讀完才建篩選列與抓資料；讀失敗就顯示錯誤並中止，不用殘缺設定硬跑。覆蓋率看板另有「新格式（各專案自己的分頁）優先、舊格式（集中管理表）退回」的相容做法，兩邊同時發請求。',
+ pit:'區塊內欄位順序不能亂動——順序錯了不會報錯，只會塞錯欄；通路設定的判斷值支援 * 當兜底，必須排在最後；部署新專案要連「設定分頁」一起複製。',ref:{r:'_scanConfigSections()／_applyBoardConfig()',v:'_fetchNewBucketConfig()'},det:/_scanConfigSections|CFG_SHEET|BUCKET_CFG_SHEET/},
+{id:'b_gviz',st:'b',src:'rv',label:'讀 Google 試算表 gviz JSON：欄名當 key、處理型別陷阱',
+ how:'fetch gviz/tq?tqx=out:json，剝掉外殼取 JSON，用欄名組成每列一個物件；日期欄另外轉換。',
+ pit:'gviz 依整欄大多數內容推斷型別：日期欄的「表頭文字」會被丟成空值（欄名整個漏收），數字欄裡的文字值也會被丟。對策：headers=0 自己找表頭列、必要時二次請求補回文字值（回填要照原始列序，幽靈列要最後才濾）；試算表端日期欄要用日期格式、店代碼設純文字。',ref:{r:'gvizParse()',v:'_fetchQuestionnaireSheet()'},det:/gvizParse|gviz\/tq/},
+{id:'c_diag',st:'c',src:'r',label:'設定診斷：被跳過的設定列、對不上的 key、重複規則，分三級列出',
+ how:'解析設定時把問題記成 error／warn／info；平常不打擾，有問題才在按鈕上顯示紅點數字，點開看清單。對不到名冊的外部列也只記一筆診斷，不擋其他資料。',ref:{r:'_cfgDiagPush()'},det:/CFG_DIAG|_cfgDiag/},
+{id:'c_quota',st:'c',src:'r',label:'每週應達次數對照等級；已達與超額分開算',
+ how:'應達＝等級對照表；實際＝同店同天只算 1 次；已達＝min(實際,應達)；超額＝max(0,實際−應達)。達成率＝Σ已達÷Σ應達（分母用應達，不用實際）。通路可設「不分等級預設值」，指名等級優先。',
+ pit:'超額絕不進達成率的分子分母，也不可跨店外溢（逐店逐週算完才加總）；等級文字必須與名冊完全一致（含全形字），對不上就是「等級未知」、應達算 0。',ref:{r:'_buildActualIndex()／_stdFreqAt()'},det:/ACTUAL_INDEX|GRADE_FREQ/},
+{id:'c_period',st:'c',src:'r',label:'檔期與週次：每 7 天一週，最後一週不足可折算或不折算',
+ how:'巡補日期−檔期起始日，每 7 天一週；晚於終止日的不屬於任何檔期；不足整週時應達＝max(1, ⌊天數/7×整週應達⌋)；可設「不折算」強制照原值要求。顯示的日期區間、過去週判斷、必訪日清單一律裁切到終止日。',ref:{r:'_classifyParts()'},det:/_classifyParts|PERIODS\b/},
+{id:'c_group',st:'c',src:'r',label:'分組縮減門檻：整組達標，個別沒去的店不算欠（只影響彙總）',
+ how:'同營業處＋通路＋等級為一組；折算週時動態算縮減後的家數門檻；整組達標則沒去的店不算欠。所有用到的地方都呼叫同一個函式。',
+ pit:'只影響「還缺幾家」這類彙總數字，絕不回頭改任何單店格子（系統答不出是哪一家被算進門檻，硬改等於捏造達標）。所以「總覽數字」與「單店明細」不相等是正常的。比對邏輯不可各處自己重寫，否則兩張表會對不起來。',ref:{r:'_quotaUnitProgress()'},det:/_quotaUnitProgress/},
+{id:'c_mustvisit',st:'c',src:'r',label:'必訪星期規則（與次數標準取 AND）',
+ how:'規則＝通路＋等級＋必訪星期（0=日…6=六）；符合的店每週指定星期必到；只在「規定日已過去」才判未達，當天與未來顯示尚未到期；一店最多吃第一條相符規則。次數標準與必訪規則同時存在時，兩項都達成才算達標。',ref:{r:'MUST_VISIT_RULES／_mustVisitRuleForStore()'},det:/MUST_VISIT_RULES/},
+{id:'c_extra',st:'c',src:'r',label:'外部名單併入紀錄（例：工讀排班），只取店代碼＋日期',
+ how:'外部單位維護的清單只取「店家代碼」「日期」兩欄，併入與正式紀錄同一份索引並標記來源，達成率與必訪判斷自動一起算對；其餘欄位只供人工比對。畫面用徽章與正式紀錄區分。',
+ pit:'日期欄要是試算表日期格式；店代碼要與名冊完全一致（含全半形），對不到的列不計入任何店。',ref:{r:'fetchWorkShiftSheet()'},det:/fetchWorkShiftSheet|source\s*:\s*['"]temp['"]/},
+{id:'c_bucket',st:'c',src:'v',label:'覆蓋分組：B 群（已有）／C 群（已知無）／未填寫／待確認',
+ how:'設定決定哪些問卷欄位算 B 群、C 群，各有標題；資料列存在卻對不到任何已知狀態者歸「待確認」（與「未填寫」分開）。問卷表頭對回欄位有兩種命名：與主表欄名完全相同；或「大題_選項」格式（先用前綴鎖定大題、再比選項文字）。',
+ pit:'命中率整批 0% 多半是問卷表頭命名沒被涵蓋，不是資料錯；先確認表頭命名，別為單一專案去改通用比對。同一段地點文字常重複出現在不同大題底下，只比選項文字會兩邊都誤判命中。',ref:{v:'_covRecordMatchedCols()'},det:/_covRecordMatchedCols|COL_UNFILL/},
+{id:'d_range',st:'d',src:'v',label:'時間範圍與燈號：週／月／自訂區間，B／C／未填寫／待確認可各自開關',
+ how:'常駐在燈號列：上一期／下一期／本期／全部＋週月下拉＋自訂起訖日；燈號各自開關，卡片與彙整看板即時連動。',ref:{v:'_cwShiftPeriodStart()'},det:/_cwShiftPeriodStart|cwn-pager/},
+{id:'d_flag',st:'d',src:'r',label:'獨立開關 chip：進行中未達標／已逾期未達標／超額／必訪未達（可同時開）',
+ how:'四顆互不互斥，同時開取聯集；總覽表的「未達店數」點下去會帶入對應開關。'},
+{id:'e_trend',st:'e',src:'v',label:'趨勢圖（手繪 SVG，不用圖表程式庫）：週執行率、累計達成、每週新增、各處所比較',
+ how:'整頁呈現；預設只顯示總覽線，可單看／比較／篩選；本期還沒走完用虛線、空心點與 ⏳ 提示，並加「說明」彈窗講怎麼讀圖。',
+ pit:'最右側本期常「看起來沒畫出來」，多半只是本期還沒走完、數值天生偏低，不是渲染錯。',det:/trend-dialog/},
+{id:'e_board',st:'e',src:'rv',label:'彙整看板（多分頁）：跨分支比較表',
+ how:'6 個分頁，含跨分支（處所）比較表與「待確認」欄；實作在共用的 pivot-dialog.js；巡補看板的工具列也有「彙整看板」群組（照片牆、逐題彙整、細項匯出）。',det:/彙整看板/},
+{id:'e_cell',st:'e',src:'r',label:'週次格子：應達內藍色、超額橘色，四種互斥標籤',
+ how:'每週固定 7 格（前 N 格為應達，其餘超額或空位）；標籤：✓已達成／🤝組已達標／⚠️逾期未達成／🕒本週進行中，有應達次數的格子一定落在其中一種；必訪日加星期小徽章與紅框高亮。',det:/mv-alert-cell|stdDone/},
+{id:'e_rank',st:'e',src:'r',label:'訪員貢獻度排行（只算自己親自完成）',
+ how:'依訪員＋分組彙總；主要指標只算「自己完成」，三態：⚪尚未開始／🔵進行中／🟢已達標，不用紅黃綠恐嚇字眼；純來幫別人的另歸「🤝純支援」排最後。完成度長條只有兩段：自己完成、整組免驗。',
+ pit:'別人代跑不算自己完成，避免代跑湊出的達標蓋過真正沒做完的事實。',ref:{r:'openStaffContribution()'},det:/openStaffContribution/},
+{id:'e_manpower',st:'e',src:'r',label:'人次估算工具（只看名冊與等級次數，不看實際紀錄）',
+ how:'獨立的篩選條件（不受主畫面影響），試算排班人次，可收斂到檔期／通路／等級／營業處／營業所並匯出 CSV。',det:/MANPOWER_FILTER/},
+{id:'e_mobile',st:'e',src:'rv',label:'手機版面＋長按提示（長按後短時間內擋掉 click，避免誤鑽層）',
+ how:'週次切換、店卡瘦身；長按顯示 tooltip，用時間戳讓 600ms 內的 click 失效。',det:/_lastLongPress/},
+{id:'e_sticky',st:'e',src:'rv',label:'多層固定列（sticky）疊放，彈出面板改用 fixed 定位',
+ how:'工具列→燈號列→快速導覽依序疊放，各層 top 由程式在每次渲染與縮放後動態算。彈出面板用 position:fixed，開啟時依按鈕座標算位置，並監聽 resize 與捲動。',
+ pit:'容器設 overflow-x:auto 會連帶把 overflow-y 也變成 auto，底下用 absolute 彈出的東西會被裁掉：現象是「點了有反應但畫面沒東西」，容易誤以為 onclick 沒綁到。',ref:{v:'updateStickyTops()／_cwPositionCustomBox()'},det:/updateStickyTops/},
+{id:'f_line',st:'f',src:'rv',label:'LINE 分享文字（全文／精簡）＋複製到剪貼簿',
+ how:'把目前篩選後的結果轉成可貼進 LINE 的純文字，有全文與精簡兩種；各層級（總覽、單店）都有。',det:/💬\s*LINE|LINE\s*全文|LINE\s*分享/},
+{id:'f_detail',st:'f',src:'rv',label:'細項匯出：跨欄位勾選，即時看符合家數，再輸出 LINE 或 CSV',
+ how:'可跨 B／C 桶勾選子欄位，勾選當下就看到符合的家數，再決定輸出。實作在共用檔。',det:/細項匯出/},
+];
+const CATBY=Object.fromEntries(CAT.map(o=>[o.id,o]));
+
+/* ---------- 解析一份 HTML 工具 ---------- */
+const LIBNAMES=[[/xlsx|sheetjs/i,'SheetJS'],[/chart\.js|chart\.umd|chart\.min/i,'Chart.js'],[/html2canvas/i,'html2canvas'],[/jszip/i,'JSZip'],[/jspdf/i,'jsPDF'],[/papaparse/i,'PapaParse'],[/lodash/i,'lodash'],[/d3(\.|@|\/)/i,'d3'],[/tailwind/i,'Tailwind'],[/leaflet/i,'Leaflet'],[/echarts/i,'ECharts']];
+function libName(s){for(const [re,n] of LIBNAMES)if(re.test(s))return n;return null}
+function libVer(s){const m=s.match(/(?:v|@|\/|\s)(\d+\.\d+(?:\.\d+)?)/);return m?m[1]:''}
+function splitCode(html){
+  const libs=[];let own='',last=0,emb=0;const re=/<script([^>]*)>([\s\S]*?)<\/script>/gi;let m;
+  while((m=re.exec(html))){
+    own+=html.slice(last,m.index);last=m.index+m[0].length;
+    const a=m[1],b=m[2],src=(a.match(/src\s*=\s*["']([^"']+)["']/)||[])[1];
+    if(src){const ext=/^(https?:)?\/\//i.test(src);libs.push({n:libName(src)||src.split('/').pop(),v:libVer(src),local:!ext,how:ext?'外連 '+(src.match(/\/\/([^/]+)/)||[])[1]:'同資料夾檔案，不是單檔'});continue}
+    if(/type\s*=\s*["']text\/plain["']/i.test(a)){emb+=b.length;continue}
+    const head=b.slice(0,500);
+    if(b.length>30000&&/^\s*\/\*!?/.test(head)&&(libName(head)||/license|copyright|\(c\)|\bmit\b/i.test(head))){
+      libs.push({n:libName(head)||'內嵌程式庫',v:libVer(head),how:'內嵌（約 '+Math.round(b.length/1024)+' KB）'});continue}
+    own+=b+'\n';
+  }
+  own+=html.slice(last);
+  return {own,libs,emb};
+}
+function countRe(re,s){const f=re.flags.replace('g','')+'g';return (s.match(new RegExp(re.source,f))||[]).length}
+function pickCols(code){
+  const m=new Map(),add=s=>{s=String(s).trim();if(!s||s.length>30)return;if(!(/[\u4e00-\u9fff]/.test(s)||/^[A-Z][A-Z0-9\-]{3,}$/.test(s)))return;m.set(s,(m.get(s)||0)+1)};
+  let r,re=/\b(?:o|r|row|rec|it)\s*\[\s*['"]([^'"\n]{1,30})['"]\s*\]/g;while((r=re.exec(code)))add(r[1]);
+  re=/\.(?:has|includes)\(\s*['"]([^'"\n]{1,30})['"]\s*\)/g;while((r=re.exec(code)))add(r[1]);
+  re=/colIdx\(\s*\w+\s*,\s*([^)]*)\)/g;while((r=re.exec(code))){(r[1].match(/'[^']+'|"[^"]+"/g)||[]).forEach(x=>add(x.slice(1,-1)))}
+  re=/NEED\s*=\s*\{[^;]*\}/g;while((r=re.exec(code))){(r[0].match(/'[^']+'|"[^"]+"/g)||[]).forEach(x=>add(x.slice(1,-1)))}
+  return [...m].sort((a,b)=>b[1]-a[1]).slice(0,45);
+}
+function analyzeHtml(text,name){
+  const {own,libs,emb}=splitCode(text);
+  const comments=[...own.matchAll(/<!--([\s\S]*?)-->/g)].map(x=>x[1].trim()).filter(x=>x.length>300);
+  const code=own.replace(/<!--[\s\S]*?-->/g,'').replace(/(^|[\s;{},()=:])\/\*[\s\S]*?\*\//g,'$1').replace(/(^|[\s;{},)])\/\/[^\n]*/g,'$1');
+  const feats={};
+  for(const o of CAT){if(!o.det)continue;const n=countRe(o.det,code);if(n)feats[o.id]=n}
+  if(comments.some(c=>/開發紀錄/.test(c)))feats.z_notes=1;
+  {const mm=(own.match(/@@模組：/g)||[]).length;if(mm)feats.z_modules=mm}  /* 模組標籤寫在 // 行註解裡，去註解後會消失，所以另外數 */
+  {const ext=libs.filter(l=>!l.local).length,loc=libs.length-ext;if(ext)feats.z_cdn=ext;if(loc)feats.z_shared=loc}
+  const ctl={select:countRe(/<select|h\(\s*'select'/,code),date:countRe(/type\s*[:=]\s*["']date["']/,code),search:countRe(/type\s*[:=]\s*["']search["']/,code),number:countRe(/type\s*[:=]\s*["']number["']/,code),checkbox:countRe(/type\s*[:=]\s*["']checkbox["']/,code),radio:countRe(/type\s*[:=]\s*["']radio["']/,code),file:countRe(/type\s*[:=]\s*["']file["']/,code),button:countRe(/<button|h\(\s*'button'/,code)};
+  const tabs=[];const tm=code.match(/id="tabs"[^>]*>([\s\S]*?)<\/nav>/);if(tm)for(const b of tm[1].matchAll(/<button[^>]*>([^<]+)<\/button>/g))tabs.push(b[1].trim());
+  const ex=new Set();for(const b of code.matchAll(/['"`>]([^'"`<>\n]{0,10}(?:匯出|下載|截圖|備份|還原)[^'"`<>\n]{0,12})['"`<]/g)){const t=b[1].trim();if(t&&t.length<=14&&!/不是|怎麼用|失敗|中…|已|請/.test(t))ex.add(t)}
+  const notes=comments.map(c=>({head:c.split('\n')[0].slice(0,60),text:c}));
+  const sections=[...new Set(comments.join('\n').match(/【[^】]{1,14}】/g)||[])];
+  let pits=[];const pm=comments.join('\n').match(/【踩過的坑】([\s\S]*?)(?=\n\s*【|\n=+)/);
+  if(pm)pits=pm[1].split('\n').map(s=>s.trim()).filter(s=>s.startsWith('-')).map(s=>s.replace(/^-\s*/,''));
+  return {name,size:text.length,ownSize:own.length,libs,emb,feats,ctl,tabs,exportWords:[...ex].slice(0,14),cols:pickCols(code),notes,sections,pits,
+    fnCount:countRe(/function\s+\w+/,code)};
+}
+
+/* ---------- 需求書產生 ---------- */
+function stageOpts(st){return CAT.filter(o=>o.st===st)}
+function refText(o){const a=[];for(const k of TK)if(o.ref&&o.ref[k])a.push(TOOLS[k].name+' '+TOOLS[k].ver+'：'+o.ref[k]);return a}
+function buildSpec(S,opt){
+  opt=opt||{};const L=[],P=S.proj,sel=S.sel;
+  const chosen=st=>stageOpts(st).filter(o=>sel[o.id]&&sel[o.id].on);
+  const today=new Date();const ds=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  L.push('# '+(P.name||'（未命名工具）')+' 開發需求書'+(P.ver?'（'+P.ver+'）':''));
+  L.push('');L.push('> 由「工具需求規格產生器」於 '+ds+' 產出。請依本文件開發一支單檔 HTML 工具；標示「參考實作」的項目，可回頭看對應工具檔裡的函式（若使用者有附檔）。');
+  L.push('');
+  if(P.purpose)L.push('**用途**：'+P.purpose.trim().replace(/\n/g,'\n'));
+  if(P.users)L.push('','**使用者／使用情境**：'+P.users.trim());
+  const n=CAT.filter(o=>sel[o.id]&&sel[o.id].on).length;
+  L.push('','共選用 **'+n+'** 項功能模組。流程順序：匯入 → 讀取原始資料 → 解析與清洗 → 篩選 → 排版 → 匯出。','');
+  const optBlock=o=>{
+    const s=sel[o.id]||{};L.push('- **'+o.label+'**');
+    L.push('  - 做法：'+o.how);
+    if(s.note&&s.note.trim())L.push('  - 本工具的指定：'+s.note.trim().replace(/\n/g,'；'));
+    if(opt.pit!==false&&o.pit)L.push('  - 注意：'+o.pit);
+    if(opt.ref!==false)refText(o).forEach(r=>L.push('  - 參考實作：'+r));
+  };
+  const rows=S.src.filter(r=>(r.name||'').trim());
+  let no=0;const H=t=>{no++;L.push('## '+no+'. '+t,'')};
+  const z=chosen('z');if(z.length){H('共通規範');z.forEach(optBlock);L.push('')}
+  if(rows.length){H('資料來源（輸入檔）');
+    L.push('| 名稱 | 檔案型態 | 必要表頭（辨識用） | 去重 key | 備註 |','|---|---|---|---|---|');
+    rows.forEach(r=>L.push('| '+[r.name,r.kind,r.heads,r.key,r.note].map(v=>String(v||'').replace(/\|/g,'／').replace(/\n/g,' ')).join(' | ')+' |'));L.push('')}
+  for(const st of ['a','b','c','d','e','f']){
+    const c=chosen(st),S0=STAGES.find(x=>x.id===st);
+    const extra=(st==='c'&&S.rules.trim())||(st==='e'&&S.kpi.trim())||(st==='f'&&S.cols.trim());
+    if(!c.length&&!extra)continue;
+    H(S0.name+'（'+S0.hint+'）');c.forEach(optBlock);
+    if(st==='c'&&S.rules.trim())L.push('','**業務規則（使用者明定，不可擅改）**','',S.rules.trim());
+    if(st==='e'&&S.kpi.trim())L.push('','**畫面內容與統計口徑**','',S.kpi.trim());
+    if(st==='f'&&S.cols.trim())L.push('','**輸出欄位／報表內容**','',S.cols.trim());
+    L.push('');
+  }
+  if(S.pits.trim()){H('額外踩坑提醒');L.push(S.pits.trim(),'')}
+  const all=CAT.filter(o=>sel[o.id]&&sel[o.id].on);
+  if(all.length){H('驗收清單');all.forEach(o=>L.push('- [ ] '+o.label));L.push('')}
+  if(opt.header!==false){H('檔頭註解範本（貼在 HTML 最上方）');
+    L.push('```html','<!--','版本紀錄（只記在這裡，不放在網頁畫面上；改版時在最下面加一行，並同步更新各處版號）','V01 初版：'+(P.purpose||'（填寫）').split('\n')[0].slice(0,60),'-->','<!DOCTYPE html>','<!--','================================================================',(P.name||'工具名稱')+'｜開發紀錄（給後續 AI 助手／維護者先讀這一段）','現行版本：'+(P.ver||'V01'),'改版必做：版號多處一起改——①檔名 ②<title> ③畫面標題 ④程式 const VER ⑤版本紀錄註解 ⑥本註解','================================================================','【用途】'+(P.purpose||'').split('\n')[0],'【輸入】'+(rows.length?rows.map(r=>r.name).join('、'):'（填寫）'),'【使用者明定的規則（不可擅改）】','【畫面】','【匯出】','【踩過的坑】','【驗證方式】','【未決／可做】','================================================================','-->','```','')}
+  return L.join('\n');
+}
+// ==/CORE==
+if(typeof module!=='undefined')module.exports={CAT,STAGES,analyzeHtml,buildSpec,CATBY};
+
+/* ================= 介面 ================= */
+const VER='v04',LS='tool-spec-builder-v01'; /* LS 刻意沿用 v01，讓使用者在 v01 存在瀏覽器裡的勾選不會消失 */
+const SIZE={p:'約 157 KB',x:'約 1.4 MB（內含 SheetJS、Chart.js、html2canvas）',q:'約 1.2 MB（含兩份內嵌 Worker 程式）',s:'約 2.1 MB（約 2.5 萬行）',r:'約 460 KB（另需 shared/ 資料夾）',v:'約 340 KB（另需 shared/ 資料夾）'};
+const BUILTIN={
+p:{tool:TOOLS.p,purpose:'督導／營業處檢核業務員打卡異常。單檔、純前端，檔案只在瀏覽器內計算、不上傳。',libs:'SheetJS 0.18.5、JSZip 3.10.1、html2canvas 1.4.1（cdnjs 外連）',flow:{
+ a:'三個上傳區（工作規劃／打卡異常／營業所對照〔選填〕），可拖曳、選檔、選資料夾，分次累加、個別移除，頁面任何位置也能丟檔。放錯區會依表頭自動歸位（判斷順序固定為工作規劃→打卡異常→對照表）；辨識不出來的檔案不採用，並列出它的表頭。另有「下載區間」捷徑，直接開來源系統的匯出頁。',
+ b:'SheetJS 讀 .xlsx／.xls／.csv（CSV 以 UTF-8 解碼，dense 模式處理大檔）。每個檔案掃所有分頁，在前 15 列找出含必要表頭的那一列，取「欄位吻合且列數最多」的分頁，之後每列轉成 {表頭: 值} 物件。解析結果以「檔名｜大小｜修改時間」快取。',
+ c:'以工作規劃為本體，打卡異常只取其日期區間。打卡時間只有時分秒，與日期欄合併；Excel 序號以 UTC 換算。打卡異常的離站／到站時間，以「人員＋時間（±1 秒）」回工作規劃取店碼，對不上整筆排除。analyze() 同日同人依時間排序，判出時間性、衛星訊號、空間性三類樣態，量販／即飲的逾四小時改列備查。營業所依「打卡異常檔→使用者→客戶資料→處本部」補齊。各樣態「≤ N 筆排除」與公里門檻可即時調整。',
+ d:'營業處→營業所→業務員連動下拉＋搜尋框；KPI 卡片點選要看的樣態；從人員彙總或店家排行點進逐筆明細，工具列出現「← 返回」（Esc 同效）。營業處固定順序：北部、桃處、臺中、嘉義、臺南、高雄、花蓮。',
+ e:'工具列分三群（篩選｜檢視｜輸出）；五種檢視：人員彙總、逐筆明細、店家排行、備查事項、原始資料。KPI 卡片分組（時間性／衛星訊號／空間性／備查事項）。米黃淺色系、不做深色；內建 📖 說明書。',
+ f:'匯出對話框：格式（PDF／靜態 HTML／Excel）× 份數（整份／一處／一所／一人一份，多份打包 ZIP）× 排序 × 異常樣態 × 對象樹（處→所→人）。Excel 預設 4 個結果分頁，可加原始資料分頁；PDF 用 Canvas 逐頁畫、自組 PDF，不需連網；另有 📸 截圖。'}},
+x:{tool:TOOLS.x,purpose:'全聯 18 天商品的訂單與業務調查分析：總覽、同期比較、交叉分析、樣態追蹤。單檔、純前端、資料存在瀏覽器。',libs:'SheetJS、Chart.js 4.4.1、html2canvas 1.4.1（全部內嵌，離線可開）',flow:{
+ a:'拖曳或選檔（xlsx／csv／txt／gz／json，含大型 Excel），先「掃描辨識」成清單（檔案×工作表×類型×列數），勾選的項目才匯入。Chrome／Edge 可記住資料夾，一鍵重新掃描只匯入新檔。資料存進瀏覽器 IndexedDB，重開不必重匯；另有備份／還原。',
+ b:'辨識階段只讀前 8 列（sheetRows:8），確定要匯入才讀整檔。分隔文字自動判斷 Tab 或逗號並處理引號；編碼依 BOM、UTF-16、UTF-8 順序判斷，失敗退 Big5；.gz 用 DecompressionStream 解壓。欄位依表頭名稱（含別名）取得，不靠位置。',
+ c:'依表頭辨識六類：SAP 18天訂單（原始）、已整理訂單、業務王調查（原始）、已整理調查、客戶管理主檔、衍生報表（略過）。訂單只取「本單狀態＝3」、指定 18 天品項、排除大全聯，下單量換算成箱。調查日加上權變值推出預計訂單日，同店同預計訂單日只留最後一筆。主檔只取店家型態「全聯社」，客戶等級 S 視為主訪。合併進資料庫後，rebuild() 把訂單與調查對回主檔，對不上的歸「(未對應)」；樣態追蹤再把調查與訂單互相對照出狀態。',
+ d:'全域篩選：年度 chips、月份區間、比較方式（同期截止／整月全部）、截止日、營業處→營業所→負責訪員連動、營業狀態。每個分頁各自記住篩選。點表格數字或圖表長條可下鑽到明細（覆蓋層，Esc 關閉）。',
+ e:'五個分頁：總覽、同期比較、交叉分析、樣態追蹤、資料管理；資料沒備妥時分頁鎖定。KPI 卡＋Chart.js 圖表＋可排序表格（小計／總計、樹狀展開、顯示全部）；表格用 spec（欄位＋列）描述，畫面與匯出共用。交叉分析是樞紐表。暖灰白＋古銅金淺色系。',
+ f:'每張表可匯出 Excel／CSV（依欄位類型套 #,##0、0.0% 格式；CSV 含 BOM）；📷 截圖複製到剪貼簿（含框選）；「匯出靜態副本」把網頁連同壓縮資料內嵌成一個離線可開的 HTML；下載資料備份（gzip JSON）。'}}};
+const SRC_SAMPLE={
+p:[{name:'工作規劃（工作管理／工作列表匯出）',kind:'.csv／.xlsx',heads:'打卡時間、工作完成日期、店家代碼',key:'工作ID',note:'多分頁取欄位吻合且列數最多者；另有「通路」開頭欄、含「型態」的欄'},
+ {name:'打卡異常報表',kind:'.csv／.xlsx',heads:'打卡時間、打卡地址(GPS)',key:'執行人員｜日期｜打卡時間｜類型｜店家',note:'打卡時間只有時分秒，要與「日期」合併；錯誤距離單位為公里'},
+ {name:'營業所/課對照（使用者檔或客戶資料檔，選填）',kind:'.csv／.xlsx',heads:'營業所/課，且含 人員名稱 或 執行人員',key:'',note:'客戶資料同一人多個所時取筆數最多者；優先序：打卡異常檔自帶→使用者→客戶資料→處本部'}],
+x:[{name:'SAP 18天訂單（原始匯出）',kind:'.xlsx／.csv／.txt',heads:'TTL出貨單號、訂單日期、ZTSD906-ZOMNG',key:'',note:'只取本單狀態＝3、指定品項、排除大全聯；下單量換算成箱'},
+ {name:'已整理的訂單表',kind:'.xlsx／.csv',heads:'TTL出貨單號、訂單日期、下單量(箱) 或 出量貨(箱)',key:'',note:''},
+ {name:'業務王「全聯巡補」調查（原始匯出）',kind:'.xlsx／.csv',heads:'回報時間、店家代碼、18天調查 或 業務員',key:'店家代碼＋預計訂單日',note:'預計訂單日＝調查日＋權變值；同店同預計訂單日只留最後一筆'},
+ {name:'已整理的調查表',kind:'.xlsx／.csv',heads:'預計訂單日期、18天銷售情形',key:'',note:''},
+ {name:'客戶管理／店家主檔',kind:'.xlsx／.csv',heads:'店家代碼、營業處名稱 或 負責訪員、營業所/課 或 營業所',key:'店家代碼',note:'只取店家型態＝全聯社；客戶等級 S＝主訪（無主訪／重複主訪另標）'},
+ {name:'衍生報表（辨識後略過）',kind:'.xlsx／.csv',heads:'TTL出貨單號、訂單日期、間隔天數',key:'',note:'不匯入'}]};
+
+BUILTIN.q={tool:TOOLS.q,purpose:'把問卷 xlsx（含貼在儲存格裡的現場照片）攤成卡片瀏覽，抓出「同一張照片被重複拿來交差」的情形，並產出查核報告。單檔、純前端，資料只在瀏覽器內處理。',libs:'JSZip 3.10.1、SheetJS 0.18.5（cdnjs 外連）；匯出 PPTX 時才臨時從 jsDelivr 載入 PptxGenJS',flow:{
+ a:'把問卷 .xlsx 丟進來（可一次多份、可再追加檔案或照片，也能拖曳）。第一列當欄名，其餘每列是一筆回覆。另可下載「店家名冊」範本，填好再匯入。',
+ b:'資料用 SheetJS 讀；照片要另外處理——xlsx 其實是個壓縮包，用 JSZip 打開，從圖片區「貼在第幾列」對回那一筆資料。大檔先瘦身再讀，並開多個 Web Worker 平行處理；雙層標題會攤平成單列欄名。',
+ c:'三件事。①照片對回資料：先要求「店家型態＋店家＋業務員」完全吻合，再比日期，依序用打卡時間、回報時間、月份，每層日期都要逐字相同，不做前後幾天的容錯。②重複照片檢測：每張照片縮小後算特徵，找出完全相同、裁切縮放、疑似同場景三種，再分「跨店異日／跨店同日／同店異日」；拿不準的降級成「疑似」請人看，誤判可標記排除。③名冊勾稽：用店家代碼比對，標出哪些店已完成、哪些還沒。',
+ d:'搜尋框（比對所有欄位）；營業處、營業所、業務員篩選，業務員可複選，取消勾選就是排除某人（例如主管）；重複照片可依樣態與判定依據篩選。',
+ e:'卡片＋縮圖清單，點開看大圖與完整答案，可畫筆／圓圈／箭頭標註；重複照片有「縮圖分組」與「總覽表格」兩種看法。報告頁可直接改文字、有復原與自動草稿；右側浮動名冊，點名字跳到該員明細。',
+ f:'匯出 Excel（一律含全部樣態）、名冊勾稽結果 xlsx；「照片重複使用查核報告」可列印／另存 PDF 或存成 HTML 檔，輸出前先選範圍（整份／依營業處／依營業所／依個人，還能勾名冊）；另有問卷報告、PPTX、靜態版。'}};
+BUILTIN.s={tool:TOOLS.s,purpose:'督導主管追蹤外勤人員在五種通路（CVS／連鎖超市／傳統／量販／即飲）的訪店、查核、巡補進度與達成率。把整個資料夾拖進來，就算出戰情看板、訪員日誌、各種稽核與匯出報表。',libs:'SheetJS（cdn.sheetjs.com）、Leaflet 1.9.4（unpkg）外連；匯出 ZIP 時另用 JSZip',flow:{
+ a:'整個資料夾拖進來，依「檔名」分流：含「工作管理」「客戶資料」「打卡異常」的，開頭是 cardtime（刷卡）、attendance（請假）的，還有全聯18天、傳統業績各自的專屬檔。年月讀資料夾名 YYYYMM。選填檔必須和主檔同一次拖入，因為每次匯入都先清空全部資料。',
+ b:'SheetJS 讀 xlsx／xls，CSV 自己解析（處理引號、BOM、全形空白），多個檔案平行讀。SAP 匯出常是「叫 .xls 的 UTF-16 文字檔」，靠內容判斷真實格式。大表格先畫 200 列，其餘捲到才補。',
+ c:'匯入後統一整理：排除總公司、APP 未讀、無店碼；去重得到有效店家；判定每家店的主要訪員（等級「-」無主訪、「S」且當月不只一人為重複主訪、其餘為執行人員本人）；CVS 達成有專屬規則（「-」不扣分、累積兩個月沒查才算未達成）；刷卡與請假依人員＋日期對進時段圖。稽核另有自己的樣態判定、GPS 偏移、勞逸比、預估負荷。每次匯入資料版本號加一，所有快取靠它判斷是否過期。',
+ d:'一排排 CHIP 逐層收合（年→月→營業處→營業所→訪員），KPI 卡片可點；營業處固定順序北部→桃園→臺中→嘉義→臺南→高雄→花蓮；戰情看板可往下鑽。',
+ e:'戰情看板（達成統計／進度總覽）、五通路逐店明細、📆每日執行檢視、業務員日誌七頁籤（KPI／時段圖／路線圖／店家分布／開工收工・臨時點／拜訪明細／月曆）、全聯18天與傳統業績整頁儀表板、各種稽核視窗、地圖。大功能開成覆蓋整頁；畫面文字只用名詞對照表的現行名稱。',
+ f:'「📄 匯出報表」是共用引擎：PDF／HTML／ZIP，選份數與對象；另有 Excel、CSV、截圖、LINE 名冊文字、郵件、同步 Google 試算表、另存靜態 HTML。'}};
+SRC_SAMPLE.q=[{name:'問卷回覆（含照片）',kind:'.xlsx（可多份）',heads:'第一列欄名；固定欄含 店家型態、店家、店家代碼、業務員、營業處、營業所/課、打卡時間、回報時間、月份',key:'店家型態＋店家＋業務員＋日期',note:'照片須「置於儲存格內」，用 JSZip 讀 xl/media；日期比對依序：打卡時間→回報時間→月份'},
+ {name:'店家名冊（使用者填寫，選填）',kind:'.xlsx',heads:'店家代碼',key:'店家代碼',note:'由工具下載範本；用來比對每家店有沒有完成問卷'}];
+SRC_SAMPLE.s=[{name:'工作管理（逐筆打卡）',kind:'.csv／.xlsx／.xls',heads:'業務員（姓名-員編）、店家代碼、打卡時間、工作完成日期、營業處',key:'',note:'檔名含「工作管理」；不依通路過濾，只排除 APP未讀／總公司／無店碼'},
+ {name:'客戶資料（店家清單）',kind:'.csv／.xlsx／.xls',heads:'店家代碼、店家型態、營業處名稱、營業所/課、客戶等級、執行人員、緯度、經度',key:'店家代碼',note:'檔名含「客戶資料」；年月讀資料夾名 YYYYMM'},
+ {name:'打卡異常（選填）',kind:'.csv／.xlsx／.xls',heads:'日期、類型、打卡時間、錯誤距離、打卡地址(GPS)',key:'',note:'檔名含「打卡異常」；須與工作管理同次拖入；臨時點的店名含「臨時」'},
+ {name:'卡鐘刷卡（選填）',kind:'.xls／.xlsx／.csv',heads:'',key:'',note:'檔名以 cardtime 開頭；補充時段圖的午休／刷卡'},
+ {name:'請假（選填）',kind:'.xls',heads:'服務單位、請假人員編、請假人員、填單人員、假別、假勤起日、假勤迄日、假單狀況、事由',key:'',note:'檔名以 attendance 開頭；欄 A～I'},
+ {name:'全聯18天曆年購值／全聯SAP／傳統客戶曆年購值（選填）',kind:'.xlsm／.xlsx／.xls／.csv',heads:'',key:'',note:'各有專屬檔名，與主檔同一個拖入口、互不排斥'}];
+
+BUILTIN.r={tool:TOOLS.r,purpose:'節慶專案的「巡補頻次」看板：依店家等級算每週應該去幾次，對照實際去了幾次，算達成率；超過的另計「超額」。資料全部從 Google 試算表線上讀，看板只負責顯示。',libs:'沒有外部程式庫；但要載入同資料夾的 shared/*.js（8 支）與 shared/dashboard-common.css，所以不是真正的單檔',flow:{
+ a:'沒有上傳檔案。網址帶 ?sheetId=，進站先讀試算表的「看版設定」分頁（檔期、等級次數、通路判斷、必訪規則、問卷分頁），讀不到就中止，不用殘缺設定硬跑；再讀「店家名冊」「處理層」（每列一筆巡補紀錄），以及選用的「工讀排班」「等級覆寫」。頁首有簡單的登入檢查。',
+ b:'用 fetch 呼叫 Google 試算表的 gviz 介面拿 JSON，把欄名當 key 轉成每列一個物件。看版設定是「多個小表由上到下排」，程式自己掃出每個區塊。',
+ c:'通路、等級、檔期都由設定分頁決定，不寫死。每週應達次數＝等級對照；實際次數＝同店同天只算 1 次；已達＝取兩者較小，超過的算超額，超額不進達成率、也不跨店外溢。檔期每 7 天一週，最後一週不足 7 天要折算（最少 1 次），也可設「不折算」。必訪星期規則與次數標準兩項都過才算達標。折算週時用「分組縮減門檻」：整組達標，個別沒去的店不算欠，但只改彙總、不改單店格子。工讀排班只取店代碼＋日期併進同一份紀錄。訪員姓名尾端的「-員編」讀入時就去掉。設定有問題的列由「設定診斷」分級列出。',
+ d:'檔期、通路＋等級、營業處、營業所（選了營業處才出現）、關鍵字；另有四顆可同時開的開關：進行中未達標、已逾期未達標、超額、必訪未達。',
+ e:'營業處執行狀況總覽表＋各檔期×通路卡片，點格子帶篩選進主表格；主表格一列一店，每週固定 7 格（藍＝應達內、橘＝超額），格子有四種互斥標籤；點店看逐筆時間軸與問卷內容；另有訪員貢獻度排行、人次估算工具、手機版店卡。',
+ f:'目前篩選結果可匯出 CSV、LINE 全文／精簡文字、截圖；另有照片牆、逐題彙整、細項匯出（多由 shared 檔案提供，我沒拿到那些檔）。'}};
+BUILTIN.v={tool:TOOLS.v,purpose:'店家陳列／上架「有沒有」的覆蓋率看板：統計各處所有幾家店「已有」、幾家「已知無」、幾家還沒填，可看週／月／自訂區間與趨勢。資料同樣從 Google 試算表線上讀。',libs:'沒有外部程式庫；載入同資料夾 shared/*.js 與 dashboard-common.css（不是單檔）；趨勢圖是手繪 SVG',flow:{
+ a:'沒有上傳檔案。網址帶 ?sheetId=；啟動順序：「覆蓋分組設定」（新格式）與舊格式管理表同時發請求，新格式優先→讀「專案管理」取專案名稱與資料分頁→讀主資料與問卷分頁。頁首有簡單登入檢查，並預先連線 docs.google.com 加速。',
+ b:'同樣走 gviz。最大的坑：gviz 依整欄大多數內容推斷型別，日期欄的表頭文字會被丟成空值（欄名漏收），數字欄裡的文字值也會丟。所以用 headers=0 自己找表頭，必要時二次請求把文字補回，且回填要照原始列序。',
+ c:'設定決定哪些欄位算「B 群（已有）」「C 群（已知無）」「未填寫」「待確認」。拜訪紀錄對回欄位有兩種表頭命名：與主表欄名完全相同，或「大題_選項」格式（先用前綴鎖定大題、再比選項文字）。對不到的歸「待確認」並跳警示，而不是算成 0%。本期還沒走完的資料標成未完成期。',
+ d:'燈號（B／C／未填寫／待確認）各自開關；時間範圍週／月／自訂區間，可上一期、下一期、回本期、看全部；營業處等層級篩選與快速導覽。',
+ e:'覆蓋率卡片（可層層往下鑽）、店家明細 Dialog（拜訪時間軸、照片牆、逐題彙整）、整頁趨勢圖（週執行率／累計達成／每週新增／各處所比較，未走完的本期用虛線與空心點）、彙整看板 6 分頁。長按提示、手機版面、多層固定列。',
+ f:'各層級可 LINE 分享文字、CSV、截圖複製到剪貼簿；彙整看板的「細項匯出」可跨 B／C 桶勾選子欄位、即時看符合家數再輸出。'}};
+SRC_SAMPLE.r=[{name:'看版設定（試算表分頁）',kind:'Google 試算表分頁（多個小表由上到下）',heads:'【檔期】【等級對照】【通路設定】【必訪規則】【問卷分頁】【基本設定】',key:'',note:'至少要有【檔期】【等級對照】；區塊內欄位順序不能動，錯了不報錯只塞錯欄'},
+ {name:'店家名冊（母體）',kind:'Google 試算表分頁',heads:'營業處名稱、營業所-課、主要訪員、通路別、店家型態、店家代碼、店家名稱、店家等級',key:'店家代碼',note:'店家等級須與等級對照完全一致（含全形字），否則判為「等級未知」'},
+ {name:'處理層（每列一筆巡補紀錄）',kind:'Google 試算表分頁（後端整理）',heads:'來源分頁+行數、店家代碼、通路別、執行人員、巡補日期',key:'店家代碼＋巡補日期（同店同天算 1 次）',note:'巡補日期須為日期格式；週次由看板依檔期換算，不存在表裡'},
+ {name:'工讀排班（選填）',kind:'Google 試算表分頁（外部維護）',heads:'店家代碼、日期（其餘欄只供人工比對）',key:'',note:'日期須為日期格式；對不到名冊的列只進設定診斷'},
+ {name:'等級覆寫（選填）',kind:'Google 試算表分頁',heads:'店家代碼、檔期覆寫、週、等級覆寫',key:'',note:'週留白＝該檔期所有週；刪掉該列即恢復原狀'}];
+SRC_SAMPLE.v=[{name:'覆蓋分組設定（新格式）',kind:'Google 試算表分頁（縱向列）',heads:'B 群標題與欄位、C 群標題與欄位、未知群組',key:'',note:'B／C 數量不受限；讀不到才退回舊格式「覆蓋率型專案管理」'},
+ {name:'專案管理（管理表）',kind:'Google 試算表分頁',heads:'專案名稱、專案ID、資料分頁、同步時間欄位',key:'sheetId',note:'管理表的 ID 寫死在程式裡'},
+ {name:'主資料（店家名冊）',kind:'Google 試算表分頁',heads:'依專案設定的 B／C 欄位',key:'店家代碼',note:'C 群欄位請設純文字，否則 gviz 可能丟掉文字值'},
+ {name:'問卷分頁',kind:'Google 試算表分頁',heads:'店家代碼、月份、打卡時間、回報時間、「大題_選項」欄位',key:'店家代碼',note:'日期欄會讓表頭文字被 gviz 丟掉，需 headers=0＋二次請求'}];
+
+const $=(s,e=document)=>e.querySelector(s);
+function h(t,a,...k){const e=document.createElement(t);if(a!=null&&(typeof a!=='object'||a.nodeType||Array.isArray(a))){k.unshift(a);a={}}for(const x in(a||{})){const v=a[x];if(v==null||v===false)continue;if(x==='class')e.className=v;else if(x.startsWith('on'))e.addEventListener(x.slice(2),v);else e.setAttribute(x,v===true?'':v)}k.flat(Infinity).forEach(c=>{if(c==null||c===false)return;e.append(c.nodeType?c:document.createTextNode(c))});return e}
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('on'),2200)}
+function dl(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
+const safe=s=>String(s||'').replace(/[\\/:*?"<>|]/g,'_').trim();
+const kb=n=>n>1048576?(n/1048576).toFixed(1)+' MB':Math.round(n/1024)+' KB';
+
+let S=fresh(),UP=[];
+function fresh(){const wz={};const sel={};for(const o of CAT)if(o.def)sel[o.id]={on:1,note:''};return{proj:{name:'',ver:'V01',purpose:'',users:''},src:[],wz,sel,rules:'',kpi:'',cols:'',pits:''}}
+function save(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}}
+function restore(){try{const j=JSON.parse(localStorage.getItem(LS)||'null');if(j&&j.sel)S=Object.assign(fresh(),j)}catch(e){}}
+const isOn=id=>S.sel[id]&&S.sel[id].on;
+function setOn(id,on){const s=S.sel[id]||(S.sel[id]={on:0,note:''});s.on=on?1:0}
+
+/* ---- 分頁 ---- */
+const TABS=[['wz','🧭 開始：回答問題'],['out','產出需求書'],['pick','進階：逐項勾選'],['an','進階：解析現有工具']];
+function goTab(id){
+  TABS.forEach(([k])=>{$('#p-'+k).classList.toggle('on',k===id);$('#tb-'+k).classList.toggle('on',k===id)});
+  if(id==='wz')renderWz();if(id==='pick')renderPick();if(id==='out')renderOut();window.scrollTo(0,0)}
+function navH(){document.documentElement.style.setProperty('--navh',($('#tabs').offsetHeight||50)+'px')}
+function buildTabs(){const n=$('#tabs');TABS.forEach(([k,t])=>n.append(h('button',{id:'tb-'+k,onclick:()=>goTab(k)},t)))}
+
+/* ================= ① 解析 ================= */
+function stageRowsBuiltin(flow){return STAGES.filter(s=>s.id!=='z').map(s=>h('div',{class:'frow'},h('div',{class:'fk'},s.name),h('div',{class:'fv'},flow[s.id])))}
+function builtinCard(k){
+  const b=BUILTIN[k];
+  return h('article',{class:'card'},h('h3',{},b.tool.name,h('small',{},b.tool.ver+'　'+SIZE[k])),h('div',{class:'meta'},b.purpose),h('div',{class:'meta'},'程式庫：'+b.libs),
+    stageRowsBuiltin(b.flow),
+    h('div',{class:'cardfoot'},h('button',{class:'btn pri',onclick:()=>{applyPreset(k);toast('已套用「'+b.tool.name+'」的整套做法')}},'採用這支的做法'),
+      h('button',{class:'btn',onclick:()=>{S.src=SRC_SAMPLE[k].map(r=>({...r}));save();toast('已帶入 '+SRC_SAMPLE[k].length+' 個資料來源')}},'帶入它的資料來源')))}
+function uploadCard(u,i){
+  const ids=Object.keys(u.feats),det=st=>CAT.filter(o=>o.st===st&&u.feats[o.id]);
+  const rows=STAGES.map(s=>{const d=det(s.id);return h('div',{class:'frow'},h('div',{class:'fk'},s.name),h('div',{class:'fv'},d.length?d.map(o=>h('span',{class:'tag',title:o.how},o.label.replace(/（.*?）/g,''))):h('span',{class:'empty'},'沒偵測到')))});
+  const libs=u.libs.length?u.libs.map(l=>l.n+(l.v?' '+l.v:'')+'（'+l.how+'）').join('、'):'沒有外部程式庫';
+  const c=u.ctl;
+  return h('article',{class:'card'},h('h3',{},u.name,h('small',{},kb(u.size)+'；自有程式約 '+kb(u.ownSize)+'；函式 '+u.fnCount+' 個')),
+    h('div',{class:'meta'},'程式庫：'+libs),
+    h('div',{class:'meta'},'控制項：下拉 '+c.select+'、日期 '+c.date+'、搜尋 '+c.search+'、數字 '+c.number+'、核取 '+c.checkbox+'、選項 '+c.radio+'、檔案 '+c.file+'、按鈕 '+c.button+(u.tabs.length?'；分頁：'+u.tabs.join('／'):'')),
+    rows,
+    u.exportWords.length?h('div',{class:'meta',style:'margin-top:6px'},'輸出相關字樣：'+u.exportWords.join('、')):null,
+    u.cols.length?h('details',{class:'sub'},h('summary',{},'程式讀取的欄位名稱（'+u.cols.length+'）'),h('div',{style:'margin-top:6px'},u.cols.map(([n,c])=>h('span',{class:'tag'},n+(c>1?' ×'+c:''))))):null,
+    u.pits.length?h('details',{class:'sub'},h('summary',{},'開發者記下的踩坑（'+u.pits.length+'）'),h('pre',{},u.pits.map(p=>'• '+p).join('\n'))):null,
+    u.notes.length?h('details',{class:'sub'},h('summary',{},'檔頭開發註解（'+u.notes.length+' 段）'),u.notes.map(n=>h('pre',{},n.text.slice(0,7000)+(n.text.length>7000?'\n…（已截斷）':'')))):null,
+    h('div',{class:'cardfoot'},
+      h('button',{class:'btn pri',onclick:()=>{ids.forEach(id=>setOn(id,1));save();goTab('pick');toast('已勾選偵測到的 '+ids.length+' 項')}},'採用偵測到的 '+ids.length+' 項'),
+      u.cols.length?h('button',{class:'btn',onclick:()=>{S.src.push({name:u.name.replace(/\.html?$/i,'')+' 讀取的欄位',kind:'',heads:u.cols.slice(0,14).map(x=>x[0]).join('、'),key:'',note:'由程式碼偵測，請核對'});save();toast('已加入資料來源表')}},'欄位名稱 → 資料來源'):null,
+      u.pits.length?h('button',{class:'btn',onclick:()=>{S.pits+=(S.pits?'\n':'')+u.pits.map(p=>'- '+p).join('\n');save();toast('已收進踩坑提醒')}},'踩坑 → 需求書'):null,
+      h('button',{class:'btn',onclick:()=>{UP.splice(i,1);renderAnalyze()}},'移除')))}
+let ONLY_DIFF=false;
+function matrixTable(){
+  const only=ONLY_DIFF;
+  const head=h('tr',{},h('th',{class:'l'},'功能'),TK.map(k=>h('th',{},TOOLS[k].short)),UP.map(u=>h('th',{title:u.name},u.name.length>12?u.name.slice(0,11)+'…':u.name)));
+  const tb=h('tbody');const cols=TK.length+UP.length;
+  for(const s of STAGES){
+    const list=stageOpts(s.id).filter(o=>!only||o.src.length<TK.length);
+    if(!list.length)continue;
+    tb.append(h('tr',{class:'st'},h('td',{colspan:cols+1},s.name)));
+    for(const o of list){
+      const d=h('tr',{class:'d',hidden:true},h('td',{colspan:cols+1},h('div',{},h('b','做法　'),o.how),o.pit?h('div',{style:'color:var(--warn)'},h('b','注意　'),o.pit):null,refText(o).map(r=>h('div',{class:'mut'},'參考：'+r))));
+      const mark=ok=>h('td',{class:ok?'y':'n'},ok?'✓':'—');
+      const r=h('tr',{class:'r',onclick:()=>{d.hidden=!d.hidden}},h('td',{class:'l'},o.label),TK.map(k=>mark(o.src.includes(k))),UP.map(u=>u.feats[o.id]?h('td',{class:'y'},'✓',h('span',{class:'mut'},u.feats[o.id]>1?' ×'+u.feats[o.id]:'')):h('td',{class:'n'},o.det?'—':'？')));
+      tb.append(r,d);
+    }
+  }
+  return h('div',{class:'tblwrap'},h('table',{class:'m'},h('thead',{},head),tb));
+}
+function renderAnalyze(){
+  const p=$('#p-an');p.innerHTML='';
+  const drop=h('div',{class:'drop',tabindex:'0',role:'button',onclick:()=>$('#htmlIn').click(),onkeydown:e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('#htmlIn').click()}}},h('b',{},'把其他工具的 .html 丟到這裡，或點選檔案'),h('span',{},'可一次丟多個；自動偵測它用了哪些匯入、讀取、解析、篩選、排版、匯出做法'));
+  ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over')}));
+  ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over')}));
+  drop.addEventListener('drop',e=>{const fs=[...e.dataTransfer.files];addHtml(fs)});
+  p.append(h('h2',{},'內建解析',h('small',{},'已讀過原始碼整理，可直接當範本')),
+    h('p',{class:'lead'},'六支工具的做法已拆成六個階段。想沿用哪一支的整套做法，按「採用這支的做法」，之後到 ② 再增減。'),
+    h('div',{class:'cards'},TK.map(builtinCard)),
+    h('h2',{},'解析你的其他工具'),drop);
+  if(UP.length)p.append(h('div',{class:'cards',style:'margin-top:14px'},UP.map(uploadCard)),h('p',{class:'lead',style:'margin-top:8px'},'偵測是依程式文字特徵推測，請人工確認。'));
+  p.append(h('h2',{},'功能對照表',h('small',{},'點任一列看做法、注意事項與參考函式')),
+    h('label',{class:'mut',style:'display:flex;gap:6px;align-items:center;margin-bottom:8px'},h('input',{type:'checkbox',id:'onlyDiff',checked:ONLY_DIFF,onchange:e=>{ONLY_DIFF=e.target.checked;const w=$('#mx');w.innerHTML='';w.append(matrixTable())}}),'只看六支內建工具之間有差異的功能'),
+    h('div',{id:'mx'},matrixTable()),
+    h('p',{class:'mut'},'✓＝有　—＝沒有　？＝這項沒有可偵測的文字特徵，上傳檔無法自動判斷，請自行確認。'));
+}
+async function addHtml(files){
+  let n=0;
+  for(const f of files){
+    if(!/\.html?$/i.test(f.name)){toast('只能解析 .html 檔：'+f.name);continue}
+    toast('解析中：'+f.name);await new Promise(r=>setTimeout(r,30));
+    try{const t=await f.text();const a=analyzeHtml(t,f.name);const i=UP.findIndex(u=>u.name===f.name);if(i>=0)UP[i]=a;else UP.push(a);n++}catch(e){toast('讀取失敗：'+f.name)}
+  }
+  if(n){renderAnalyze();toast('已解析 '+n+' 個檔案')}
+}
+
+/* ================= ② 指定需求 ================= */
+function applyPreset(kind){
+  S.sel={};
+  for(const o of CAT){const on=kind==='none'?0:kind==='z'?o.def:kind==='all'?1:o.src.includes(kind);S.sel[o.id]={on:on?1:0,note:''}}
+  save();goTab('pick')}
+function stageCount(st){const l=stageOpts(st);return [l.filter(o=>isOn(o.id)).length,l.length]}
+function stripItems(){return[['sec-proj','基本資料',null],['sec-src','資料來源',null],['sec-z','共通規範','z'],...STAGES.filter(s=>s.id!=='z').map((s,i)=>['sec-'+s.id,s.name,s.id,i+1]),['sec-end','其他提醒',null]]}
+function updateStrip(){
+  const ul=$('#strip');if(!ul)return;ul.innerHTML='';
+  for(const [id,name,st,no] of stripItems()){
+    let ct='',on=false;
+    if(st){const [a,b]=stageCount(st);ct=a+'/'+b;on=a>0}
+    else if(id==='sec-proj'){on=!!S.proj.name.trim();ct=on?'已填':'未填'}
+    else if(id==='sec-src'){on=S.src.some(r=>(r.name||'').trim());ct=S.src.filter(r=>(r.name||'').trim()).length+' 個'}
+    else{on=!!S.pits.trim();ct=on?'已填':'選填'}
+    ul.append(h('li',{},h('button',{class:on?'on':'',onclick:()=>{const e=document.getElementById(id);if(e)e.scrollIntoView({behavior:'smooth',block:'start'})}},h('span',{class:'dot'},no||'·'),h('span',{class:'nm'},name),h('span',{class:'ct'},ct))));
+  }
+}
+function field(label,get,set,o){o=o||{};
+  const el=o.area?h('textarea',{placeholder:o.ph||'',rows:o.rows||3}):h('input',{type:'text',placeholder:o.ph||''});
+  el.value=get();el.addEventListener('input',()=>{set(el.value);save();updateStrip()});
+  return h('label',{class:o.wide?'wide':''},label,el)}
+const BADGE={p:['打卡',''],x:['18天','x'],q:['問卷','q'],s:['督導','s'],r:['巡補','r'],v:['覆蓋','v']};
+function badgeFor(o){const b=[];for(const k of TK)if(o.src.includes(k))b.push(h('span',{class:'src '+BADGE[k][1],title:TOOLS[k].name},BADGE[k][0]));UP.forEach(u=>{if(u.feats[o.id])b.push(h('span',{class:'src u',title:'上傳：'+u.name},'上傳'))});return b}
+function optEl(o){
+  const s=S.sel[o.id]||(S.sel[o.id]={on:0,note:''});
+  const cb=h('input',{type:'checkbox',id:'o_'+o.id});cb.checked=!!s.on;
+  const note=h('input',{type:'text',class:'note',placeholder:'補充指定（選填）：欄位、數量、特殊規則…',value:s.note||''});
+  note.addEventListener('input',()=>{S.sel[o.id].note=note.value;save()});
+  const rf=refText(o);
+  const card=h('div',{class:'opt'+(s.on?' on':'')},cb,h('div',{},h('label',{class:'ol',for:'o_'+o.id},o.label,badgeFor(o)),
+    h('details',{},h('summary',{},'做法與注意'),h('div',{class:'dt'},h('p',{},h('b','做法　'),o.how),o.pit?h('p',{class:'pit'},h('b','注意　'),o.pit):null,rf.map(r=>h('p',{class:'mut'},'參考：'+r)))),note));
+  cb.addEventListener('change',()=>{setOn(o.id,cb.checked);card.classList.toggle('on',cb.checked);save();updateStrip()});
+  return card}
+function srcTable(){
+  const wrap=h('div');
+  const draw=()=>{wrap.innerHTML='';
+    if(!S.src.length)wrap.append(h('p',{class:'empty'},'還沒有資料來源。每一種要匯入的檔案填一列，或帶入內建工具的範例。'));
+    else{const t=h('table',{class:'src'},h('thead',{},h('tr',{},['名稱','檔案型態','必要表頭（辨識用）','去重 key','備註',''].map(x=>h('th',{},x)))));const tb=h('tbody');
+      S.src.forEach((r,i)=>{const cell=k=>{const e=h('input',{type:'text'});e.value=r[k]||'';e.addEventListener('input',()=>{r[k]=e.value;save();updateStrip()});return h('td',{},e)};
+        tb.append(h('tr',{},cell('name'),cell('kind'),cell('heads'),cell('key'),cell('note'),h('td',{},h('button',{class:'btn sm',title:'刪除這一列',onclick:()=>{S.src.splice(i,1);save();draw();updateStrip()}},'✕'))))});
+      t.append(tb);wrap.append(h('div',{class:'tblwrap'},t))}
+    wrap.append(h('div',{class:'cardfoot'},h('button',{class:'btn',onclick:()=>{S.src.push({name:'',kind:'',heads:'',key:'',note:''});save();draw()}},'新增一列'),
+      h('button',{class:'btn',onclick:()=>{S.src.push(...SRC_SAMPLE.p.map(r=>({...r})));save();draw();updateStrip()}},'帶入打卡工具的來源'),
+      h('button',{class:'btn',onclick:()=>{S.src.push(...SRC_SAMPLE.x.map(r=>({...r})));save();draw();updateStrip()}},'帶入18天工具的來源'),
+      h('button',{class:'btn',onclick:()=>{S.src.push(...SRC_SAMPLE.q.map(r=>({...r})));save();draw();updateStrip()}},'帶入問卷工具的來源'),
+      h('button',{class:'btn',onclick:()=>{S.src.push(...SRC_SAMPLE.s.map(r=>({...r})));save();draw();updateStrip()}},'帶入督導系統的來源'),
+      h('button',{class:'btn',onclick:()=>{S.src.push(...SRC_SAMPLE.r.map(r=>({...r})));save();draw();updateStrip()}},'帶入巡補看板的來源'),
+      h('button',{class:'btn',onclick:()=>{S.src.push(...SRC_SAMPLE.v.map(r=>({...r})));save();draw();updateStrip()}},'帶入覆蓋率看板的來源')))};
+  draw();return wrap}
+function renderPick(){
+  const p=$('#p-pick');p.innerHTML='';
+  p.append(h('ol',{class:'pipe',id:'strip'}));
+  p.append(h('div',{class:'cardfoot',style:'margin:0 0 6px'},h('span',{class:'mut',style:'align-self:center'},'一鍵套用：'),
+    h('button',{class:'btn',onclick:()=>applyPreset('p')},'打卡異常檢核風格'),h('button',{class:'btn',onclick:()=>applyPreset('x')},'18天銷售分析風格'),h('button',{class:'btn',onclick:()=>applyPreset('q')},'問卷照片檢視風格'),h('button',{class:'btn',onclick:()=>applyPreset('s')},'督導管理系統風格'),h('button',{class:'btn',onclick:()=>applyPreset('r')},'巡補看板風格'),h('button',{class:'btn',onclick:()=>applyPreset('v')},'覆蓋率看板風格'),h('button',{class:'btn',onclick:()=>applyPreset('all')},'全部聯集'),h('button',{class:'btn',onclick:()=>applyPreset('z')},'只留共通規範'),h('button',{class:'btn',onclick:()=>applyPreset('none')},'全部取消')));
+  p.append(h('h2',{class:'sec',id:'sec-proj'},'基本資料'),
+    h('div',{class:'card form'},field('工具名稱',()=>S.proj.name,v=>S.proj.name=v,{ph:'例：督導訪視檢核工具'}),field('版號',()=>S.proj.ver,v=>S.proj.ver=v,{ph:'V01'}),
+      field('用途（一兩句話）',()=>S.proj.purpose,v=>S.proj.purpose=v,{area:1,wide:1,ph:'這支工具要解決什麼問題？誰會看結果？'}),
+      field('使用者與使用情境',()=>S.proj.users,v=>S.proj.users=v,{area:1,wide:1,ph:'例：督導每月底開會投影用；營業處主管自行下載報表'})));
+  p.append(h('h2',{class:'sec',id:'sec-src'},'資料來源',h('small',{},'要匯入哪些檔案、怎麼認出它們')),srcTable());
+  for(const s of STAGES){
+    const no=STAGES.filter(x=>x.id!=='z').findIndex(x=>x.id===s.id)+1;
+    p.append(h('div',{class:'stbar sec',id:'sec-'+s.id},h('h2',{style:'margin-bottom:0'},(no?no+'. ':'')+s.name,h('small',{},s.hint)),h('span',{class:'grow'}),
+      h('button',{class:'btn sm',onclick:()=>{stageOpts(s.id).forEach(o=>setOn(o.id,1));save();renderPick()}},'全選'),h('button',{class:'btn sm',onclick:()=>{stageOpts(s.id).forEach(o=>setOn(o.id,0));save();renderPick()}},'全不選')));
+    p.append(h('div',{class:'opts',style:'margin-top:8px'},stageOpts(s.id).map(optEl)));
+    if(s.id==='c')p.append(h('div',{class:'card form',style:'margin-top:8px'},field('業務規則（使用者明定、不可擅改的排除與判定規則）',()=>S.rules,v=>S.rules=v,{area:1,wide:1,rows:5,ph:'例：1. 永遠排除總公司。2. 只看業務員後綴為員編者。3. …'})));
+    if(s.id==='e')p.append(h('div',{class:'card form',style:'margin-top:8px'},field('畫面內容與統計口徑（KPI 有哪些、怎麼算）',()=>S.kpi,v=>S.kpi=v,{area:1,wide:1,rows:4,ph:'例：異常打卡率＝異常打卡筆數÷打卡筆數；欄序：樣態合計｜打卡筆數｜異常筆數｜異常率'})));
+    if(s.id==='f')p.append(h('div',{class:'card form',style:'margin-top:8px'},field('輸出欄位／報表內容',()=>S.cols,v=>S.cols=v,{area:1,wide:1,rows:4,ph:'例：人員彙總頁（所小計、處小計、總計）、逐筆明細（含離站時間）、附表判定標準'})));
+  }
+  p.append(h('h2',{class:'sec',id:'sec-end'},'其他提醒',h('small',{},'踩過的坑、未決事項；選填')),
+    h('div',{class:'card form'},field('額外踩坑與提醒',()=>S.pits,v=>S.pits=v,{area:1,wide:1,rows:4,ph:'每行一則，會放進需求書。'})));
+  p.append(h('div',{class:'cardfoot',style:'margin-top:18px'},h('button',{class:'btn pri',onclick:()=>goTab('out')},'產出需求書')));
+  updateStrip();
+}
+
+/* ================= ③ 產出 ================= */
+const OPT={ref:true,pit:true,header:true};
+function renderOut(){
+  const p=$('#p-out');p.innerHTML='';
+  const n=CAT.filter(o=>isOn(o.id)).length;
+  const ta=h('textarea',{id:'md',spellcheck:'false'});
+  const gen=()=>{ta.value=buildSpec(S,OPT)};
+  const chk=(k,t)=>{const c=h('input',{type:'checkbox'});c.checked=OPT[k];c.addEventListener('change',()=>{OPT[k]=c.checked;gen()});return h('label',{},c,t)};
+  const nm=()=>safe(S.proj.name)||'工具';
+  p.append(h('h2',{style:'margin-top:4px'},'開發需求書',h('small',{},'已選 '+n+' 項功能；可直接在下方修改後再複製')),
+    h('div',{class:'outbar'},chk('ref','附參考實作'),chk('pit','附注意事項'),chk('header','附檔頭註解範本'),h('span',{style:'flex:1'}),
+      h('button',{class:'btn pri',onclick:async()=>{try{await navigator.clipboard.writeText(ta.value)}catch(e){ta.select();document.execCommand('copy')}toast('已複製需求書')}},'複製'),
+      h('button',{class:'btn',onclick:()=>dl(new Blob([ta.value],{type:'text/markdown;charset=utf-8'}),nm()+'_需求書_'+VER+'.md')},'下載 .md'),
+      h('button',{class:'btn',onclick:()=>dl(new Blob([JSON.stringify({app:'tool-spec-builder',ver:VER,S},null,1)],{type:'application/json'}),nm()+'_需求存檔_'+VER+'.json')},'存檔 .json'),
+      h('button',{class:'btn',onclick:()=>$('#jsonIn').click()},'載入 .json')),ta);
+  gen();
+}
+
+/* ================= 🧭 開始：白話問答（v04 新增） ================= */
+/* 選項格式：[id, 標題, 白話說明, 例子, 對應的功能模組 id…]；使用者只選白話選項，系統自動勾對應模組 */
+const WQ=[
+{t:'① 你的資料從哪裡來？',o:[
+['i_xl','Excel 或 CSV 檔','在工具上選檔案或直接拖進來，一次可丟好幾個，也能補丟、移除。','例：每月下載的打卡報表',['a_pick','a_multi','a_drag','b_xlsx','b_csv','b_sheets','b_header','b_rowobj','b_perf','a_report']],
+['i_auto','好幾種報表混著丟','工具自己分辨哪個檔是哪種報表，匯入前先列清單讓你確認。','例：訂單、調查、名冊一起拖進來',['a_classify','a_preview']],
+['i_dir','整個資料夾','選資料夾後自動把裡面的檔案都讀進來。','例：每月一個資料夾',['a_folder','a_period']],
+['i_keep','記住上次的資料','關掉再開不用重新匯入，也能備份、還原。','例：資料很大，不想每次重丟',['a_persist','a_backup']],
+['i_link','從系統下載','工具提供按鈕，選好日期後直接開啟系統的下載頁。','例：選 10/1～10/31 去下載報表',['a_link']],
+['i_photo','檔案裡有照片','把 Excel 裡的圖片取出來，對回那一筆資料。','例：問卷附的店頭照片',['b_photo','b_zlite','b_worker','c_photomatch']],
+['i_gs','線上 Google 試算表','進網頁時自動從試算表讀最新資料，設定改試算表即可。','例：每週更新的巡補名單',['a_sheet','a_cfgsheet','b_gviz']]]},
+{t:'② 資料讀進來後，要怎麼整理？',o:[
+['c_fmt','統一日期與文字格式','不同寫法的日期、全形半形、台／臺，都整理成一致，才算得準。','',['c_date','c_norm']],
+['c_dup','重複的只留一筆','定義怎樣算「同一筆」，重複的自動剔除。','例：同一人同一天重複打卡',['c_dedupe']],
+['c_out','先排除不要的資料','讀進來就先拿掉不需要的（例如總公司、離職人員）。','',['c_filter']],
+['c_mix','多個檔案對照合併','用一張對照表，把名稱、營業所等欄位補到明細上。','例：用員編補上營業所',['c_join']],
+['c_rule','依規則判定正常／異常','規則寫死在工具裡，門檻可以現場調整、馬上重算。','例：離客戶超過 200 公尺算異常',['c_status','c_tol']],
+['c_sum','彙總：小計與總計','依處、所、人分層加總，並顯示小計與總計。','',['c_agg']],
+['c_yoy','跟去年同期比','算出年增率，截止日可以調。','',['c_yoy']],
+['c_gps','算兩點距離（GPS）','用經緯度算打卡位置離店家有多遠。','',['c_geo']]]},
+{t:'③ 使用者要怎麼縮小範圍？',o:[
+['d_geo','依組織層層篩選','先選營業處，再選營業所，再選人員（下拉連動）。','',['d_geo','d_order']],
+['d_find','搜尋框','打幾個字就即時過濾。','',['d_search']],
+['d_dt','選日期或月份區間','可選年度、月份、比較方式。','',['d_date']],
+['d_chip','按鈕式篩選','用一排小按鈕快速切換類別。','',['d_chips']],
+['d_click','點數字卡或長條就篩選','點一下只看這一類，再點一下取消。','',['d_kpi']],
+['d_dr','點開看明細','從彙總點下去看逐筆明細，可返回。','',['d_drill']]]},
+{t:'④ 結果要長什麼樣子？',o:[
+['e_num','大數字卡片','最重要的幾個數字放最上面，差異用顏色表示。','',['e_kpi']],
+['e_tab','資料表','固定表頭、點標題排序，有小計與總計列。','',['e_table','e_spec','e_chunk','e_empty']],
+['e_tr','樹狀展開表','處 → 所 → 人，可一層層展開。','',['e_tree']],
+['e_ch','圖表','長條圖、折線圖等。','',['e_chart','e_trend']],
+['e_pv','交叉分析表','自己選列、欄、數值，像 Excel 樞紐。','',['e_pivot']],
+['e_mp','地圖','店家分布與當日拜訪路線。','',['e_map']],
+['e_tl','時段圖／月曆','一天內到店與離店時段，或一個月每天的出勤。','',['e_gantt','e_calendar']],
+['e_ph','照片牆','縮圖列表，點開看大圖並左右切換。','',['e_gallery']],
+['e_tb','分頁切換','不同角度的結果分成幾個分頁。','',['e_tabs','e_toolbar']]]},
+{t:'⑤ 結果要怎麼帶走？',o:[
+['f_xl','下載 Excel','多分頁、欄寬與數字格式都排好。','',['f_xlsx','f_name']],
+['f_cs','下載 CSV','純資料，拿去別處再加工。','',['f_csv']],
+['f_pd','PDF 或網頁報表','方便寄送、列印。','',['f_pdf','f_html']],
+['f_zp','一次出很多份（打包）','一個處一份、一個所一份、一個人一份，打包下載。','',['f_zip','f_dialog']],
+['f_sh','畫面截圖','存成圖片，或直接貼到簡報、LINE。','',['f_shot']],
+['f_pp','簡報檔（PPTX）','照片或報表自動排進簡報。','',['f_pptx']],
+['f_ln','LINE 文字','整理成一段文字，一鍵複製後貼 LINE。','',['f_line','f_detail']]]},
+{t:'⑥ 還有哪些使用情境？',o:[
+['u_pj','會拿去投影或列印','版面清楚、底色不失真，A4 可直接印。','',['e_print']],
+['u_mb','會用手機看','版面自動適應手機螢幕。','',['e_mobile']],
+['u_ed','產出後想直接修改','報表可直接改字，有復原。','',['e_edit']]]}];
+const WINTRO={p:'每月檢查業務員打卡有沒有異常（太晚、離店太遠…），產出給主管看的彙總與明細。',x:'匯入訂單與調查資料，分析 18 天檔期各營業處的業績與同期比較。',q:'匯入附照片的問卷，檢視照片、找出重複使用的照片，並輸出報告。',s:'看業務員每天的拜訪執行狀況：時段、地圖、月曆。',r:'節慶期間追蹤各店巡補次數有沒有達標，資料讀自 Google 試算表。',v:'看各店覆蓋狀況（已有／已知無／待確認），並做跨分支比較。'};
+const WIDS=new Set(WQ.flatMap(q=>q.o.flatMap(o=>o[4])));
+function wzApply(){S.wz=S.wz||{};for(const id of WIDS){const on=WQ.some(q=>q.o.some(o=>S.wz[o[0]]&&o[4].includes(id)));setOn(id,on)}save()}
+function wzFromTool(k){S.wz={};for(const q of WQ)for(const o of q.o){const n=o[4].filter(m=>CATBY[m]&&CATBY[m].src.includes(k)).length;if(n&&n*2>=o[4].length)S.wz[o[0]]=1}wzApply();renderWz();toast('已帶入「'+TOOLS[k].name+'」的做法，可以再調整')}
+function wzSample(){S.proj.name='業務員拜訪檢核工具';S.proj.purpose='每月檢查業務員有沒有按規定拜訪店家，產出給主管看的檢核報表。';S.proj.users='督導每月底開會投影；營業處主管自行下載報表。';
+ S.wz={};['i_xl','i_auto','c_fmt','c_dup','c_mix','c_rule','c_sum','d_geo','d_find','d_dt','e_num','e_tab','e_tr','f_xl','f_zp','u_pj'].forEach(i=>S.wz[i]=1);wzApply();renderWz();toast('已填入範例，照你的情況改就好')}
+function wzSummary(){const L=[],P=S.proj;L.push('【'+(P.name||'（還沒取名的工具）')+'】');if(P.purpose)L.push('用途：'+P.purpose);if(P.users)L.push('誰會用：'+P.users);
+ for(const q of WQ){const c=q.o.filter(o=>S.wz&&S.wz[o[0]]);if(c.length){L.push('',q.t.replace(/^[①-⑥] /,''));c.forEach(o=>L.push('・'+o[1]+'：'+o[2]))}}return L.join('\n')}
+function renderWz(){
+  const p=$('#p-wz');p.innerHTML='';S.wz=S.wz||{};
+  p.append(h('div',{class:'card wzhero'},h('h2',{style:'margin:0 0 6px'},'三步驟：回答問題 → 看摘要 → 交給 AI 開發'),
+    h('div',{class:'mut'},'不用懂程式。只要用白話選出「你想要的樣子」，下面會即時整理成一份你看得懂的摘要；確認沒問題，再產出給 AI 的開發需求書。'),
+    h('div',{class:'cardfoot'},h('button',{class:'btn pri',onclick:wzSample},'填入範例給我看'))));
+  const det=h('details',{class:'help',style:'margin:10px 0'},h('summary',{},'不知道要選什麼？看看我們做過的 6 支工具'));
+  det.append(h('div',{class:'wgrid'},TK.map(k=>h('div',{class:'card'},h('h3',{style:'margin:0 0 4px'},TOOLS[k].name),h('div',{class:'meta'},WINTRO[k]),
+    h('div',{class:'cardfoot'},h('button',{class:'btn',onclick:()=>wzFromTool(k)},'我想做類似的'),h('button',{class:'btn',onclick:()=>{goTab('an')}},'看詳細解析'))))));
+  p.append(det);
+  p.append(h('h2',{class:'sec'},'工具基本資料'),h('div',{class:'card form'},
+    field('工具名稱',()=>S.proj.name,v=>{S.proj.name=v;save();wzSum()},{ph:'例：業務員拜訪檢核工具'}),
+    field('用途（一兩句話）',()=>S.proj.purpose,v=>{S.proj.purpose=v;save();wzSum()},{area:1,wide:1,ph:'這支工具要解決什麼問題？誰會看結果？'}),
+    field('誰會用、在什麼情況用',()=>S.proj.users,v=>{S.proj.users=v;save();wzSum()},{area:1,wide:1,ph:'例：督導每月底開會投影'})));
+  for(const q of WQ){p.append(h('h2',{class:'sec'},q.t,h('small',{},'可複選，不需要的就不選')));
+    p.append(h('div',{class:'wgrid'},q.o.map(o=>{const c=h('input',{type:'checkbox'});c.checked=!!S.wz[o[0]];
+      c.addEventListener('change',()=>{c.checked?S.wz[o[0]]=1:delete S.wz[o[0]];wzApply();lb.classList.toggle('on',c.checked);wzSum()});
+      const lb=h('label',{class:'wopt'+(c.checked?' on':'')},c,h('span',{},h('b',{},o[1]),h('span',{class:'wd'},o[2]),o[3]?h('small',{},o[3]):null));return lb})))}
+  p.append(h('div',{class:'mut',style:'margin-top:10px'},'已自動包含基本款：單檔網頁、資料不上傳、版號管理、內建說明書、檔頭開發紀錄等，不用另外選。'));
+  p.append(h('h2',{class:'sec'},'你的工具會長這樣（白話摘要）'),h('div',{class:'card'},h('pre',{id:'wzsum',class:'wzsum'}),
+    h('div',{class:'cardfoot'},h('button',{class:'btn',onclick:()=>navigator.clipboard.writeText(wzSummary()).then(()=>toast('已複製摘要'),()=>toast('複製失敗，請手動選取'))},'複製摘要（給同事確認）'),
+      h('button',{class:'btn pri',onclick:()=>goTab('out')},'產出給 AI 的需求書 →'),h('button',{class:'btn',onclick:()=>goTab('pick')},'想逐項微調 →'))));
+  wzSum()}
+function wzSum(){const e=$('#wzsum');if(e)e.textContent=wzSummary()}
+
+/* ================= 啟動 ================= */
+function reset(){if(!confirm('要清除目前所有勾選與填寫的內容嗎？（上傳解析結果也會清掉）'))return;S=fresh();UP=[];save();renderAnalyze();goTab('wz');toast('已清除')}
+function init(){
+  $('#ver').textContent=VER;restore();navH();window.addEventListener('resize',navH);buildTabs();renderAnalyze();goTab('wz');
+  $('#btnReset').addEventListener('click',reset);
+  $('#htmlIn').addEventListener('change',e=>{addHtml([...e.target.files]);e.target.value=''});
+  $('#jsonIn').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
+    try{const j=JSON.parse(await f.text());const s=j&&j.S;if(!s||!s.sel||!s.proj)throw 0;S=Object.assign(fresh(),s);
+      for(const id of Object.keys(S.sel))if(!CATBY[id])delete S.sel[id];save();goTab('pick');toast('已載入存檔')}catch(err){toast('這不是本工具的存檔 JSON')}});
+  ['dragover','drop'].forEach(ev=>window.addEventListener(ev,e=>{if(!e.target.closest||!e.target.closest('.drop'))e.preventDefault()}));
+}
+init();
+
+</script>
+</body></html>
