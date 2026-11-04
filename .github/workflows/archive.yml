@@ -1,0 +1,15 @@
+name: Archive old versions
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 archive_old.py --apply
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git diff --cached --quiet || (git commit -m "archive old versions" && git push)
