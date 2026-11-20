@@ -310,6 +310,116 @@ h1{margin:0;font:900 64px/1 "Microsoft JhengHei",sans-serif;letter-spacing:.04em
   --f-card-bg:#fffaf0;--f-card-border:2px solid #c8961e;--f-card-shadow:0 0 0 4px #fffaf0,0 0 0 6px #3f7d3a,0 14px 26px -16px #7a3f14;--f-card-shadow-h:0 0 0 4px #fffaf0,0 0 0 6px #d9a521,0 18px 30px -14px #7a3f14;
   --f-num:rgba(200,150,30,.45);--f-v-bg:linear-gradient(135deg,#d9a521,#8a4b1f);--f-v-color:#fff;--f-go-bg:#3f7d3a;--f-go-color:#fff8e6}
 
+/* ── 延伸配色：特效顏色也跟著換（--rib 敦煌彩帶、--glz 三彩釉、--rk 枯山水波紋） ── */
+:root[data-theme="dunhuang"]{--rib:168,68,42|47,123,120|86,150,98|204,150,60}
+/* 敦煌：盛唐（預設）、北魏、西夏、飛天、九色鹿 */
+:root[data-theme="dunhuang"][data-sub="beiwei"]{--b:#8a3a22;--f-acc:#8a3a22;--f-ink:#3e1a0e;--f-sub:#6e4630;--f-title:#5e2412;
+  --f-body-bg:radial-gradient(ellipse at 20% 10%,rgba(240,215,175,.45),transparent 60%),radial-gradient(circle at 85% 80%,rgba(90,40,20,.25),transparent 50%),repeating-radial-gradient(circle at 30% 40%,rgba(80,40,20,.05) 0 2px,transparent 2px 7px),#c9a27a;
+  --f-logo-bg:#8a3a22;--f-logo-shadow:0 0 0 3px #c9a27a,0 0 0 5px #3b5a5a;--f-line:rgba(138,58,34,.5);
+  --f-card-border:3px solid #8a3a22;--f-card-shadow:inset 0 0 0 4px #e3c9a0,inset 0 0 0 6px #3b5a5a;--f-card-shadow-h:inset 0 0 0 4px #e3c9a0,inset 0 0 0 6px #3b5a5a,0 14px 26px -14px rgba(62,26,14,.7);
+  --f-v-bg:#3b5a5a;--f-go-bg:#8a3a22;--rib:138,58,34|59,90,90|60,40,30|200,160,110}
+:root[data-theme="dunhuang"][data-sub="xixia"]{--b:#3f7f5f;--f-acc:#3f7f5f;--f-ink:#24402f;--f-sub:#5a6a4a;--f-title:#2f5a45;
+  --f-body-bg:radial-gradient(ellipse at 20% 10%,rgba(250,245,220,.7),transparent 60%),radial-gradient(circle at 85% 80%,rgba(63,127,95,.2),transparent 50%),repeating-radial-gradient(circle at 30% 40%,rgba(60,90,60,.04) 0 2px,transparent 2px 7px),#d9d2b0;
+  --f-logo-bg:#3f7f5f;--f-logo-shadow:0 0 0 3px #d9d2b0,0 0 0 5px #b5553a;--f-line:rgba(63,127,95,.5);
+  --f-card-border:3px solid #3f7f5f;--f-card-shadow:inset 0 0 0 4px #ece6c8,inset 0 0 0 6px #b5553a;--f-card-shadow-h:inset 0 0 0 4px #ece6c8,inset 0 0 0 6px #b5553a,0 14px 26px -14px rgba(36,64,47,.6);
+  --f-num:rgba(63,127,95,.3);--f-v-bg:#b5553a;--f-go-bg:#3f7f5f;--rib:63,127,95|150,190,140|181,85,58|220,200,150}
+:root[data-theme="dunhuang"][data-sub="feitian"]{--b:#2f5f8f;--f-acc:#2f5f8f;--f-ink:#1f3550;--f-sub:#5a6070;--f-title:#24466b;
+  --f-body-bg:radial-gradient(ellipse at 20% 10%,rgba(255,248,230,.7),transparent 60%),radial-gradient(circle at 85% 80%,rgba(47,95,143,.18),transparent 50%),repeating-radial-gradient(circle at 30% 40%,rgba(60,70,90,.04) 0 2px,transparent 2px 7px),#e3d6b8;
+  --f-logo-bg:#2f5f8f;--f-logo-shadow:0 0 0 3px #e3d6b8,0 0 0 5px #a8442a;--f-line:rgba(47,95,143,.45);
+  --f-card-border:3px solid #2f5f8f;--f-card-shadow:inset 0 0 0 4px #efe5cc,inset 0 0 0 6px #a8442a;--f-card-shadow-h:inset 0 0 0 4px #efe5cc,inset 0 0 0 6px #a8442a,0 14px 26px -14px rgba(31,53,80,.6);
+  --f-num:rgba(47,95,143,.3);--f-v-bg:#a8442a;--f-go-bg:#2f5f8f;--rib:47,95,143|120,170,200|168,68,42|230,200,120}
+:root[data-theme="dunhuang"][data-sub="lu"]{--b:#b5553a;--f-acc:#b5553a;--f-ink:#5a2414;--f-sub:#7a4a32;--f-title:#6b2414;
+  --f-body-bg:radial-gradient(ellipse at 20% 10%,rgba(255,240,220,.6),transparent 60%),radial-gradient(circle at 85% 80%,rgba(181,85,58,.3),transparent 50%),repeating-radial-gradient(circle at 30% 40%,rgba(120,50,30,.05) 0 2px,transparent 2px 7px),#e8b48f;
+  --f-logo-bg:#fff4e0;--f-logo-color:#b5553a;--f-logo-shadow:0 0 0 3px #e8b48f,0 0 0 5px #2f7b78;--f-line:rgba(181,85,58,.5);
+  --f-card-bg:rgba(255,246,232,.95);--f-card-border:3px solid #b5553a;--f-card-shadow:inset 0 0 0 4px #f3d6bd,inset 0 0 0 6px #2f7b78;--f-card-shadow-h:inset 0 0 0 4px #f3d6bd,inset 0 0 0 6px #2f7b78,0 14px 26px -14px rgba(107,36,20,.6);
+  --f-v-bg:#2f7b78;--f-go-bg:#b5553a;--rib:255,250,240|47,123,120|86,150,98|204,150,60}
+
+:root[data-theme="sancai"]{--glz:217,165,33|63,125,58|138,75,31|236,214,160}
+/* 唐三彩：三彩（預設）、藍彩、白釉綠彩、絞胎、醬釉 */
+:root[data-theme="sancai"][data-sub="lan"]{--b:#2a4f9a;--f-acc:#2a4f9a;--f-ink:#1f3a73;--f-title:#1f3a73;
+  --f-body-bg:radial-gradient(ellipse at 10% 5%,rgba(42,79,154,.25),transparent 55%),radial-gradient(ellipse at 95% 95%,rgba(217,165,33,.3),transparent 55%),#f6ecd6;
+  --f-logo-bg:radial-gradient(circle at 35% 30%,#6f93d8,#2a4f9a 50%,#d9a521 80%,#8a4b1f);
+  --f-card-shadow:0 0 0 4px #fffaf0,0 0 0 6px #2a4f9a,0 14px 26px -16px #1f3a73;--f-card-shadow-h:0 0 0 4px #fffaf0,0 0 0 6px #d9a521,0 18px 30px -14px #1f3a73;
+  --f-v-bg:linear-gradient(135deg,#2a4f9a,#d9a521);--f-go-bg:#2a4f9a;--glz:42,79,154|217,165,33|236,214,160|138,75,31}
+:root[data-theme="sancai"][data-sub="baiyou"]{--b:#3f7d3a;--f-acc:#3f7d3a;--f-ink:#2f5e2b;--f-sub:#6a7a5a;--f-title:#2f5e2b;
+  --f-body-bg:radial-gradient(ellipse at 10% 5%,rgba(63,125,58,.18),transparent 55%),radial-gradient(ellipse at 95% 95%,rgba(120,170,100,.2),transparent 55%),#f7f3e8;
+  --f-logo-bg:radial-gradient(circle at 35% 30%,#fffdf6,#efe9d8 50%,#5f9a52 80%,#3f7d3a);--f-logo-color:#2f5e2b;--f-line:rgba(63,125,58,.45);
+  --f-card-bg:#fffdf8;--f-card-border:2px solid #b9c9a8;--f-card-shadow:0 0 0 4px #fffdf8,0 0 0 6px #3f7d3a,0 14px 26px -16px #2f5e2b;--f-card-shadow-h:0 0 0 4px #fffdf8,0 0 0 6px #7fb070,0 18px 30px -14px #2f5e2b;
+  --f-num:rgba(63,125,58,.35);--f-v-bg:#3f7d3a;--f-go-bg:#3f7d3a;--glz:63,125,58|120,170,100|240,236,220}
+:root[data-theme="sancai"][data-sub="jiaotai"]{--b:#6b3a1c;--f-acc:#6b3a1c;--f-ink:#5a2f14;--f-title:#5a2f14;
+  --f-body-bg:linear-gradient(rgba(246,236,214,.72),rgba(246,236,214,.72)),repeating-linear-gradient(115deg,#e9d9bd 0 14px,#b8875a 14px 18px,#efe3cc 18px 30px,#8a5a34 30px 33px,#e9d9bd 33px 46px);
+  --f-logo-bg:repeating-linear-gradient(115deg,#e9d9bd 0 6px,#8a5a34 6px 9px,#efe3cc 9px 14px);--f-logo-color:#5a2f14;
+  --f-card-border:2px solid #8a5a34;--f-card-shadow:0 0 0 4px #fffaf0,0 0 0 6px #b8875a,0 14px 26px -16px #5a2f14;--f-card-shadow-h:0 0 0 4px #fffaf0,0 0 0 6px #6b3a1c,0 18px 30px -14px #5a2f14;
+  --f-num:rgba(138,90,52,.4);--f-v-bg:linear-gradient(135deg,#b8875a,#6b3a1c);--f-go-bg:#6b3a1c;--glz:138,90,52|233,217,189|90,47,20}
+:root[data-theme="sancai"][data-sub="jiang"]{--b:#6e3418;--f-acc:#6e3418;--f-ink:#4a2210;--f-title:#4a2210;
+  --f-body-bg:radial-gradient(ellipse at 10% 5%,rgba(110,52,24,.22),transparent 55%),radial-gradient(ellipse at 95% 95%,rgba(217,165,33,.25),transparent 55%),#efe1c8;
+  --f-logo-bg:radial-gradient(circle at 35% 30%,#b0663a,#6e3418 60%,#3a1a0a);
+  --f-card-border:2px solid #a0602a;--f-card-shadow:0 0 0 4px #fffaf0,0 0 0 6px #6e3418,0 14px 26px -16px #4a2210;--f-card-shadow-h:0 0 0 4px #fffaf0,0 0 0 6px #d9a521,0 18px 30px -14px #4a2210;
+  --f-num:rgba(110,52,24,.35);--f-v-bg:linear-gradient(135deg,#a0602a,#4a2210);--f-go-bg:#6e3418;--glz:110,52,24|160,90,40|217,165,33}
+
+:root[data-theme="karesansui"]{--rk:150,140,118}
+/* 枯山水：白砂（預設）、苔庭、月庭、紅葉、雪庭 */
+:root[data-theme="karesansui"][data-sub="koke"]{--b:#5f7a3a;--f-acc:#5f7a3a;--f-ink:#33401f;--f-title:#3e4f26;
+  --f-body-bg:radial-gradient(ellipse 120px 70px at 90% 20%,#6f8a4a 0 55%,transparent 60%),radial-gradient(ellipse 90px 50px at 5% 85%,#6f8a4a 0 55%,transparent 60%),radial-gradient(ellipse 34px 26px at 89% 19%,#5d5b55 0 60%,transparent 62%),repeating-linear-gradient(0deg,#ece6d8 0 7px,#e0d8c6 7px 8px);
+  --f-logo-bg:radial-gradient(circle at 35% 30%,#8fa865,#4f6630);--f-go-bg:#4f6630;--f-v-color:#4f6630;--f-v-border:1px solid #8fa865;--rk:95,122,58}
+:root[data-theme="karesansui"][data-sub="tsuki"]{--b:#4f5d6b;--f-acc:#4f5d6b;--f-ink:#2f3a45;--f-sub:#5f6a75;--f-title:#2f3a45;
+  --f-body-bg:radial-gradient(circle 46px at 88% 16%,#f6f3e6 0 92%,transparent 100%),radial-gradient(ellipse 34px 26px at 6% 88%,#5d6670 0 60%,transparent 62%),repeating-linear-gradient(0deg,#dfe3e6 0 7px,#cfd5da 7px 8px);
+  --f-logo-bg:radial-gradient(circle at 35% 30%,#9aa5b0,#4f5d6b);--f-chip-bg:rgba(245,247,249,.95);--f-line:#aab3bc;
+  --f-card-bg:rgba(245,247,249,.96);--f-card-border:1px solid #aab3bc;--f-go-bg:#2f3a45;--f-v-color:#4f5d6b;--f-v-border:1px solid #8a96a2;--rk:79,93,107}
+:root[data-theme="karesansui"][data-sub="momiji"]{--b:#b5442e;--f-acc:#b5442e;--f-title:#3d3d38;
+  --f-body-bg:radial-gradient(circle 7px at 80% 30%,#c4512f 0 90%,transparent),radial-gradient(circle 5px at 86% 42%,#d9773a 0 90%,transparent),radial-gradient(circle 6px at 12% 70%,#b5442e 0 90%,transparent),radial-gradient(circle 4px at 18% 78%,#e09a3e 0 90%,transparent),radial-gradient(circle 5px at 55% 92%,#c4512f 0 90%,transparent),radial-gradient(ellipse 60px 44px at 92% 22%,#7a776f 0 60%,transparent 62%),repeating-linear-gradient(0deg,#ece6d8 0 7px,#e0d8c6 7px 8px);
+  --f-logo-bg:radial-gradient(circle at 35% 30%,#e0784a,#b5442e 60%,#7a2a1a);--f-go-bg:#b5442e;--f-v-color:#b5442e;--f-v-border:1px solid #d9775a;--rk:181,68,46}
+:root[data-theme="karesansui"][data-sub="yuki"]{--b:#4a4d52;--f-acc:#6b7380;--f-ink:#2f3237;--f-sub:#6b7380;--f-title:#2f3237;
+  --f-body-bg:radial-gradient(ellipse 60px 44px at 92% 22%,#4a4d52 0 60%,transparent 62%),radial-gradient(ellipse 60px 20px at 92% 17%,#fff 0 60%,transparent 62%),radial-gradient(ellipse 34px 26px at 6% 88%,#4a4d52 0 60%,transparent 62%),repeating-linear-gradient(0deg,#f7f8fa 0 7px,#eceff3 7px 8px);
+  --f-logo-bg:radial-gradient(circle at 35% 30%,#ffffff,#c9ced6 55%,#6b7380);--f-logo-color:#2f3237;--f-chip-bg:#fff;--f-line:#c9ced6;
+  --f-card-bg:#fff;--f-card-border:1px solid #c9ced6;--f-go-bg:#4a4d52;--f-v-color:#4a4d52;--f-v-border:1px solid #9aa1ab;--rk:150,160,175}
+
+/* 青花：永宣（預設）、元青花、成化、嘉靖、康熙、釉裡紅。--qh＝暈開的四個色 */
+:root[data-theme="qinghua"]{--qh:22,52,140|36,74,170|60,100,190|16,40,120}
+:root[data-theme="qinghua"][data-sub="yuan"]{--b:#14286b;--f-acc:#14286b;--f-ink:#14286b;--f-title:#14286b;--f-logo-bg:#14286b;--f-logo-shadow:0 0 0 3px #fbfcfd,0 0 0 4.5px #14286b;
+  --f-line:rgba(20,40,107,.4);--f-card-border:3px solid #14286b;--f-card-shadow:0 0 0 4px #fff,0 0 0 6px #14286b;--f-card-shadow-h:0 0 0 4px #fff,0 0 0 6px #14286b,0 16px 28px -14px rgba(20,40,107,.6);
+  --f-v-color:#14286b;--f-v-border:1px solid #14286b;--f-go-bg:#14286b;--qh:14,30,90|40,50,110|70,60,80|10,20,70}
+:root[data-theme="qinghua"][data-sub="chenghua"]{--b:#5a7fc0;--f-acc:#4a6fb0;--f-ink:#3f5f9f;--f-sub:#7a88a6;--f-title:#4a6fb0;--f-logo-bg:#6f92cf;--f-logo-shadow:0 0 0 3px #fbfcfd,0 0 0 4.5px #6f92cf;
+  --f-line:rgba(90,127,192,.4);--f-card-border:1px solid #6f92cf;--f-card-shadow:0 0 0 4px #fff,0 0 0 5px #a9bfe3;--f-card-shadow-h:0 0 0 4px #fff,0 0 0 5px #6f92cf,0 16px 28px -14px rgba(90,127,192,.45);
+  --f-num:rgba(90,127,192,.3);--f-v-color:#4a6fb0;--f-v-border:1px solid #6f92cf;--f-go-bg:#5a7fc0;--qh:90,127,192|130,160,215|170,195,235|70,105,170}
+:root[data-theme="qinghua"][data-sub="jiajing"]{--b:#3a2f8f;--f-acc:#3a2f8f;--f-ink:#33287f;--f-title:#33287f;--f-logo-bg:#3a2f8f;--f-logo-shadow:0 0 0 3px #fbfcfd,0 0 0 4.5px #3a2f8f;
+  --f-line:rgba(58,47,143,.4);--f-card-border:2px solid #3a2f8f;--f-card-shadow:0 0 0 4px #fff,0 0 0 5px #3a2f8f;--f-card-shadow-h:0 0 0 4px #fff,0 0 0 5px #3a2f8f,0 16px 28px -14px rgba(58,47,143,.55);
+  --f-num:rgba(58,47,143,.25);--f-v-color:#3a2f8f;--f-v-border:1px solid #3a2f8f;--f-go-bg:#3a2f8f;--qh:58,40,140|80,60,165|110,90,190|45,30,115}
+:root[data-theme="qinghua"][data-sub="kangxi"]{--b:#1f5fbf;--f-acc:#1f5fbf;--f-ink:#1a4f9f;--f-title:#1a4f9f;--f-logo-bg:#1f5fbf;--f-logo-shadow:0 0 0 3px #fbfcfd,0 0 0 4.5px #1f5fbf;
+  --f-line:rgba(31,95,191,.4);--f-card-border:2px solid #1f5fbf;--f-card-shadow:0 0 0 4px #fff,0 0 0 5px #1f5fbf;--f-card-shadow-h:0 0 0 4px #fff,0 0 0 5px #1f5fbf,0 16px 28px -14px rgba(31,95,191,.55);
+  --f-num:rgba(31,95,191,.25);--f-v-color:#1f5fbf;--f-v-border:1px solid #1f5fbf;--f-go-bg:#1f5fbf;--qh:25,85,190|50,115,215|90,150,235|20,70,165}
+:root[data-theme="qinghua"][data-sub="youlihong"]{--b:#a8322a;--f-acc:#a8322a;--f-ink:#8a2a22;--f-sub:#8a6a66;--f-title:#8a2a22;--f-logo-bg:#a8322a;--f-logo-shadow:0 0 0 3px #fdfbfa,0 0 0 4.5px #a8322a;
+  --f-body-bg:#fdfbfa url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cg fill='none' stroke='%23a8322a' stroke-opacity='.13' stroke-width='1.4'%3E%3Cpath d='M0 60 C20 30 40 30 60 60 S100 90 120 60'/%3E%3Ccircle cx='60' cy='60' r='9'/%3E%3Cpath d='M60 51 C56 44 64 44 60 51M69 60 C76 56 76 64 69 60M60 69 C64 76 56 76 60 69M51 60 C44 64 44 56 51 60'/%3E%3Cpath d='M30 38 c-6 -8 4 -12 6 -4M90 82 c6 8 -4 12 -6 4'/%3E%3C/g%3E%3C/svg%3E");
+  --f-line:rgba(168,50,42,.4);--f-card-border:2px solid #a8322a;--f-card-shadow:0 0 0 4px #fff,0 0 0 5px #a8322a;--f-card-shadow-h:0 0 0 4px #fff,0 0 0 5px #a8322a,0 16px 28px -14px rgba(168,50,42,.5);
+  --f-num:rgba(168,50,42,.25);--f-v-color:#a8322a;--f-v-border:1px solid #a8322a;--f-go-bg:#a8322a;--qh:150,40,35|175,70,60|200,110,100|120,30,28}
+
+/* 廟宇：朱紅（預設）、黑金、交趾陶、紅磚古厝、寶藍。--shd＝碎瓷片顏色 */
+:root[data-theme="miao"]{--shd:#1f9c5a|#1f4fa0|#f2c230|#e8eef2|#d23a2a|#3fb8c9}
+:root[data-theme="miao"][data-sub="heijin"]{--b:#d4a017;--f-sub:#e9d7a0;--f-title:#f0c75a;--f-title-shadow:0 3px 0 #000,0 0 24px rgba(240,199,90,.45);
+  --f-body-bg:radial-gradient(ellipse at 50% 0%,#3a2a14,#120c06 70%);
+  --f-logo-bg:#120c06;--f-logo-color:#f0c75a;--f-logo-shadow:0 0 0 2px #f0c75a,0 0 0 5px #120c06,0 0 0 6px #8a6a1a;
+  --f-card-bg:linear-gradient(180deg,#1f1810,#120c06);--f-card-border:2px solid #d4a017;--f-card-shadow:0 0 0 3px #120c06,0 0 0 4px #8a6a1a,0 10px 24px rgba(0,0,0,.5);--f-card-shadow-h:0 0 0 3px #120c06,0 0 0 4px #f0c75a,0 0 26px rgba(240,199,90,.4);
+  --f-ink:#f0c75a;--f-chip-bg:#1f1810;--f-num:rgba(240,199,90,.3);--f-v-bg:#f0c75a;--f-v-color:#120c06;--f-go-bg:#d4a017;--f-go-color:#120c06;--shd:#f0c75a|#d4a017|#fff3c4|#8a6a1a|#c0392b}
+[data-theme="miao"][data-sub="heijin"] .chip em{color:#f0c75a}
+:root[data-theme="miao"][data-sub="jiaozhi"]{--b:#2f8f5a;--f-acc:#ffe58a;--f-sub:#e2f2d8;--f-title:#ffe58a;--f-title-shadow:0 3px 0 #14402a,0 0 22px rgba(255,229,138,.4);
+  --f-body-bg:radial-gradient(ellipse at 50% 0%,#2f8f5a,#14402a 75%);
+  --f-logo-bg:#f2c230;--f-logo-color:#14402a;--f-logo-shadow:0 0 0 3px #14402a,0 0 0 5px #c0392b;
+  --f-card-bg:linear-gradient(180deg,#f7fbe8,#e6f2c8);--f-card-border:3px solid #2f8f5a;--f-card-shadow:0 0 0 3px #f2c230,0 10px 24px rgba(0,0,0,.35);--f-card-shadow-h:0 0 0 3px #f2c230,0 0 26px rgba(255,229,138,.5);
+  --f-ink:#1f5a3a;--f-chip-bg:#f7fbe8;--f-line:#2f8f5a;--f-num:rgba(47,143,90,.3);--f-v-bg:#c0392b;--f-v-color:#fff3c4;--f-go-bg:#2f8f5a;--f-go-color:#fff8d0;--shd:#2f8f5a|#7fc56a|#f2c230|#c0392b|#3fb8c9|#fff3c4}
+[data-theme="miao"][data-sub="jiaozhi"] .chip em{color:#c0392b}
+:root[data-theme="miao"][data-sub="zhuan"]{--b:#b5533a;--f-acc:#fff0d6;--f-sub:#fde3c8;--f-title:#fff0d6;--f-title-shadow:0 3px 0 #6a2414,0 0 18px rgba(0,0,0,.25);
+  --f-body-bg:linear-gradient(rgba(140,50,30,.25),rgba(140,50,30,.25)),linear-gradient(#d9c6a8 2px,transparent 2px) 0 0/48px 22px,linear-gradient(90deg,#d9c6a8 2px,transparent 2px) 0 0/48px 44px,linear-gradient(90deg,#d9c6a8 2px,transparent 2px) 24px 22px/48px 44px,#b5533a;
+  --f-logo-bg:#fff0d6;--f-logo-color:#9a3f28;--f-logo-radius:4px;--f-logo-shadow:0 0 0 3px #9a3f28,0 0 0 5px #fff0d6;
+  --f-card-bg:#fbf3e6;--f-card-border:3px solid #9a3f28;--f-card-shadow:0 0 0 3px #e7cfa8,0 10px 24px rgba(0,0,0,.3);--f-card-shadow-h:0 0 0 3px #fff0d6,0 0 24px rgba(255,240,214,.5);
+  --f-ink:#7a2e1c;--f-chip-bg:#fbf3e6;--f-line:#9a3f28;--f-num:rgba(154,63,40,.3);--f-v-bg:#9a3f28;--f-v-color:#fff0d6;--f-go-bg:#9a3f28;--f-go-color:#fff0d6;--shd:#b5533a|#d9774f|#e7cfa8|#7a2e1c|#2f6f5a}
+[data-theme="miao"][data-sub="zhuan"] .chip em{color:#9a3f28}
+:root[data-theme="miao"][data-sub="baolan"]{--b:#d4a017;--f-sub:#d8e4ff;--f-title:#ffd96a;--f-title-shadow:0 3px 0 #0e2560,0 0 22px rgba(255,217,106,.45);
+  --f-body-bg:radial-gradient(ellipse at 50% 0%,#2f63c8,#0e2560 72%);
+  --f-logo-bg:#ffd96a;--f-logo-color:#0e2560;--f-logo-shadow:0 0 0 3px #0e2560,0 0 0 5px #c0392b;
+  --f-card-shadow:0 0 0 3px #c0392b,0 10px 24px rgba(0,0,0,.4);--f-card-shadow-h:0 0 0 3px #c0392b,0 0 26px rgba(255,217,106,.55);
+  --f-ink:#0e2560;--f-v-bg:#c0392b;--f-v-color:#ffd96a;--f-go-bg:#1f4fa0;--f-go-color:#ffd96a}
+[data-theme="miao"][data-sub="baolan"] .chip em{color:#1f4fa0}
+
 /* 風格下拉選單 */
 .gsel{position:relative}
 .gmenu{position:absolute;right:0;top:34px;z-index:60;display:grid;grid-template-columns:repeat(3,auto);gap:6px;padding:10px;border-radius:12px;
@@ -373,14 +483,21 @@ var GROUPS = [
     ['', '霽藍', '#1f3d7a'], ['yanzhi', '胭脂紅', '#b8456c'], ['lemon', '檸檬黃', '#e6c229'], ['sky', '天藍', '#8fbcdc'],
     ['turq', '松石綠', '#3fb3a4'], ['coral', '珊瑚紅', '#e2674a'], ['fenqing', '粉青', '#9cc3ad'], ['qiezi', '茄皮紫', '#8a5aa6']]},
   {id:'hacker', name:'駭客', dot:'radial-gradient(circle,#00ff66 0 30%,#000 70%)', subs:[]},
-  {id:'qinghua', name:'青花', flat:1, dot:'radial-gradient(circle,#fff 0 35%,#1d3f8f 38%)', subs:[]},
-  {id:'dunhuang', name:'敦煌', flat:1, dot:'conic-gradient(#a8442a 0 33%,#2f7b78 0 66%,#e6cfa6 0)', subs:[]},
+  {id:'qinghua', name:'青花', flat:1, dot:'radial-gradient(circle,#fff 0 35%,#1d3f8f 38%)', subs:[
+    ['', '永宣', '#1d3f8f'], ['yuan', '元青花', '#14286b'], ['chenghua', '成化', '#6f92cf'], ['jiajing', '嘉靖', '#3a2f8f'], ['kangxi', '康熙', '#1f5fbf'], ['youlihong', '釉裡紅', '#a8322a']]},
+  {id:'dunhuang', name:'敦煌', flat:1, dot:'conic-gradient(#a8442a 0 33%,#2f7b78 0 66%,#e6cfa6 0)', subs:[
+    ['', '盛唐', '#a8442a'], ['beiwei', '北魏', '#8a3a22'], ['xixia', '西夏', '#3f7f5f'], ['feitian', '飛天', '#2f5f8f'], ['lu', '九色鹿', '#e8b48f']]},
   {id:'huazhuan', name:'臺灣花磚', flat:1, dot:'conic-gradient(#9fd3c0 0 25%,#f6e3a1 0 50%,#9fd3c0 0 75%,#f4b6c2 0)', subs:[]},
-  {id:'miao', name:'廟宇', flat:1, dot:'radial-gradient(circle,#ffd96a 0 35%,#c0392b 38%)', subs:[]},
-  {id:'karesansui', name:'枯山水', flat:1, dot:'repeating-linear-gradient(0deg,#ece6d8 0 2px,#a19e95 2px 3px)', subs:[]},
+  {id:'miao', name:'廟宇', flat:1, dot:'radial-gradient(circle,#ffd96a 0 35%,#c0392b 38%)', subs:[
+    ['', '朱紅', '#c0392b'], ['heijin', '黑金', 'radial-gradient(circle,#f0c75a 0 35%,#120c06 38%)'], ['jiaozhi', '交趾陶', 'linear-gradient(135deg,#2f8f5a 50%,#f2c230 50%)'],
+    ['zhuan', '紅磚古厝', '#b5533a'], ['baolan', '寶藍', 'radial-gradient(circle,#ffd96a 0 35%,#1f4fa0 38%)']]},
+  {id:'karesansui', name:'枯山水', flat:1, dot:'repeating-linear-gradient(0deg,#ece6d8 0 2px,#a19e95 2px 3px)', subs:[
+    ['', '白砂', '#ece6d8'], ['koke', '苔庭', '#6f8a4a'], ['tsuki', '月庭', '#cfd5da'], ['momiji', '紅葉', '#c4512f'], ['yuki', '雪庭', '#f7f8fa']]},
   {id:'cyber', name:'賽博龐克', flat:1, dot:'linear-gradient(135deg,#ff3ea5,#20e3ff)', subs:[]},
   {id:'bauhaus', name:'包浩斯', flat:1, dot:'conic-gradient(#e63b2e 0 33%,#f5c518 0 66%,#1f4fd1 0)', subs:[]},
-  {id:'sancai', name:'唐三彩', flat:1, dot:'conic-gradient(#d9a521 0 33%,#3f7d3a 0 66%,#8a4b1f 0)', subs:[]}
+  {id:'sancai', name:'唐三彩', flat:1, dot:'conic-gradient(#d9a521 0 33%,#3f7d3a 0 66%,#8a4b1f 0)', subs:[
+    ['', '三彩', 'conic-gradient(#d9a521 0 33%,#3f7d3a 0 66%,#8a4b1f 0)'], ['lan', '藍彩', 'linear-gradient(135deg,#2a4f9a 50%,#d9a521 50%)'],
+    ['baiyou', '白釉綠彩', 'linear-gradient(135deg,#f7f3e8 50%,#3f7d3a 50%)'], ['jiaotai', '絞胎', 'repeating-linear-gradient(115deg,#e9d9bd 0 3px,#8a5a34 3px 5px)'], ['jiang', '醬釉', '#6e3418']]}
 ];
 (function(){
   var root = document.documentElement, gbtn = document.getElementById('gbtn'), gmenu = document.getElementById('gmenu'), subRow = document.getElementById('subRow');
@@ -466,17 +583,19 @@ var GROUPS = [
   var Q=[], lastTh=null, QX=-999, QY=-999;
   function far(x,y,d){ if(Math.hypot(x-QX,y-QY)<d) return false; QX=x; QY=y; return true; }
   function cap(n){ if(Q.length>n) Q.splice(0,Q.length-n); }
+  // 從 CSS 變數讀特效用色（例：--rib: 168,68,42|47,123,120），換配色時特效顏色跟著換
+  function pal(v,d){ return (getComputedStyle(document.documentElement).getPropertyValue(v).trim()||d).split('|').map(function(s){ return s.trim(); }); }
   function clipCard(el,r){ var b=el.getBoundingClientRect(); fx.beginPath(); if(fx.roundRect) fx.roundRect(b.left,b.top,b.width,b.height,r); else fx.rect(b.left,b.top,b.width,b.height); fx.clip(); return b; }
   var FX={
     // 青花：走過的地方鈷藍暈開，邊緣有發色斑點（疊在卡片上、用相乘混色，像釉下彩）
     qinghua:{move:function(x,y){ if(!far(x,y,16)) return; Q.push({x:x+scrollX,y:y+scrollY,r:3,R:20+Math.random()*24,a:.5,dots:[0,1,2,3,4,5,6,7,8,9].map(function(){ return [Math.random()*6.28,.7+Math.random()*.5,1+Math.random()*1.6]; })}); cap(140); },
-      draw:function(){ for(var i=Q.length-1;i>=0;i--){ var p=Q[i]; p.r+=(p.R-p.r)*.07; p.a*=.99; if(p.a<.02){ Q.splice(i,1); continue; }
-        var x=p.x-scrollX, y=p.y-scrollY, g=fx.createRadialGradient(x,y,0,x,y,p.r); g.addColorStop(0,'rgba(22,52,140,'+p.a+')'); g.addColorStop(.55,'rgba(36,74,170,'+(p.a*.6)+')'); g.addColorStop(1,'rgba(60,100,190,0)');
-        fx.fillStyle=g; fx.beginPath(); fx.arc(x,y,p.r,0,7); fx.fill(); fx.fillStyle='rgba(16,40,120,'+(p.a*.8)+')';
+      draw:function(){ var q=pal('--qh','22,52,140|36,74,170|60,100,190|16,40,120'); for(var i=Q.length-1;i>=0;i--){ var p=Q[i]; p.r+=(p.R-p.r)*.07; p.a*=.99; if(p.a<.02){ Q.splice(i,1); continue; }
+        var x=p.x-scrollX, y=p.y-scrollY, g=fx.createRadialGradient(x,y,0,x,y,p.r); g.addColorStop(0,'rgba('+q[0]+','+p.a+')'); g.addColorStop(.55,'rgba('+q[1]+','+(p.a*.6)+')'); g.addColorStop(1,'rgba('+q[2]+',0)');
+        fx.fillStyle=g; fx.beginPath(); fx.arc(x,y,p.r,0,7); fx.fill(); fx.fillStyle='rgba('+q[3]+','+(p.a*.8)+')';
         p.dots.forEach(function(d){ fx.beginPath(); fx.arc(x+Math.cos(d[0])*p.r*d[1],y+Math.sin(d[0])*p.r*d[1],d[2],0,7); fx.fill(); }); } }},
     // 敦煌：沿滑鼠軌跡飄出土紅、石青、石綠、赭黃彩帶
     dunhuang:{move:function(x,y){ Q.push({x:x,y:y,life:1}); cap(60); },
-      draw:function(){ var t=performance.now()/600, cols=['168,68,42','47,123,120','86,150,98','204,150,60'];
+      draw:function(){ var t=performance.now()/600, cols=pal('--rib','168,68,42|47,123,120|86,150,98|204,150,60');
         for(var i=Q.length-1;i>=0;i--){ Q[i].life-=.012; Q[i].y+=.25; Q[i].x+=Math.sin(t+i*.4)*.4; if(Q[i].life<=0) Q.splice(i,1); }
         if(Q.length<3) return; fx.lineCap='round';
         for(var band=0;band<2;band++) for(var j=1;j<Q.length;j++){ var a=Q[j-1], b=Q[j], k=j/Q.length, off=band*7*Math.sin(t+j*.3);
@@ -494,7 +613,7 @@ var GROUPS = [
           fx.fillStyle='#f6e3a1'; fx.beginPath(); fx.arc(0,0,r*.28,0,7); fx.fill(); fx.strokeStyle='#5fa58f'; fx.lineWidth=2; fx.beginPath(); fx.arc(0,0,r*.95,0,7); fx.stroke();
           fx.fillStyle='#e8798f'; fx.beginPath(); fx.arc(0,0,r*.1,0,7); fx.fill(); fx.restore(); }); }},
     // 廟宇：灑出剪黏彩色碎瓷片，旋轉落下
-    miao:{move:function(x,y){ if(!far(x,y,8)) return; var C=['#1f9c5a','#1f4fa0','#f2c230','#e8eef2','#d23a2a','#3fb8c9'];
+    miao:{move:function(x,y){ if(!far(x,y,8)) return; var C=pal('--shd','#1f9c5a|#1f4fa0|#f2c230|#e8eef2|#d23a2a|#3fb8c9');
         for(var i=0;i<2;i++){ var n=3+Math.floor(Math.random()*2), pts=[]; for(var j=0;j<n;j++){ var an=j/n*6.28+Math.random()*.6; pts.push([Math.cos(an)*(4+Math.random()*5),Math.sin(an)*(4+Math.random()*5)]); }
           Q.push({x:x,y:y,vx:(Math.random()-.5)*3,vy:-1.5-Math.random()*2,rot:Math.random()*6,vr:(Math.random()-.5)*.3,pts:pts,c:C[Math.floor(Math.random()*C.length)],life:1}); } cap(220); },
       draw:function(){ for(var i=Q.length-1;i>=0;i--){ var p=Q[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=.12; p.rot+=p.vr; p.life-=.012; if(p.life<=0||p.y>H+20){ Q.splice(i,1); continue; }
@@ -502,9 +621,9 @@ var GROUPS = [
         fx.beginPath(); p.pts.forEach(function(q,j){ j?fx.lineTo(q[0],q[1]):fx.moveTo(q[0],q[1]); }); fx.closePath(); fx.fill(); fx.stroke(); fx.restore(); } }},
     // 枯山水：耙出三圈同心波紋
     karesansui:{move:function(x,y){ if(!far(x,y,30)) return; Q.push({x:x+scrollX,y:y+scrollY,r:4,life:1}); cap(50); },
-      draw:function(){ for(var i=Q.length-1;i>=0;i--){ var p=Q[i]; p.r+=.6; p.life-=.006; if(p.life<=0){ Q.splice(i,1); continue; }
+      draw:function(){ var rk=pal('--rk','150,140,118')[0]; for(var i=Q.length-1;i>=0;i--){ var p=Q[i]; p.r+=.6; p.life-=.006; if(p.life<=0){ Q.splice(i,1); continue; }
         for(var k=0;k<3;k++){ var rr=p.r-k*8; if(rr<=0) continue; var x=p.x-scrollX, y=p.y-scrollY;
-          fx.strokeStyle='rgba(150,140,118,'+(p.life*.55)+')'; fx.lineWidth=2; fx.beginPath(); fx.arc(x,y,rr,0,7); fx.stroke();
+          fx.strokeStyle='rgba('+rk+','+(p.life*.55)+')'; fx.lineWidth=2; fx.beginPath(); fx.arc(x,y,rr,0,7); fx.stroke();
           fx.strokeStyle='rgba(255,252,244,'+(p.life*.7)+')'; fx.lineWidth=1; fx.beginPath(); fx.arc(x,y,rr+1.5,0,7); fx.stroke(); } } }},
     // 賽博龐克：背景雨絲＋粉藍霓虹殘影（停在卡片上的訊號干擾在 CSS）
     cyber:{rain:null, move:function(x,y){ Q.push({x:x,y:y,life:1}); cap(40); },
@@ -523,8 +642,8 @@ var GROUPS = [
         if(p.sh===0) fx.arc(0,0,p.s/2,0,7); else if(p.sh===1) fx.rect(-p.s/2,-p.s/2,p.s,p.s); else { fx.moveTo(0,-p.s/2); fx.lineTo(p.s/2,p.s/2); fx.lineTo(-p.s/2,p.s/2); fx.closePath(); }
         fx.fill(); fx.restore(); } }},
     // 唐三彩：在卡片上移動，黃綠褐釉拉成長條往下流（只在那張卡片裡）
-    sancai:{move:function(x,y,card){ if(!card||!far(x,y,7)) return; var b=card.getBoundingClientRect(), C=['217,165,33','63,125,58','138,75,31','236,214,160'];
-        Q.push({el:card,x:x-b.left,y:y-b.top,w:6+Math.random()*7,len:0,vy:.3+Math.random()*.5,c:C[Math.floor(Math.random()*4)],life:1,wob:Math.random()*6}); cap(160); },
+    sancai:{move:function(x,y,card){ if(!card||!far(x,y,7)) return; var b=card.getBoundingClientRect(), C=pal('--glz','217,165,33|63,125,58|138,75,31|236,214,160');
+        Q.push({el:card,x:x-b.left,y:y-b.top,w:6+Math.random()*7,len:0,vy:.3+Math.random()*.5,c:C[Math.floor(Math.random()*C.length)],life:1,wob:Math.random()*6}); cap(160); },
       draw:function(){ for(var i=Q.length-1;i>=0;i--){ var p=Q[i]; p.len+=p.vy; p.vy*=.995; p.life-=.005; if(p.life<=0||!p.el.isConnected){ Q.splice(i,1); continue; }
         fx.save(); var b=clipCard(p.el,14); fx.globalCompositeOperation='multiply'; var x=b.left+p.x, y=b.top+p.y, sx=Math.sin(p.wob+p.len/14)*2;
         var g=fx.createLinearGradient(x,y,x,y+p.len+p.w); g.addColorStop(0,'rgba('+p.c+','+(p.life*.55)+')'); g.addColorStop(1,'rgba('+p.c+','+(p.life*.25)+')');
