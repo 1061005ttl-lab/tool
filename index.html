@@ -37,10 +37,10 @@ body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:16px/1
   background-image:linear-gradient(rgba(13,16,32,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(13,16,32,.05) 1px,transparent 1px);
   background-size:56px 56px;mask-image:radial-gradient(ellipse at 50% 0%,#000 30%,transparent 80%)}
 
-main{padding:22px 48px 56px;position:relative}
+main{padding:22px 40px 56px;position:relative}
 
 /* ── 標題區 ── */
-.hero{display:flex;flex-direction:column;align-items:flex-start;gap:16px;margin-bottom:26px}
+.hero{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px 16px;margin-bottom:26px} /* 響應式：寬度夠時風格列在大標右邊，不夠時自動換到大標下方 */
 .brand{display:flex;align-items:center;gap:22px;flex-shrink:0}
 .logo{position:relative;width:78px;height:78px;border-radius:22px;display:grid;place-items:center;flex-shrink:0;
   font:900 38px/1 "Microsoft JhengHei",sans-serif;color:#fff;
@@ -51,7 +51,7 @@ main{padding:22px 48px 56px;position:relative}
 @keyframes flow{to{background-position:200% 200%}}
 .kicker{font:700 13px/1 var(--mono);letter-spacing:.42em;color:var(--b);margin:0 0 10px;text-transform:uppercase}
 .kicker b{display:inline-block;width:28px;height:2px;background:linear-gradient(90deg,var(--a),var(--c));vertical-align:middle;margin-right:10px}
-h1{margin:0;font:900 64px/1 "Microsoft JhengHei",sans-serif;letter-spacing:.04em;white-space:nowrap;
+h1{margin:0;font:900 56px/1 "Microsoft JhengHei",sans-serif;letter-spacing:.04em;white-space:nowrap;
   background:linear-gradient(100deg,var(--ink) 20%,var(--b) 45%,var(--c) 55%,var(--ink) 80%);background-size:250% 100%;
   -webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 7s linear infinite}
 @keyframes shine{from{background-position:120% 0}to{background-position:-130% 0}}
@@ -66,7 +66,11 @@ h1{margin:0;font:900 64px/1 "Microsoft JhengHei",sans-serif;letter-spacing:.04em
 .note{font-size:14px;color:var(--sub);margin:12px 0 0}
 
 /* ── 風格／選色切換：兩排固定高度，換風格時版面不跳 ── */
-.picker{display:flex;flex-direction:column;align-items:flex-start;gap:6px} /* 風格一整排攤開、下面一排是這個風格的配色（換風格時自動換） */
+.picker{display:flex;flex-direction:column;align-items:flex-end;gap:8px} /* 放在大標右邊：風格一排、下面一排是這個風格的配色（換風格時自動換） */
+.picker .prow{gap:4px;flex-wrap:wrap;justify-content:flex-end;height:auto;min-height:28px;row-gap:6px}
+.hero .picker .pbtn{padding:0 7px;gap:5px;font:600 12px/1 "Microsoft JhengHei",sans-serif;letter-spacing:0} /* 按鈕字型固定，各主題寬度一致，換主題時版面不跳 */
+.picker .pbtn i{width:10px;height:10px}
+.picker .subwrap{width:0;min-width:100%;justify-content:flex-end;flex-wrap:nowrap} /* 配色排不撐寬：寬度跟風格排一樣 */
 .prow{display:flex;gap:6px;align-items:center;height:28px;white-space:nowrap}
 .plabel{font:700 12px/1 "Microsoft JhengHei",sans-serif;letter-spacing:.15em;color:var(--sub);margin-right:4px;width:36px;flex-shrink:0}
 .pbtn{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:999px;cursor:pointer;
@@ -80,7 +84,7 @@ h1{margin:0;font:900 64px/1 "Microsoft JhengHei",sans-serif;letter-spacing:.04em
 /* ── 卡片 ── */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:22px}
 .card{--mx:50%;--my:50%;position:relative;isolation:isolate;display:flex;flex-direction:column;min-height:140px;
-  padding:22px 22px 18px;border-radius:20px;cursor:pointer;overflow:hidden;
+  padding:22px 18px 18px;border-radius:20px;cursor:pointer;overflow:hidden;
   background:rgba(255,255,255,.72);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.9);
   box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 10px 30px -18px rgba(13,16,32,.45);
   transition:box-shadow .25s;animation:rise .6s cubic-bezier(.2,.8,.2,1) both}
@@ -144,7 +148,7 @@ h1{margin:0;font:900 64px/1 "Microsoft JhengHei",sans-serif;letter-spacing:.04em
 [data-theme="hacker"] .card .sweep{background:linear-gradient(180deg,transparent 40%,rgba(var(--hkr),.18) 50%,transparent 60%);transform:translateY(-120%)}
 [data-theme="hacker"] .card:hover .sweep{transform:translateY(120%)}
 [data-theme="hacker"] .t{color:var(--hk);text-shadow:0 0 6px rgba(var(--hkr),.6)}
-[data-theme="hacker"] .t .tn::before{content:"> ";opacity:.7}
+
 [data-theme="hacker"] .v{background:transparent;color:var(--hk);border:1px solid var(--hk)}
 [data-theme="hacker"] .btn{background:#000;color:var(--hk);border-color:rgba(var(--hkr),.5);font-family:var(--mono)}
 [data-theme="hacker"] .btn:hover{color:#000;background:var(--hk);border-color:var(--hk)}
@@ -169,7 +173,7 @@ h1{margin:0;font:900 64px/1 "Microsoft JhengHei",sans-serif;letter-spacing:.04em
 .shan .s1{fill:rgba(var(--cel),.22)}.shan .s2{fill:rgba(var(--inkr),.14)}.shan .s3{fill:rgba(var(--inkr),.10)}.shan .sun{fill:var(--b);opacity:.5}
 [data-theme="song"] .kicker{font-family:var(--serif);color:var(--sub)}
 [data-theme="song"] .kicker b{background:var(--b);height:1px}
-[data-theme="song"] h1{font:700 64px/1 var(--serif);letter-spacing:.28em;background:none;color:var(--ink);-webkit-text-fill-color:var(--ink);animation:none}
+[data-theme="song"] h1{font:700 56px/1 var(--serif);letter-spacing:.08em;background:none;color:var(--ink);-webkit-text-fill-color:var(--ink);animation:none}
 [data-theme="song"] .logo{background:var(--b);border-radius:6px;font-family:var(--serif);color:rgb(var(--paper));box-shadow:none;animation:none;
   outline:2px solid var(--b);outline-offset:3px}
 [data-theme="song"] .logo::after,[data-theme="yong"] .logo::after{display:none}
@@ -208,7 +212,7 @@ h1{margin:0;font:900 64px/1 "Microsoft JhengHei",sans-serif;letter-spacing:.04em
 [data-theme="yong"] .hero{margin-bottom:0;padding-bottom:16px;border-bottom:10px solid transparent;border-image:var(--huiwen) 0 0 10 0 round}
 [data-theme="yong"] .kicker{font-family:var(--serif);color:var(--gold)}
 [data-theme="yong"] .kicker b{background:var(--gold);height:1px}
-[data-theme="yong"] h1{font:700 64px/1 var(--serif);letter-spacing:.24em;animation:none;
+[data-theme="yong"] h1{font:700 56px/1 var(--serif);letter-spacing:.08em;animation:none;
   background:linear-gradient(180deg,var(--m1),var(--m) 60%,var(--m2));-webkit-background-clip:text;background-clip:text;color:transparent}
 [data-theme="yong"] .logo{border-radius:50%;font-family:var(--serif);color:#fff8e6;animation:none;
   background:radial-gradient(circle at 35% 30%,var(--x1),var(--x) 60%,var(--x2));box-shadow:0 0 0 3px var(--bg),0 0 0 4.5px var(--gold),0 10px 24px -10px var(--x2)}
@@ -234,7 +238,7 @@ h1{margin:0;font:900 64px/1 "Microsoft JhengHei",sans-serif;letter-spacing:.04em
 [data-flat] body{font-family:var(--f-font);background:var(--f-body-bg);background-attachment:fixed}
 [data-flat] .kicker{font-family:var(--f-font);color:var(--f-acc)}
 [data-flat] .kicker b{background:var(--f-acc);height:2px}
-[data-flat] h1{font:700 64px/1 var(--f-font);letter-spacing:var(--f-ls,.2em);background:none;color:var(--f-title);-webkit-text-fill-color:var(--f-title);animation:none;text-shadow:var(--f-title-shadow,none)}
+[data-flat] h1{font:700 56px/1 var(--f-font);letter-spacing:var(--f-ls,.2em);background:none;color:var(--f-title);-webkit-text-fill-color:var(--f-title);animation:none;text-shadow:var(--f-title-shadow,none)}
 [data-flat] .logo{background:var(--f-logo-bg);color:var(--f-logo-color);border-radius:var(--f-logo-radius,8px);box-shadow:var(--f-logo-shadow,none);animation:none;font-family:var(--f-font)}
 [data-flat] .logo::after,[data-flat] .card::before,[data-flat] .card::after,[data-flat] .card .sweep,[data-flat] .corner{display:none}
 [data-flat] .chip,[data-flat] .pbtn{background:var(--f-chip-bg);border-color:var(--f-line);color:var(--f-ink);border-radius:var(--f-radius-s);box-shadow:none;font-family:var(--f-font)}
@@ -271,7 +275,7 @@ h1{margin:0;font:900 64px/1 "Microsoft JhengHei",sans-serif;letter-spacing:.04em
   --f-body-bg:linear-gradient(rgba(255,252,244,.62),rgba(255,252,244,.62)),radial-gradient(circle at 50% 50%,var(--h2) 0 9px,#fff 9px 12px,transparent 12px) 0 0/60px 60px,conic-gradient(from 45deg at 50% 50%,var(--h4) 0 25%,var(--h3) 0 50%,var(--h4) 0 75%,var(--h3) 0) 0 0/60px 60px;
   --f-logo-bg:var(--h1);--f-logo-color:#fff;--f-logo-radius:4px;--f-logo-shadow:inset 0 0 0 4px var(--h2);
   --f-chip-bg:#fffaf0;--f-line:color-mix(in srgb,var(--h1) 55%,transparent);--f-radius:4px;--f-radius-s:4px;
-  --f-card-bg:#fffaf0;--f-card-border:6px solid var(--h1);--f-card-shadow:inset 0 0 0 3px var(--h2);--f-card-shadow-h:inset 0 0 0 3px var(--h2),0 14px 26px -14px color-mix(in srgb,var(--hink) 60%,transparent);
+  --f-card-bg:#fffaf0;--f-card-border:4px solid var(--h1);--f-card-shadow:inset 0 0 0 3px var(--h2);--f-card-shadow-h:inset 0 0 0 3px var(--h2),0 14px 26px -14px color-mix(in srgb,var(--hink) 60%,transparent);
   --f-num:color-mix(in srgb,var(--h1) 40%,transparent);--f-v-bg:var(--h2);--f-v-color:var(--hink2);--f-go-bg:var(--h1);--f-go-color:#fff}
 /* 臺灣花磚的幾種色：粉綠（預設）、藍白、赭黃、紫藤、朱綠 */
 :root[data-theme="huazhuan"][data-sub="lan"]{--h1:#3f78b5;--h2:#ffffff;--h3:#dcebf7;--h4:#8fbbe0;--h5:#3f78b5;--hink:#234a73;--hink2:#234a73}
@@ -287,7 +291,7 @@ h1{margin:0;font:900 64px/1 "Microsoft JhengHei",sans-serif;letter-spacing:.04em
   --f-num:rgba(143,29,22,.25);--f-v-bg:#1f4fa0;--f-v-color:#ffd96a;--f-go-bg:#8f1d16;--f-go-color:#ffd96a}
 [data-theme="miao"] .chip em{color:#8f1d16}
 /* 枯山水：白砂耙紋、灰石 */
-:root[data-theme="karesansui"]{--b:#5d5b55;--f-font:var(--serifF);--f-acc:#5d5b55;--f-ink:#3d3d38;--f-sub:#6d6a60;--f-title:#3d3d38;--f-ls:.3em;
+:root[data-theme="karesansui"]{--b:#5d5b55;--f-font:var(--serifF);--f-acc:#5d5b55;--f-ink:#3d3d38;--f-sub:#6d6a60;--f-title:#3d3d38;--f-ls:.2em;
   --f-body-bg:radial-gradient(ellipse 60px 44px at 92% 22%,#7a776f 0 60%,transparent 62%),radial-gradient(ellipse 34px 26px at 6% 88%,#7a776f 0 60%,transparent 62%),repeating-linear-gradient(0deg,#ece6d8 0 7px,#e0d8c6 7px 8px);
   --f-logo-bg:radial-gradient(circle at 35% 30%,#a19e95,#5d5b55);--f-logo-color:#f3efe6;--f-logo-radius:50%;
   --f-chip-bg:rgba(250,248,242,.95);--f-line:#b9b3a4;--f-radius:2px;--f-radius-s:2px;
@@ -503,6 +507,11 @@ h1{margin:0;font:900 64px/1 "Microsoft JhengHei",sans-serif;letter-spacing:.04em
   transition:opacity .5s,background-position 1.2s ease}
 [data-theme="sancai"] .card:hover .sweep{opacity:1;background-position:-20% 0,0 0,0 0,0 0}
 
+/* 大標、小字標語、「訪」字：所有主題同一種字型和字距，只換顏色（使用者 2026-11-20：換主題時不要跳來跳去） */
+.hero h1{font:900 56px/1 "Microsoft JhengHei","PingFang TC",sans-serif!important;letter-spacing:.06em!important}
+.hero .kicker{font:700 13px/1 var(--mono)!important;letter-spacing:.42em!important}
+.hero .logo{font:900 38px/1 "Microsoft JhengHei","PingFang TC",sans-serif!important}
+.card .t{font:800 20px/1.4 "Microsoft JhengHei","PingFang TC",sans-serif!important;letter-spacing:0!important}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -529,8 +538,8 @@ h1{margin:0;font:900 64px/1 "Microsoft JhengHei",sans-serif;letter-spacing:.04em
       </div>
     </div>
     <div class="picker">
-      <div class="prow" id="grpRow"><span class="plabel">風格</span></div>
-      <div class="prow"><span class="plabel">配色</span><span id="subRow" class="prow"></span></div>
+      <div class="prow" id="grpRow"></div>
+      <div class="prow subwrap"><span class="plabel">配色</span><span id="subRow" class="prow"></span></div>
     </div>
   </header>
   <div class="grid" id="main"></div>
