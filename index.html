@@ -490,7 +490,8 @@ h1{margin:0;font:900 56px/1 "Microsoft JhengHei",sans-serif;letter-spacing:.04em
   -webkit-mask:radial-gradient(circle at 100% 100%,#000 0 70px,transparent 96px);mask:radial-gradient(circle at 100% 100%,#000 0 70px,transparent 96px)}
 /* 賽博龐克：霓虹框閃爍、掃描線 */
 @keyframes neon{0%,100%{box-shadow:0 0 28px rgba(var(--cy1r),.55),inset 0 0 18px rgba(var(--cy2r),.25)}45%{box-shadow:0 0 10px rgba(var(--cy1r),.2),inset 0 0 6px rgba(var(--cy2r),.1)}50%{box-shadow:0 0 34px rgba(var(--cy2r),.7),inset 0 0 22px rgba(var(--cy1r),.3)}}
-[data-theme="cyber"] .card:hover{animation:neon 1.4s steps(6) infinite}
+/* 保留進場的 rise 在第一個：原本只寫 neon，滑鼠移開時 rise 會重播，卡片閃一下又從下面滑進來 */
+[data-theme="cyber"] .card:hover{animation:rise .6s cubic-bezier(.2,.8,.2,1) both,neon 1.4s steps(6) infinite}
 [data-theme="cyber"] .card .sweep{display:block;background:repeating-linear-gradient(0deg,rgba(var(--cy2r),.07) 0 2px,transparent 2px 4px)}
 /* 包浩斯：右上角跳出紅圓、黃三角、藍方塊 */
 [data-theme="bauhaus"] .card .sweep{display:block;transform:scale(.6);transform-origin:100% 0;
