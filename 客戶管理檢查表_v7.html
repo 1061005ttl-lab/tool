@@ -1,0 +1,801 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>客戶檢查表</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<style>
+/* Layout: 單欄作業台。匯入列 → 固定頁籤＋進度 → 目前頁籤的修正清單（每家店一張卡片）。米黃色系。 */
+:root{
+  color-scheme:light;
+  --bg:#fbf7ea; --surface:#fffdf6; --surface2:#f4ecd6; --ink:#3d3629; --muted:#7a705a; --line:#e9e0c6;
+  --accent:#4d7a6a; --accent-ink:#fffdf6; --accent-soft:#eef2dc;
+  --ok:#4a7a30; --ok-bg:#e8f0cf; --warn:#9a5d12; --warn-bg:#faeac4; --err:#b0432f; --err-bg:#f8dfd3;
+  --font-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+html{background:var(--bg)}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.6;padding-block:22px 60px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:30}
+.wrap{max-width:none;margin:0;display:flex;flex-direction:column;gap:14px;min-width:0}
+h1{font-size:1.5rem;line-height:1.25;margin:0;font-weight:700;text-wrap:balance}
+h2{font-size:1.15rem;margin:0;font-weight:700}
+h3{font-size:1rem;margin:18px 0 8px}
+header p{margin:4px 0 0;color:var(--muted);max-width:66ch}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.muted{color:var(--muted)} .mono{font-family:var(--font-mono)}
+.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;border:2px dashed var(--line);border-radius:14px;background:var(--surface);padding:30px 20px;cursor:pointer;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop svg{width:36px;height:36px;color:var(--accent)} .drop strong{font-size:1.05rem} .drop span{color:var(--muted);font-size:.9rem}
+.drop.compact{flex-direction:row;justify-content:space-between;padding:12px 16px;text-align:left;gap:12px;flex-wrap:wrap}
+.drop.compact svg{display:none}
+.meta{display:flex;flex-wrap:wrap;gap:4px 20px;align-items:baseline;min-width:0}
+.meta b{font-family:var(--font-mono);font-weight:500}.meta .fname{font-weight:700;overflow-wrap:anywhere}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 14px;font-weight:500}
+.btn:hover:not(:disabled){border-color:var(--accent)} .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover:not(:disabled){filter:brightness(1.1)} .btn:disabled{opacity:.45;cursor:not-allowed} .btn.sm{padding:3px 10px;font-size:.85rem} .btn.lg{padding:10px 20px;font-size:1rem}
+.status{color:var(--muted);font-size:.9rem} .status.err{color:var(--err);background:var(--err-bg);padding:10px 14px;border-radius:8px}
+.intro{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.intro h2{margin-bottom:8px;font-size:1rem}
+/* 固定頁籤與進度 */
+.sticky{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);padding-top:6px}
+.tabs{display:flex;gap:2px;overflow-x:auto;border-bottom:2px solid var(--line);scrollbar-width:thin}
+.tab{border:0;background:transparent;padding:9px 13px 8px;white-space:nowrap;border-bottom:3px solid transparent;margin-bottom:-2px;font-weight:500;color:var(--muted);display:flex;gap:6px;align-items:center}
+.tab:hover{color:var(--ink)} .tab.on{color:var(--ink);border-bottom-color:var(--accent);font-weight:700;background:var(--surface)}
+.bd{font-family:var(--font-mono);font-size:.74rem;padding:0 7px;border-radius:99px;line-height:1.5}
+.bd.warn{background:var(--warn-bg);color:var(--warn)} .bd.ok{background:var(--ok-bg);color:var(--ok)}
+.prog{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:center;padding:7px 2px;font-size:.88rem;color:var(--muted)}
+.prog b{color:var(--ink);font-family:var(--font-mono);font-weight:500}
+.bar{flex:1 1 120px;min-width:90px;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .25s}
+#pane{scroll-margin-top:120px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;min-width:0;padding-bottom:6px}
+.phead{padding:16px 18px 6px} .phead h2 .cnt{font-size:.85rem;font-weight:500;color:var(--muted);margin-left:10px}
+.right{margin:6px 0 0;color:var(--muted);font-size:.9rem;max-width:90ch} .right b{color:var(--ink)}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:10px 18px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-top:8px}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:transparent;padding:5px 12px;font-size:.86rem;border-right:1px solid var(--line)} .seg button:last-child{border-right:0}
+.seg button.on{background:var(--accent);color:var(--accent-ink)}
+.in{font:inherit;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);min-width:0}
+.toolbar .in{width:min(240px,100%)} input.in.mono{font-family:var(--font-mono)}
+.bulk{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 18px;background:var(--accent-soft);font-size:.9rem}
+#list{display:flex;flex-direction:column;gap:12px;padding:14px 18px 6px}
+.gc{border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:12px 14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.gc[data-status="done"]{border-color:var(--ok)} .gc[data-status="skip"]{opacity:.7}
+.gc-head{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline}
+.gc-head .sel{align-self:center} .gc-title{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;min-width:0}
+.gc-title strong{overflow-wrap:anywhere} .code{font-size:.85rem;color:var(--muted);overflow-wrap:anywhere}
+.gc-meta{color:var(--muted);font-size:.84rem;flex:1 1 200px;min-width:0} .gc-meta .rows{margin-left:10px;font-family:var(--font-mono)}
+.gc-issue{color:var(--warn);font-size:.9rem;font-weight:500}
+.chip{font-size:.75rem;font-weight:700;padding:1px 9px;border-radius:99px;white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok)} .chip.warn{background:var(--warn-bg);color:var(--warn)} .chip.mute{background:var(--surface2);color:var(--muted)} .chip.sm{font-size:.68rem;padding:0 7px}
+.tbl{overflow-x:auto;max-width:100%} .tbl.tall{max-height:64vh;overflow:auto}
+table{border-collapse:collapse;width:100%;font-size:.86rem}
+th,td{padding:6px 11px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{background:var(--surface2);font-weight:700;position:sticky;top:0}
+.num{text-align:right;font-family:var(--font-mono)} th.num{font-family:var(--font-body)}
+tr.sub td{background:var(--surface2);font-weight:700}
+.lt td{padding:5px 11px} .lv{font-family:var(--font-mono);font-weight:700;padding:0 8px;border-radius:5px;background:var(--surface2)}
+.lv.s{background:var(--ok-bg);color:var(--ok)} .lv.a{background:var(--err-bg);color:var(--err)} .chg{margin-left:8px;font-size:.72rem;color:var(--warn);font-weight:700}
+.flds{display:flex;flex-wrap:wrap;gap:12px} .fld{display:flex;flex-direction:column;gap:3px;min-width:min(280px,100%);flex:1 1 280px}
+.fld label{font-size:.8rem;color:var(--muted);font-weight:700} .cur{font-size:.85rem;color:var(--muted)} .bad{color:var(--err);overflow-wrap:anywhere}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center} .chips .lbl{font-size:.82rem;color:var(--muted)}
+.chipbtn{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:2px 10px;font-family:var(--font-mono);font-size:.85rem}
+.chipbtn:hover{border-color:var(--accent)} .chipbtn small{margin-left:6px;font-family:var(--font-body);color:var(--muted)}
+.hintline{margin:0;font-size:.84rem;color:var(--muted)} .warnline{color:var(--warn)}
+.gc-msg{display:flex;flex-direction:column;gap:2px;font-size:.86rem}
+.m.ok{color:var(--ok)} .m.warn{color:var(--warn)} .m.err{color:var(--err)}
+.gc-acts{display:flex;gap:8px;flex-wrap:wrap}
+mark.ws{background:var(--warn-bg);color:var(--warn);border-radius:3px;padding:0 2px;font-family:var(--font-mono)}
+.pager{display:flex;gap:12px;align-items:center;justify-content:center;padding:10px;color:var(--muted);font-size:.88rem}
+.empty{padding:34px 18px;text-align:center;color:var(--muted)}
+.warnc{color:var(--warn)!important}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:8px 18px 14px;padding:0;list-style:none;counter-reset:s}
+.flow li{counter-increment:s;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:.88rem;color:var(--muted)}
+.flow li b{display:block;color:var(--ink)} .flow li b::before{content:counter(s) ". "}
+.panel>.tbl{margin:0 0 4px} .foot{margin:8px 18px;color:var(--muted);font-size:.84rem}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;padding:8px 18px}
+.stats div{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 14px;display:flex;flex-direction:column}
+.stats b{font-family:var(--font-mono);font-size:1.5rem;font-weight:500} .stats span{font-size:.8rem;color:var(--muted)}
+.exp-acts{display:flex;flex-wrap:wrap;gap:10px;padding:8px 18px}
+.panel>h3,.panel>#recheck,.panel>.steps,.panel>.hintline{margin-left:18px;margin-right:18px}
+.panel>#recheck{margin-top:0} .steps{padding-left:22px} .steps li{margin:3px 0}
+.warnbox{margin-top:12px;border:1px solid var(--warn);background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.warnbox ul{margin:6px 0 0;padding-left:20px}
+.rw{display:grid;grid-template-columns:24px minmax(170px,1fr) minmax(240px,1.5fr) minmax(70px,auto);gap:6px 14px;align-items:start;padding:10px 4px;border-bottom:1px solid var(--line)}
+.rw:last-child{border-bottom:0} .rw[data-status="done"]{background:var(--accent-soft)}
+input.ck{width:18px;height:18px;margin:3px 0 0;accent-color:var(--accent)}
+.who strong{overflow-wrap:anywhere} .xs{font-size:.8rem}
+.fix{display:flex;flex-direction:column;gap:6px;min-width:0}
+.ff{display:flex;align-items:center;gap:8px;flex-wrap:wrap} .ff .in{flex:1 1 180px} .ff .bad{max-width:100%}
+.rw{padding:3px 6px;align-items:center;gap:4px 12px;grid-template-columns:24px minmax(280px,1.2fr) minmax(420px,1.8fr) minmax(180px,1fr);font-size:.9rem}
+.rw .in{padding:3px 8px} .rw input.ck{margin:0}
+.fix{flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.ff{flex:1 1 260px;flex-wrap:nowrap} .ff .bad{max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rwh{display:grid;grid-template-columns:24px minmax(280px,1.2fr) minmax(420px,1.8fr) minmax(180px,1fr);gap:12px;padding:6px;margin:0 18px;background:var(--surface2);font-weight:700;font-size:.84rem}
+#list{gap:0;padding:0 18px 6px} .who{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arr{color:var(--muted)} .scope{display:flex;gap:8px;align-items:center;font-size:.88rem;color:var(--muted)} .scope .in{padding:2px 8px}
+.tabs{overflow-y:hidden}
+body.loaded{padding-block:10px 40px} body.loaded header{display:none} body.loaded .wrap{gap:8px}
+.drop.compact{padding:8px 14px;border-width:1px} .drop.compact .meta b:first-child{font-size:1.05rem}
+.phead{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 16px;padding:10px 18px 4px} .phead .right{margin:0} .right .more{display:inline-block;margin:0 0 0 12px;vertical-align:top}
+.toolbar{margin-top:4px;padding:6px 18px} .vm{font-size:.84rem;min-height:1.2em} .gc-head .vm{margin-left:auto}
+.tip{margin-left:6px;color:var(--muted);cursor:help}
+.more{margin-top:6px;font-size:.88rem;color:var(--muted)} .more summary{cursor:pointer}
+.bulkset{display:flex;gap:6px;align-items:center;font-size:.88rem}
+.gc[data-status="done"]{background:var(--accent-soft)}
+@media (max-width:720px){.rw{grid-template-columns:24px 1fr}.rw .fix,.rw .vm{grid-column:2}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (max-width:560px){.toolbar .in{width:100%}.phead{padding:14px 14px 4px}#list{padding-inline:12px}}
+</style>
+<div class="wrap">
+  <header><h1>客戶檢查表</h1><p>匯入客戶資料 Excel，系統找出異常並給建議值；你確認修正後，直接下載符合系統格式的匯入檔。資料只在瀏覽器內處理，不會上傳。</p></header>
+  <label id="drop" class="drop" for="file" tabindex="0">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4m0 0 4 4m-4-4L8 8"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+    <div id="dropText"><strong>將客戶資料 Excel 拖曳到這裡</strong><br><span>或點擊選擇檔案（.xlsx / .xlsm / .xls，第一列為欄位標題）</span></div>
+    <div id="dropMeta" class="meta" hidden></div><span id="reBtn" class="btn" hidden>重新匯入</span>
+  </label>
+  <input id="file" type="file" accept=".xlsx,.xlsm,.xls" hidden>
+  <div id="status" class="status" role="status" aria-live="polite" hidden></div>
+  <section id="intro" class="intro"></section>
+  <div class="sticky"><div id="tabs" class="tabs" role="tablist" hidden></div>
+    <div id="prog" class="prog" hidden><div id="scope" class="scope" hidden></div><span id="progText"></span><div class="bar"><i id="progBar"></i></div></div></div>
+  <main id="pane"></main>
+</div>
+<script>
+(function(){
+// ===== 核心邏輯：規則、統計、修正群組、驗證、匯出（可在 Node 測試） =====
+const COLS=["新增/更新/刪除","客戶ID","店家型態代碼","店家型態","店家代碼","店家名稱","通路別","店家標註","店家等級","店家所屬區域","店家地址","營業狀態","客戶名稱","客戶等級","客戶電話","客戶手機","拜訪頻率(月)","營業處代碼","營業處名稱","營業所/課","執行人員","是否顯示給所有業務員","其他聯絡方式","備註","緯度","經度"];
+const REQUIRED=["店家型態","店家代碼","店家名稱","通路別","店家等級","店家所屬區域","營業狀態","客戶等級"];
+const S=v=>v==null?null:String(v);
+const has=(v,sub)=>S(v)!=null&&S(v).includes(sub);
+const len=v=>S(v)==null?null:[...S(v)].length;
+const neLen=(v,n)=>len(v)!==n;
+const inList=(v,arr)=>arr.includes(S(v));
+const BASE_EXCL_TYPE=["其他類別","室內點","店家型態","陌開即飲","室外點"];
+const CHAIN=["CVS通路,","連鎖超市通路,","量販通路,"];
+const REQ_LEN={"OK":10,"全家":12,"統一":12,"萊爾富":10,"全聯社":12,"美廉社":10};
+const TRAD_LEVELS=["A","B","C","F","系統店A","系統店B","鋪貨商","菸酒專","五大A","五大B","五大C"];
+const LEVELS=["CVS","CVST","連鎖超市A","連鎖超市B","連鎖超市C","量販A","量販B","量販C","A","B","C","F","系統店A","系統店B","鋪貨商","菸酒專","五大A","五大B","五大C","無分級"];
+const chOK=r=>S(r["通路別"])!=null&&!inList(r["通路別"],["其他類別,","室內外點,"]);
+const typeOK=r=>!inList(r["店家型態"],["其他類別","虛擬店家"]);
+
+// 單列判斷（回傳 true = 有問題）。基礎篩選（營業中等）在 analyze 套用。
+const PRED={
+ "空白區域":r=>!inList(r["通路別"],["其他類別,","室內外點,"])&&!inList(r["店家型態"],["其他類別","虛擬店家","陌開即飲"])&&!has(r["店家所屬區域"],"-"),
+ "特販代碼":r=>{
+    if(!inList(r["通路別"],CHAIN))return false;
+    const t=S(r["店家型態"]),c=r["店家代碼"];
+    if(t in REQ_LEN){ if(neLen(c,REQ_LEN[t]))return true; if(S(c)==null||!has(c,"-"))return true; }
+    if(S(c)!=null&&/[a-z]/.test(S(c)))return true;
+    return false;},
+ "傳統代碼":r=>{
+    if(S(r["通路別"])!=="傳統通路,"||S(r["店家型態"])==="楓康超市")return false;
+    const c=S(r["店家代碼"]);
+    if(c==null||c==="")return true;
+    if(!c.includes("-")||!["1","0"].includes(c[0]))return true;
+    if([...c].length!==10&&c.split("-").length===2)return true;
+    return false;},
+ "餐酒代碼":r=>inList(r["通路別"],["即飲通路,","菸酒專,"])&&S(r["店家型態"])!=="陌開即飲"&&neLen(r["店家代碼"],11),
+ "空白通路":r=>S(r["通路別"])==null&&S(r["店家型態"])!=null&&!has(r["店家型態"],"其他類別")&&!has(r["店家型態"],"虛擬店家"),
+ "店家等級":r=>{
+    if(!typeOK(r)||!chOK(r))return false;
+    const ch=S(r["通路別"]),t=S(r["店家型態"])??"",lv=S(r["店家等級"]);
+    if(ch.includes("CVS通路,")&&!["CVS","CVST","F"].includes(lv))return true;
+    if(ch.includes("連鎖超市通路,")){
+      if(t.includes("全聯")&&!["連鎖超市A","連鎖超市B","F"].includes(lv))return true;
+      if(t.includes("美廉社")&&!["連鎖超市C","F"].includes(lv))return true;
+      if(t.includes("家樂福超市")&&!["連鎖超市C","F"].includes(lv))return true;
+      if(!t.includes("全聯")&&!t.includes("美廉社")&&!t.includes("家樂福超市")&&lv!=="F")return true;
+    }
+    if(ch.includes("傳統通路")&&!TRAD_LEVELS.includes(lv))return true;
+    return false;},
+ "客戶等級":r=>typeOK(r)&&chOK(r)&&S(r["客戶等級"])==="A",
+ "店名空白":r=>S(r["店家型態"])!=="即飲通路"&&S(r["通路別"])!=="即飲通路,"&&
+    (has(r["店家名稱"]," ")||has(r["店家代碼"]," ")||has(r["店家名稱"],"")||has(r["店家名稱"],"　")),
+};
+const RULES=[
+ {key:"主訪人數",title:"主訪人數",kind:"leader",short:"每家店剛好 1 位主訪人",
+  right:"每家店必須剛好有 1 位主訪人（客戶等級 S），其餘客戶一律為「-」。請在每家店的客戶清單裡選出主訪人，系統會自動把其他人改為「-」。"},
+ {key:"店名空白",title:"店名空白",kind:"text",short:"名稱與代碼不可有空白",
+  right:"店家名稱、店家代碼不得含任何空白（半形、全形）或無法顯示的特殊字元。"},
+ {key:"傳統代碼",title:"傳統代碼",kind:"text",short:"營業所4碼-店號5碼",
+  right:"傳統通路店家代碼格式為「營業所代碼4碼-店號5碼」，例如 0411-21925，開頭須為 0 或 1。分店可在後面再加「-XX」。"},
+ {key:"特販代碼",title:"特販代碼",kind:"text",short:"依型態固定長度",
+  right:"CVS／連鎖超市／量販店家代碼：OK、萊爾富、美廉社須為 10 碼；全家、統一、全聯社須為 12 碼；必須含「-」，且不可有小寫英文字母。"},
+ {key:"店家等級",title:"店家等級",kind:"select",short:"等級需符合通路與型態",
+  right:"CVS 通路只能是 CVS／CVST／F；全聯只能是 連鎖超市A／B／F；美廉社、家樂福超市只能是 連鎖超市C／F；其他連鎖超市只能是 F；傳統通路只能是 A／B／C／F／系統店A／系統店B／鋪貨商／菸酒專／五大A／五大B／五大C。"},
+ {key:"客戶等級",title:"客戶等級",kind:"leader",short:"客戶等級不得為 A",
+  right:"客戶等級只有「S（主訪人）」與「-」兩種。被誤設為 A 的客戶，請在下方選出該店真正的主訪人，其餘改為「-」。"},
+ {key:"空白區域",title:"空白區域",kind:"select",short:"需設定營業處-營業所",
+  right:"店家所屬區域必須是「營業處-營業所」格式，例如 高雄-苓雅、臺中-北區。「未分區」或空白都要補上。"},
+ {key:"空白通路",title:"空白通路",kind:"select",short:"需設定通路別",
+  right:"每家店都要設定通路別（例如 傳統通路,、CVS通路,）。"},
+ {key:"餐酒代碼",title:"餐酒代碼",kind:"text",short:"####-#-#### 共 11 碼",
+  right:"即飲通路、菸酒專的店家代碼長度須為 11 碼，格式「營業所4碼-類別1碼-流水號4碼」，例如 1022-2-0131。"},
+];
+const RULE_BY_KEY=Object.fromEntries(RULES.map(r=>[r.key,r]));
+
+function analyze(rows){
+  const base=rows.filter(r=>!inList(r["店家型態"],BASE_EXCL_TYPE)&&S(r["營業狀態"])==="營業中"&&!has(r["營業處名稱"],"總公司"));
+  const out={};
+  for(const k of Object.keys(PRED))out[k]=base.filter(PRED[k]);
+  const b=base.filter(r=>S(r["店家型態"])!=="陌開即飲");
+  const g=new Map();
+  for(const r of b){const k=S(r["店家代碼"])??"\u0000null";let o=g.get(k);if(!o){o={rows:[],S:0,A:0};g.set(k,o);}o.rows.push(r);
+    if(S(r["客戶等級"])==="S")o.S++; if(S(r["客戶等級"])==="A")o.A++;}
+  const hasA=b.some(r=>S(r["客戶等級"])==="A");
+  const res=[];
+  for(const o of g.values()){const keep=hasA?(o.S!==1||o.A>0):(o.S!==1);if(keep)res.push(...o.rows);}
+  out["主訪人數"]=res;
+  return {base,out};
+}
+
+// ===== 統計（用來產生「建議值」） =====
+const inc=(m,k,n=1)=>m.set(k,(m.get(k)||0)+n);
+const mm=(m,k)=>{let x=m.get(k);if(!x){x=new Map();m.set(k,x);}return x;};
+const topN=(m,n=3)=>m?[...m.entries()].sort((a,b)=>b[1]-a[1]).slice(0,n):[];
+const codePrefix=c=>{const m=S(c)&&S(c).match(/^([0-9A-Za-z]{4})-/);return m?m[1]:null;};
+const suoOf=r=>S(r["營業所/課"])??"";
+function buildStats(base){
+  const st={leaderByPrefix:new Map(),leaderBySuo:new Map(),tradBySuo:new Map(),tradByOffice:new Map(),
+    wineBySuo:new Map(),wineMax:new Map(),chainShapes:new Map(),areaBySuo:new Map(),areaCount:new Map(),areaOffice:new Map(),
+    chanByType:new Map(),channels:new Map(),codeIdx:new Map()};
+  const stores=new Map();
+  for(const r of base){
+    const c=S(r["店家代碼"]);
+    if(c!=null){let a=st.codeIdx.get(c);if(!a){a=[];st.codeIdx.set(c,a);}a.push(r._i);}
+    const sk=c??"\u0000"+S(r["店家名稱"]);let a=stores.get(sk);if(!a){a=[];stores.set(sk,a);}a.push(r);
+    const ch=S(r["通路別"]),ty=S(r["店家型態"]);
+    if(ch&&!["其他類別,","室內外點,"].includes(ch)){inc(st.channels,ch);if(ty)inc(mm(st.chanByType,ty),ch);}
+    const ar=S(r["店家所屬區域"]);
+    if(ar&&ar.includes("-")){inc(st.areaCount,ar);inc(mm(st.areaBySuo,S(r["營業處名稱"])+"|"+suoOf(r)),ar);inc(mm(st.areaOffice,S(r["營業處名稱"])),ar);}
+    if(ch==="傳統通路,"&&/^[01]\d{3}-\d{5}$/.test(c||"")){const p=c.slice(0,4);inc(mm(st.tradBySuo,suoOf(r)),p);inc(mm(st.tradByOffice,S(r["營業處名稱"])),p);}
+    if((ch==="即飲通路,"||ch==="菸酒專,")&&/^\d{4}-[0-9A-Za-z]-\d{4}$/.test(c||"")){const p=c.slice(0,7);inc(mm(st.wineBySuo,suoOf(r)),p);const cur=st.wineMax.get(p);const suf=c.slice(8);if(!cur||suf>cur)st.wineMax.set(p,suf);}
+    if(CHAIN.includes(ch)&&ty in REQ_LEN&&c&&!PRED["特販代碼"](r)){
+      const shape=c.replace(/[A-Za-z]/g,"A").replace(/\d/g,"9");const mt=mm(st.chainShapes,ty);const o=mt.get(shape);if(o)o.n++;else mt.set(shape,{n:1,ex:c});}
+  }
+  for(const rs of stores.values()){
+    const sr=rs.filter(r=>S(r["客戶等級"])==="S");
+    if(sr.length===1){const r=sr[0],rep=S(r["執行人員"]);if(rep){const p=codePrefix(r["店家代碼"]);if(p)inc(mm(st.leaderByPrefix,p),rep);inc(mm(st.leaderBySuo,suoOf(r)),rep);}}
+  }
+  return st;
+}
+
+// ===== 修正群組 =====
+const PERSON=/-\d{5,}$/;
+let GID=0;
+function makeGroup(rule,rows,extra){
+  const r0=rows[0];
+  return Object.assign({id:"g"+(++GID),rule,kind:RULE_BY_KEY[rule].kind,rows,status:"pending",
+    name:S(r0["店家名稱"])||"(無店名)",code:S(r0["店家代碼"])||"(無代碼)",
+    chan:S(r0["通路別"])||"",type:S(r0["店家型態"])||"",area:S(r0["店家所屬區域"])||"",suo:S(r0["營業所/課"])||"",
+    vals:{},fields:[],chips:[],notes:[],options:null},extra||{});
+}
+const cleanText=s=>String(s??"").replace(/[\s　-]/g,"");
+const hasPUA=s=>/[-]/.test(String(s??""));
+
+function suggestLeader(g){
+  g.value=null;g.suggested=null;g.reason="";
+  const sr=g.rows.filter(r=>S(r["客戶等級"])==="S");
+  if(!sr.length)return;
+  const nm=r=>(S(r["執行人員"])||"").trim();
+  const kind=r=>{const p=nm(r);return !p||/^\d+$/.test(p)?0:PERSON.test(p)?2:1;}; // 0 數字人 1 有名字 2 有名字＋員編
+  const uniq=a=>[...new Set(a.map(nm))];
+  let c=sr,why="";
+  if(c.some(r=>kind(r)>0)&&c.some(r=>kind(r)===0)){c=c.filter(r=>kind(r)>0);why="數字帳號與訪員並列，以訪員為準";}
+  if(uniq(c).length>1&&c.some(r=>kind(r)===2)){const e=c.filter(r=>kind(r)===2);if(uniq(e).length===1){c=e;why="有員編的訪員優先";}}
+  if(uniq(c).length!==1)return;
+  if(!why&&c.length>1)why="同一人重複為 S，保留一筆";
+  g.value=c[0]._i;g.suggested=c[0]._i;g.reason=why;
+}
+
+function buildGroups(model){
+  const {out,stats:st}=model;
+  const G={};
+  // 主訪人數（同店家合併）
+  const byStore=new Map();
+  for(const r of out["主訪人數"]){const k=S(r["店家代碼"])??"\u0000"+S(r["店家名稱"]);let a=byStore.get(k);if(!a){a=[];byStore.set(k,a);}a.push(r);}
+  G["主訪人數"]=[...byStore.values()].map(rows=>{
+    const s=rows.filter(r=>S(r["客戶等級"])==="S").length,a=rows.filter(r=>S(r["客戶等級"])==="A").length;
+    const issue=[s===0?"沒有主訪人（客戶等級 S）":s>1?`有 ${s} 位主訪人（客戶等級 S）`:"",a?`${a} 位客戶等級為 A`:""].filter(Boolean).join("；");
+    const g=makeGroup("主訪人數",rows,{issue:issue||"客戶等級需調整",value:null});
+    suggestLeader(g,st);return g;});
+  G["客戶等級"]=G["主訪人數"].filter(g=>g.rows.some(r=>S(r["客戶等級"])==="A"));
+  // 其餘：以 店家代碼+店名 為一組
+  const grp=rule=>{const m=new Map();for(const r of out[rule]){const k=(S(r["店家代碼"])??"")+"\u0001"+(S(r["店家名稱"])??"");let a=m.get(k);if(!a){a=[];m.set(k,a);}a.push(r);}return [...m.values()];};
+  G["店名空白"]=grp("店名空白").map(rows=>{
+    const r0=rows[0],nameBad=has(r0["店家名稱"]," ")||has(r0["店家名稱"],"　")||has(r0["店家名稱"],""),codeBad=has(r0["店家代碼"]," ");
+    const g=makeGroup("店名空白",rows,{issue:[nameBad?"店家名稱含空白或特殊字元":"",codeBad?"店家代碼含空白":""].filter(Boolean).join("；")});
+    if(nameBad){g.fields.push("店家名稱");g.vals["店家名稱"]=cleanText(r0["店家名稱"]);}
+    if(codeBad){g.fields.push("店家代碼");g.vals["店家代碼"]=cleanText(r0["店家代碼"]);}
+    if(hasPUA(r0["店家名稱"])){g.warnPUA=true;g.vals["店家名稱"]=cleanText(r0["店家名稱"]);g.notes.push("店名含無法顯示的特殊字元（可能是缺字），直接刪除會少一個字，請對照原店名手動補正。");}
+    return g;});
+  G["傳統代碼"]=grp("傳統代碼").map(rows=>{
+    const r0=rows[0],c=S(r0["店家代碼"])||"";
+    const g=makeGroup("傳統代碼",rows,{issue:"店家代碼不符合「營業所4碼-店號5碼」"});
+    g.fields=["店家代碼"];
+    const tail=(c.match(/(?<!\d)(\d{5})$/)||(S(r0["店家名稱"])||"").match(/(?<!\d)(\d{5})$/)||[])[1]||"";
+    const pf=topN(st.tradBySuo.get(suoOf(r0)),4);const pf2=pf.length?pf:topN(st.tradByOffice.get(S(r0["營業處名稱"])),4);
+    g.chips=pf2.map(([p,n])=>({label:p+"-",value:p+"-"+tail,hint:`${n} 家`}));
+    g.vals["店家代碼"]=(pf2.length&&tail)?pf2[0][0]+"-"+tail:"";
+    g.info=pf2.length?`同營業所（${suoOf(r0)||S(r0["營業處名稱"])}）常見代碼前綴：`+pf2.map(([p,n])=>`${p}（${n}家）`).join("、"):"";
+    if(tail)g.notes.push(`已從原代碼／店名取出店號 ${tail}，前綴請確認。`);
+    return g;});
+  G["特販代碼"]=grp("特販代碼").map(rows=>{
+    const r0=rows[0],c=S(r0["店家代碼"])||"",t=S(r0["店家型態"]);
+    const g=makeGroup("特販代碼",rows,{issue:"店家代碼不符合型態規定的格式"});
+    g.fields=["店家代碼"];
+    let sug=c.toUpperCase();
+    if(t in REQ_LEN&&[...sug].length!==REQ_LEN[t]){const s2=sug.replace(/-\d{1,2}$/,"");if([...s2].length===REQ_LEN[t])sug=s2;}
+    g.vals["店家代碼"]=sug!==c?sug:"";
+    if(sug!==c&&sug.length<c.length)g.notes.push("建議值已移除尾端的分店碼，請確認不會與其他店重複。");
+    const sh=st.chainShapes.get(t);const ex=topN(new Map([...(sh||new Map())].map(([k,v])=>[k,v.n])),2).map(([k])=>sh.get(k).ex);
+    g.info=t in REQ_LEN?`${t}須為 ${REQ_LEN[t]} 碼`+(ex.length?`，正確代碼範例：${ex.join("、")}`:""):"";
+    return g;});
+  G["餐酒代碼"]=grp("餐酒代碼").map(rows=>{
+    const r0=rows[0],c=S(r0["店家代碼"])||"";
+    const g=makeGroup("餐酒代碼",rows,{issue:`店家代碼長度為 ${len(r0["店家代碼"])??0} 碼，應為 11 碼`});
+    g.fields=["店家代碼"];
+    const d=c.replace(/\D/g,"");
+    g.vals["店家代碼"]=/^\d{9}$/.test(d)&&!/[^\d-]/.test(c)?`${d.slice(0,4)}-${d[4]}-${d.slice(5)}`:"";
+    const p4=codePrefix(c);
+    let pf=topN(st.wineBySuo.get(suoOf(r0)),4);
+    if(p4){const same=[...st.wineMax.keys()].filter(k=>k.startsWith(p4+"-")).map(k=>[k,1]);if(same.length)pf=same.concat(pf.filter(([k])=>!k.startsWith(p4+"-"))).slice(0,4);}
+    g.chips=pf.map(([p])=>({label:p+"-",value:p+"-",hint:st.wineMax.get(p)?`目前最大 ${st.wineMax.get(p)}`:""}));
+    if(g.vals["店家代碼"])g.notes.push("建議值是把原代碼的數字重組為 ####-#-####，屬推測，請與系統核對。");
+    g.info="格式 ####-#-####（11 碼），例如 1022-2-0131。流水號請依系統現有編號填寫。";
+    return g;});
+  // 選擇型
+  const areaList=[...st.areaCount.entries()].sort((a,b)=>b[1]-a[1]).map(([a])=>a);
+  G["空白區域"]=grp("空白區域").map(rows=>{
+    const r0=rows[0];const g=makeGroup("空白區域",rows,{issue:`店家所屬區域「${S(r0["店家所屬區域"])||"空白"}」未依「營業處-營業所」設定`});
+    g.fields=["店家所屬區域"];
+    const off=S(r0["營業處名稱"])||"";
+    let t=topN(st.areaBySuo.get(off+"|"+suoOf(r0)),1)[0];
+    let sug=t?t[0]:"";
+    if(!sug){const stem=off.replace("營業處","");sug=areaList.find(a=>a===stem+"-行銷課")||"";}
+    g.options=[...areaList.filter(a=>off&&a.startsWith(off.replace("營業處","")+"-")),...areaList.filter(a=>!(off&&a.startsWith(off.replace("營業處","")+"-")))];
+    g.vals["店家所屬區域"]=sug;g.suggested=sug;
+    g.info=sug?`依同營業處（${off||"—"}）／營業所（${suoOf(r0)||"—"}）的店家，建議「${sug}」`:"";
+    return g;});
+  G["空白通路"]=grp("空白通路").map(rows=>{
+    const r0=rows[0];const g=makeGroup("空白通路",rows,{issue:"通路別未設定"});
+    g.fields=["通路別"];
+    g.options=[...st.channels.entries()].sort((a,b)=>b[1]-a[1]).map(([c])=>c);
+    const t=topN(st.chanByType.get(S(r0["店家型態"])),1)[0];
+    g.vals["通路別"]=t?t[0]:"";g.suggested=g.vals["通路別"];
+    g.info=t?`同型態「${S(r0["店家型態"])}」的店家多為「${t[0]}」`:"";
+    return g;});
+  G["店家等級"]=grp("店家等級").map(rows=>{
+    const r0=rows[0];const g=makeGroup("店家等級",rows,{issue:`店家等級「${S(r0["店家等級"])||"空白"}」不符合通路／型態規定`});
+    g.fields=["店家等級"];
+    g.options=LEVELS.filter(lv=>!PRED["店家等級"](Object.assign({},r0,{"店家等級":lv})));
+    g.vals["店家等級"]=g.options.length===1?g.options[0]:"";
+    g.info=g.options.length?`此店可用等級：${g.options.join("、")}`:"此店的通路／型態沒有可用的等級，請先調整通路別或型態。";
+    return g;});
+  return G;
+}
+
+// ===== 驗證 =====
+const trial=(r,vals)=>Object.assign({},r,vals);
+function dupOf(model,g,code){
+  const ids=model.stats.codeIdx.get(code);if(!ids)return null;
+  const mine=new Set(g.rows.map(r=>r._i));
+  const other=ids.find(i=>!mine.has(i));
+  return other==null?null:model.rows[other];
+}
+function validateGroup(model,g){
+  const items=[];let ok=true;
+  const err=t=>{items.push({level:"err",text:t});ok=false;},warn=t=>items.push({level:"warn",text:t}),good=t=>items.push({level:"ok",text:t});
+  if(g.kind==="leader"){
+    if(g.value==null){err("請選出這家店的主訪人");}
+    else{const r=g.rows.find(x=>x._i===g.value);good(`主訪人：${S(r["執行人員"])||S(r["客戶名稱"])||"客戶 "+r["客戶ID"]}`);}
+    return {ok,items};
+  }
+  const vals=g.vals,r0=g.rows[0];
+  const t=trial(r0,vals);
+  if(g.kind==="select"){
+    const f=g.fields[0],v=vals[f];
+    if(!v){err("請選擇一個值");return {ok,items};}
+    if(g.options&&!g.options.includes(v)){err("此值不在可選清單內");return {ok,items};}
+    if(PRED[g.rule](t))err("此值仍不符合規則");else good("符合規則");
+    return {ok,items};
+  }
+  // text
+  for(const f of g.fields){
+    const v=vals[f]??"";
+    if(!v.trim()){err(`請輸入${f}`);continue;}
+    if(g.rule==="店名空白"){
+      if(/[\s　-]/.test(v))err(`${f}不可含空白或特殊字元`);
+    }
+  }
+  if(!ok)return {ok,items};
+  if(g.rule==="店名空白"){
+    if(PRED["店名空白"](t))err("仍含空白或特殊字元");else good("已無空白字元");
+    return {ok,items};
+  }
+  const code=vals["店家代碼"];
+  if(PRED[g.rule](t)){
+    if(g.rule==="傳統代碼"){
+      if(!code.includes("-"))err("需含「-」，格式 0000-00000");
+      else if(!["0","1"].includes(code[0]))err("開頭須為 0 或 1");
+      else err(`長度須為 10 碼（目前 ${[...code].length} 碼），格式 0000-00000`);
+    }else if(g.rule==="特販代碼"){
+      const ty=S(r0["店家型態"]);
+      if(ty in REQ_LEN&&neLen(code,REQ_LEN[ty]))err(`${ty}須為 ${REQ_LEN[ty]} 碼（目前 ${[...code].length} 碼）`);
+      if(ty in REQ_LEN&&!code.includes("-"))err("需含「-」");
+      if(/[a-z]/.test(code))err("不可含小寫英文字母");
+      if(ok)err("仍不符合規則");
+    }else if(g.rule==="餐酒代碼"){
+      err(`長度須為 11 碼（目前 ${[...code].length} 碼），格式 0000-0-0000`);
+    }
+    return {ok,items};
+  }
+  good("符合規則");
+  if(g.rule==="傳統代碼"&&!/^[01]\d{3}-\d{5}(-\d{1,3})?$/.test(code))warn("通過規則，但不是標準格式 0000-00000，請再確認");
+  if(g.rule==="餐酒代碼"&&!/^\d{4}-[0-9A-Za-z]-\d{4}$/.test(code))warn("通過規則，但不是標準格式 0000-0-0000，請再確認");
+  const d=dupOf(model,g,code);
+  if(d)warn(`代碼已被其他店家使用：${S(d["店家名稱"])||""}（客戶ID ${d["客戶ID"]}）`);
+  return {ok,items};
+}
+
+// ===== 修正內容 → 修補 =====
+function groupPatch(g){
+  const P=[];
+  if(g.kind==="leader"){
+    for(const r of g.rows){const nv=r._i===g.value?"S":"-";if(S(r["客戶等級"])!==nv)P.push([r,{"客戶等級":nv}]);}
+  }else{
+    for(const r of g.rows){const d={};for(const f of g.fields){const nv=g.vals[f];if(nv!=null&&nv!==""&&S(r[f])!==nv)d[f]=nv;}if(Object.keys(d).length)P.push([r,d]);}
+  }
+  return P;
+}
+function compilePatches(model){
+  const patches=new Map(),log=[],seen=new Set();
+  for(const rule of RULES.map(r=>r.key)){
+    for(const g of model.groups[rule]||[]){
+      if(g.status!=="done"||seen.has(g.id))continue;seen.add(g.id);
+      for(const [r,d] of groupPatch(g)){
+        const cur=patches.get(r._i)||{};
+        for(const f of Object.keys(d)){log.push({rule:g.rule,row:r,field:f,from:r[f],to:d[f]});cur[f]=d[f];}
+        patches.set(r._i,cur);
+      }
+    }
+  }
+  return {patches,log};
+}
+function applyPatches(rows,patches){return rows.map(r=>patches.has(r._i)?Object.assign({},r,patches.get(r._i)):r);}
+
+// ===== 匯出 =====
+function templateWorkbook(ExcelJS,rows,lists){
+  const wb=new ExcelJS.Workbook();
+  const ws=wb.addWorksheet("匯入範例");
+  const font=(sz,b)=>({name:"微軟正黑體",size:sz,bold:!!b});
+  ws.columns=COLS.map(()=>({width:18}));
+  const h=ws.getRow(1);COLS.forEach((c,i)=>{const cell=h.getCell(i+1);cell.value=c;cell.font=font(11,true);});
+  h.getCell(1).fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFFFDC35"}};
+  rows.forEach((r,ri)=>{
+    const row=ws.getRow(ri+2);
+    COLS.forEach((c,i)=>{const v=c==="新增/更新/刪除"?"更新":r[c];if(v!=null&&v!==""){const cell=row.getCell(i+1);cell.value=v;cell.font=font(10,false);}});
+  });
+  const ns=wb.addWorksheet("newSheet");
+  ["A","B","C","D","E","F"].forEach((L,ci)=>(lists[L]||[]).forEach((v,ri)=>{ns.getCell(ri+1,ci+1).value=v;}));
+  const last=Math.max(2,rows.length+1);
+  const dv=(col,L,n)=>ws.dataValidations.add(`${col}2:${col}${last}`,{type:"list",allowBlank:true,formulae:[`newSheet!$${L}$1:$${L}$${n}`]});
+  dv("A","C",lists.C.length);dv("L","F",lists.F.length);dv("S","A",lists.A.length);dv("U","B",lists.B.length);dv("V","D",lists.D.length);
+  return wb;
+}
+function logWorkbook(ExcelJS,log){
+  const wb=new ExcelJS.Workbook();const ws=wb.addWorksheet("修正紀錄");
+  const head=["檢查項目","店家代碼","店家名稱","客戶ID","修正欄位","修正前","修正後"];
+  ws.columns=[{width:12},{width:20},{width:28},{width:12},{width:16},{width:28},{width:28}];
+  ws.addRow(head).font={name:"微軟正黑體",bold:true};
+  for(const e of log)ws.addRow([e.rule,S(e.row["店家代碼"])||"",S(e.row["店家名稱"])||"",e.row["客戶ID"],e.field,e.from==null?"":e.from,e.to]);
+  ws.views=[{state:"frozen",ySplit:1}];
+  return wb;
+}
+// 排序：營業處依固定順序，營業所 A→Z；跨所同店已合併為同一組，會放在一起
+const OFF_ORDER=["北部","桃園","臺中","嘉義","臺南","高雄","花蓮"];
+const offRank=n=>{const t=String(n??"").replace(/台/g,"臺");const i=OFF_ORDER.findIndex(k=>t.includes(k));return i<0?99:i;};
+const cmp=(a,b)=>String(a).localeCompare(String(b),"en",{numeric:true});
+const minSuo=g=>g.rows.map(r=>S(r["營業所/課"])||"").sort(cmp)[0]||"";
+function sortGroups(G){for(const k of Object.keys(G))G[k].sort((x,y)=>{const a=x.rows[0],b=y.rows[0];
+  return offRank(a["營業處名稱"])-offRank(b["營業處名稱"])||cmp(S(a["營業處名稱"])||"",S(b["營業處名稱"])||"")||cmp(minSuo(x),minSuo(y))||cmp(x.code,y.code);});}
+function buildModel(rows){
+  rows.forEach((r,i)=>{r._i=i;});
+  const {base,out}=analyze(rows);const stats=buildStats(base);
+  const model={rows,base,out,stats};model.groups=buildGroups(model);sortGroups(model.groups);return model;
+}
+
+// ===== 介面 =====
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt=n=>Number(n).toLocaleString("en-US");
+const tick=()=>new Promise(r=>setTimeout(r,30));
+const TPL_LISTS={"A":["系統管理員","花蓮營業處","高雄營業處","嘉義營業處","桃園營業處","臺南營業處","臺中營業處","北部營業處","總公司"],"B":["張書瑋-1010290","易方馨","鐘翊修-1071032","吳佳臻","陳慶憲-1060352","林泱慶-1100437",430,417,404,411,403,429,426,409,401,1515,1514,1512,1511,1513,1506,1504,1502,1501,627,624,622,617,615,605,603,602,606,801,803,809,807,811,814,903,907,909,951,911,913,1021,1023,1026,1022,1016,1052,1005,1004,1006,1003,1009,1301,1303,1306,1308,1309,1311,1312,"陳俊翰","鄭名均","李皖華","郭玲真","羅淇云","北部行銷課共用",635,835,935,1035,"1335-行銷課",1535,414,434,"北部營業處-共用帳號","桃園營業處-共用帳號","臺中營業處-共用帳號","嘉義營業處-共用帳號","臺南營業處-共用帳號","高雄營業處-共用帳號","花蓮營業處-共用帳號","王文良","陳志豪","陳琬宇","陳松漢-1081123","呂錦綢","羅榮通","余振德","陳宇勛","鄭雅玲","林美岑","楊錦女","張淑貞","徐文聰","甘東敏-1031068","徐碩謙-1001351","林智翔-1150277","曾曉芳","陳啟銘-1011357","嚴玉娟","林淑琴","陳詩涵-1051016","魏佐帆","王靖傑-1091032","蕭兆恒","葉健平","歸愷炘-1101050","王藍永-1081010","馮代發","張雨軒","王信文-1071053","方維-1101053","邱茗青","林韋宏-1051017","鄧智得-1091036","童智勇","蔡于喧-1081009","潘恩琪-1101057","何嘉修","彭彥勳","陳宗豪-1101006","簡茂生","王子彥-1061130","陳彥仲","鄭崇希-1101060","陳志賢-1091038","張建智-1101002","林亭佑-1091034","何冠穎-1091037","戴國訓-1101052","張菁珊-1040322","張竣豪","嚴秦小雪-1101062","施評峯","張心渝","張涵瑀-1101051","黃德淳-1011292","張洋瑜-1061038","田琰澤-1111247","簡安均-1101056","葉書宜","胡凱維-1071064","彭光聖-1041128","邱鄭正裕-1061037","蔡承洋","徐韻堯","林建龍","廖子葵","劉秋逸-1080201","曾家瑋-1011299","譚正裕","廖慧怡-1011224","黃家輝-1081346","黃鈞源-1071082","江向紘","柳凱宸-1051058","姚凱議-1071061","溫宏文-1081032","蔣麗子","莊睿禾","林麗君","張峻豪-1011249","陳昶凱-1051057","許原豪-1081034","張珮珮-1081091","岩庭詣-1091113","李宇晴-1091115","謝仁凱-1111080","黃國揚","劉清福-1420130","胡詩傑-1420178","陳道平-1420281","楊乃霖-1091120","曾建文-1041046","黃雅涵-1091119","黃鳳仙","楊士永-1060347","薛壬樺-1111077","張冠薇","郭欣瑩","張碧珠","楊棒植-1300198","任君平-1420158","林易瑩-1071413","劉書桓-1081039","游麗珍","林志宭-1040325","賴基佐-1060085","羅儒朋-1420179","陳文偉","陳巧儀","李佳儒-1071084","侯嘉揚-1071086","劉承慶-1091117","林品榛-1061127","呂超峻-1041093","陳基福","黃映菁-1100403","林隆盛-1060027","林彩蓮","李佳盈","林玟欣","李串仁-1060159","陳燕柔-1111075","黃光政-1240021","陳昭璧-1420173","莊錦浪","郭鐘徽","陳威安-1061035","林欣瑩-1031083","張靖怡-1071090","吳宇立-1011287","黃俊然-1081035","廖莉莉","楊彩哖","林宗賢-1060345","黃品敍-1091116","王正雄","余玉鳳-1060282","詹雅婷-1081372","楊如芳-1081394","許望雄","林珠掬-1060245","黃村裕-1060288","黃士銓-1081037","梁世賢-1060262","王建章-1061047","溫軒-1061046","林運懋","林文強","許原寧-1470369","鄭采邑","林以淇-1071142","呂筱娟","林哲民-1111155","黃明進-1130205","王致穎-1081242","曹宗炫-1270090","袁來芳-1100350","陳楚-1091133","游藝","謝欣庭-1111157","周煒捷-1061115","廖家緯-1111152","江羿旻","蘇俊凱-1031075","廖苡竣-1111153","林亞倫-1111154","韓坤達-1081249","韋俊宇-1071120","鄭姚麟-1111159","徐暎玟-1091132","吳志帆-1061111","石振南-1150224","黃鈺婷-1061004","簡碧瑩-1071119","吳珮箏-1111083","張采晴-1130200","林立峯-1081247","吳秉融-1061113","游景順-1130147","豊志豪-1130194","張海松-1130159","林佑儒-1071361","黃士銘","陳子涵","張永芳","陳佳瑜-1031042","蘇甲辛","梁雅婷","洪雅汶","施偉倫-1011305","張永昇","陳彥君-1071087","林奕全-1111142","蔡稚庠","廖信凱-1071347","吳語婕-1051053","張耀元-1051052","張博文-1090217","黃安慶-1041016","郭宏達-1041044","賴澤志-1111141","侯政乾-1111081","黃佳倩","張明存-1080027","許振益-1420304","張瑞振-1250338","黃冠偉-1091102","張栢睿-1111143","張文基","李奇峰-1081188","張永德","徐國卿-1080119","陳惠如","向紘鋕","陳建昌","何信宗","謝定村","蘇素貞","陳信義","陳文清-1420207","楊志偉-1250347","許晟豪-1011304","曾雨哲","洪孟華","謝淑安-1090144","林綜肯-1090187","洪宗亨-1011283","陳姿羽-1110180","楊棣棠-1090149","郭芳進-1090011","郭天忠-1090150","柯廷儒-1041035","蔡志邦-1090209","王凱律","陳亭宇-1051102","周均展-1041033","洪敏恆-1061022","施俊豪-1071357","吳明峯-1090190","汪家弘-1090202","薛弘昌-1100418","陳冠穎-1091096","鄭智升-1081093","沈湘芸","陳占元-1090171","王錦盛","王羿驊-1041133","陳俊星","李政霖-1081086","吳宗錞-1061021","劉涵宥-1100439","吳素誨-1031051","張皓博-1061036","錢瑩-1071414","陳文斌-1081405","曾琇涵-1081428","陳柏修-1111082","李泰逸","蘇振賢-1011358","魏敬倫","吳親怡","陳柏憲","呂錦衣","陳勤洋-1051062","黃耀鋐","洪一龍","盧亭均","陳怡潔","楊朝傑","陳佳吟","馮雅君","林家琪","高文瑞-1011274","陳凱鈞","呂佩珊-1011345","王志坤-1031050","黃威程-1071033","陳文軒","林春風-1051103","洪寶晴","邱天佑-1011339","莊佩瑄-1031069","周新欽-1041099","蔡明芳-1011337","孫偉誠-1100436","許丞忠-1100427","姚舜英-1031066","楊雯婷-1051115","劉縈勳-1061129","簡百羚-1051215","李坤庭-1051113","郭文賔-1100187","楊金水","洪貴琳","黃春年-1100043","張智陽","葉庭君-1061049","王奕仁","辛芝瑩-1011278","張惟超-1061193","蘇怡芬-1031062","鍾馥仰","張博雁-1001229","李家瑋-1071248","陳清井","涂盛光-1100163","周琬婷-1100429","黃智群-1001231","林岳賢-1081241","鍾誠鄉","蔡永祥-1100293","吳書楷-1011308","洪賢良-1051011","吳惠雯-1001219","劉致瑋-1031046","謝亮娥","王小鳳-1100284","鍾豐駿-1001244","楊秋洪-1091103","陳穩仁-1100422","劉俊志-1051051","陳竑均-1051213","施坤宏-1071115","李柏逸-1051260","徐振傑-1100419","盧軒緯-1061339","張贊津","郭志明-1051012","許閔軒-1310585","陳瑞滿","呂世義-1100438","王家模-1150239","許國嚮-1100323","高榮宏-1100325","王裕平","許棠竣-1071076","王永婷","余政輝-1011251","林永潭","鄭偉強","陳秀卿-1010292","施宏達-1071075","謝同隆-1410126","謝佳勳-1091208","文同","潘亭如","蔡智育","賴佳宏-1011343","蔡毓達-1040267","王興發-1040241","謝岳銘-1081022","黃國峰-1071040","陳慕容-1071029","羅玉慈-1081014","鄭嘉豪-1001449","王聖傑-1040232","鄒奇蒼-1051035","蘇忠賢-1040251","陳冠名-1001224","鐘素珠-1414115","周秋菊-1040098","黃百合-1071035","蔣依恬","侯喻涵","彭健竹","鄭錫展-1081124","楊佳榮-1041098","林志明-1061041","陳鸞鳳-1410358","吳韋均-1071039","闕立楓-1061007","林振文","徐浩偉","陳介韋-1091158","黃于育-1101001","蔡智丞","黃婕妤","洪信傑-1031053","林家聖-1900081","吳俊明-1130193","王祥政-1061105","施絢閎-1051033","李欽勝-1900093","廖丹荔","謝發枝-1040101","廖偉翔","蘇律安-1071036","江怡彤-1081021","陳岳亨-1091155","張枝榮","林契文","程秀珍","李後宏-1051112","李祚瑋","謝斯翰","莊晴媚","林少弘-1061009","林暐浩","辜建榮","蔡宗麟","邱志強-1040189","陳暢毅","杜婉綺","陳煦曦-1051079","歐俊顏-1080140","洪聖修-1041158","翁品淵-1410097","穆輝照-1100061","羅淑婷-1091138","劉哲均-1031079","林泰樺","李佳樺","林温迪","陳恒德","徐柏年","桑儷倩","洪振剛","蕭登元","賴剛哲","陳淑芬","田秀雲","許郁昇（中處）","周志寬","曾煥昌","許郁昇（嘉處）","顏瑜良","潘美惠","劉嘉琳","張若怡","李騏","林憲聰","陳瑞浩","陳苓苓","丁彥哲","雍成學","饒淑芳","江季華","陳伊秋-1061019","曾美雪","李玉麟-1060350","北部(流通用)","陳韋辰-1041021","桃園(流通用)","台中(流通用)","嘉義(流通用)","台南(流通用)","高雄(流通用)","花蓮(流通用)","張思凱","陳志恭","林冠佑","王麗娜","李光雄","陳素卿","黃麗娜","黃世德","劉家豪-1061112","邱友玉-1150148","吳鋒鈿","蘇文達","簡志成","楊舒帆","鄭玄信","陳偉君","郭純育","范月容","胡君傑","黃彭輝","徐張至恩","王慧敏","流通事業部","陳金菊","李淑惠","陳虹多","黃順益","徐培芸-1121001","鐘子涵","李雅珍","武亮妤-1121004","羅文宗-1121005","賴奕錡-1121006","劉彥成-1121007","陳育男-1121008","楊政育-1121009","孫志豪","張俊傑","柯守駿","林盛文-1130010","李志茸","林玉梅","郭敏輝","李光勝","涂美珠","游明信","林怡萱","林錦德","廖色美-1130180","朱英政","王韋翔","李淑芳-1031074","許明緣-1090211","林沅誼-1121071","陳蔒瑋-1121072","歸維邦-1121073","巫蕙如-1121074","黃佩蓁-1121075","賴怡菁-1121076","黃麟堯","陳瑜君-1121080","何昆達","林心筠","蘇芸巧-1121078","劉自強-1121079","施慧君-1001247","蔡佳穎-1121042","林勵-1121039","楊鎧綸-1121036","鄭又銘-1121038","洪毓洧-1121040","曾定宇-1121037","黃宇齊-1121043","林宣佑","邱筱涵-1121196","吳思賢-1121271","謝詠志-1081331","謝育珊","吳欣潔","劉俊忠","洪瑞陽-1081015","曾楷元-1071063","曾子宜","黃郁茵-1061208","賴美樺-1121146","朱恆甫-1071088","陳宣伃","張君毅-1121148","蕭旻玲","林芷瑩","陳玉嵐","邱昇儒-1111089","蔡日惠-1121178","黃俊豪-1121264","孫東詮-1121270","張家源","陳怡君","鄭啓源","張政良-1130013","李佳蓉-1061045","武銘珠-1061023","黃烱發","流通-訪推課(共用)","林美秀","陳慧珊","林美孜","吳禹葳","林緯翰-1071068","許哲維","許裕","張景昌","黃可心-1091135","黃玉珍","林志遠","李冠興-1060064","江柏穎-1041095","蔡瑞源-1121349","劉惠敏","古俊一-1041129","吳偉峰","陳俞璇-1131298","楊捷宇-1131001","邱芷芸-1131004","陳貞瑜","許舒晴-1131008","林政毅-1131017","劉柏鑫-1131003","林楹淇-1131005","張宜臻","戴繹玲-1131007","孔令傑-1131002","朱羿翰-1131009","何子召-1131010","朱銘輝-1100423","許佑莉-1011234","許采蘋-1131299","李智祥-1131057","王怡惠-1131164","陳柏志","劉芳旻-1131165","邱每奾-1131166","朱子璇-1131167","林佳徵-1131168","王君娣-1131170","林佳諭-1131172","張雯雯-1081245","鄭郁潔-1131058","陳崴-1131059","陳幸瑩-1131061","游凱婷-1131063","項健榮-1131064","林郁珊-1131066","劉冠妤-1131067","王敦立-1081244","蘇慧珊-1131330","廖祿棋-1041113","戴子力-1071118","廖冠勝-1060343","孫健穎-1131169","陸逸","王毓婷-1081081","李佳儒-1091137","陳冠中-1131062","李佩純-1131060","許佳瑜-1131065","簡妤蓁","陳宛鈴-1300476","賴子涵-1131297","林志齊-1131300","施盛介-1041020","游藝-1111156","陳煦曦","邱啓敬-1081026","楊秀惠","謝旻峰-1131331","周穆謙","蔡竣丞-1081197","邱秀惠","朱銳錡-1131192","黃婷婷-1131339","黃麒先-1051083","張皓甯","張嘉珮","沙沙樂．答樂阿苒-1001280","陳志銘-1031093","陳冠廷","林于峯-1131340","朱相宇-1131343","黃信超","李佳昇-1131361","張簡華-414114","李佳紋-1051067","北部_主任督導專用","李大偉","桃園_主任督導專用","臺中_主任督導專用","嘉義_主任督導專用","臺南_主任督導專用","高雄_主任督導專用","花蓮_主任督導專用","許桂綸-1091064","謝吉成","歐子容-1141038","李嘉恩-1141042","林家筠-1111076","吳映瑤","賴政謙-1141037","周宜澖-1141036","張永吉","葉芳輝-1080197","邱筱娟-1041194","張簡川裕-1111147","張崇聖-1060184","流通查核(共用)","曾瑋琳-1071057","黃泰員-1141039","黃念祖-1081216","鳳山所萬能訪員","陳秀英-1091134","林智敏-1011344","李宗鴻","鄭崇希-1101060","梁之菱-1081070","林育煌-1141040","楊宗翰","三民所萬能訪員","陳昱銓","呂月琴-1150191","林宗杰-1141334","許文協-1090218","蔡幸茹","黃執中","連洧樟-1141071","李奕昇-1141072","陳思伶-1141073","游嘉雯-1141074","傅立-1141075","黃冠諭-1141077","廖紫帆-1141078","李政諺-1051214","葉宥成-1141289","劉育伶-1061084","林蕙雯-1071055","李薇芝","廖慧茹-1141008","徐元忻-1141009","林渼鑫-1141010","陳應華-1141011","張欣云-1131206","楊景閔-1141012","蔡品卉-1071346","蔡政憲-1141268","陳彥羽-1141269","郭晟瑜-1141270","鍾桂函-1141271","蔡沛妤-1141155","巴奈‧恩末-1141156","倪思潔-1141158","莊松雨-1141159","游明倫-1141161","張少凱-1141162","周秉霖","白泉祐-1141160","黃英洲-1100420","張景堯-1141001","鐘子涵-1141002","楊淑婷-1141004","蔡炎廷","柯乃禎-1141267","張云輔-1061196","旗山所萬能訪員","胡君傑1091131","盧楀晴-1110146","許家銜-1141294","林宜蓉","王瑜萍-1011288","施偉恩","顏迺真","陳泰儀-1141112","林詩茹-1141307","李佩穎","曾薏諪-1141330","王竣郁-1141337","許家瑜-1141340","鍾鎮鴻-1141339","威納Julia(測試用)","鄭偉強","林曉民-1051080","黃僊-1061107","徐琬婷","黃文春","陸耀明","呂素妙","林奕翔","李素貞-1151056","吳俊華","黃秀銀","賴若琳","邱朝仁","吳芝瑗-1011293","蔡孟涵-1041147","馮詩婷-1151349","蘇琬婷","韓璨宇-1081087","李宥諭","黃子軒-1011244","黃彥竣-1151350","柳天智-1151351","孫志豪-1151352","蕭靜雯-1151354","游寶玲-1151355","吳宜珊-1151356","何家昇-1151357","黃莉軒-1151359","張錦忠-1151360","哈露芭菡荷-1151361","陳信宏-1151362","楊心瑗-1151363","謝佩穎","何孟學-1151245","黃釔鈞-1151250","方姿蘋-1151242","高振堯-1151247","陳芃穎-1151252","謝秝琪-1151248","黃郁珺-1151255","王曉婷-1151249","李珮如-1151251","侯琨鴻-1151246","鍾明君","廖淑君","江鴻智-1151025","朱胤宇-1151052","吳昱穎-1151026","江葶芳-1151028","陳柏安-1151029","林柏均-1151053","吳宥德-1151030","彭盈禎-1151055","孫彥鈞-1151031","曾琮智-1151032","呂柏峰-1151033","林慧君-1151034","朱柏穎-1151035","張申樺-1151036","陳怡蒨-1151037","張雅俐-1151061","羅曉君-1151158","張珮真-1151159","楊育茜-1151160","賴靖淳-1151161","楊宗豪-1151162","呂斌弘-1151163","江盈瑩-1151164","許雅惠-1151165","陳則佑-1151166","王松麟-1151167","侯岳廷-1151168","陳稚揚-1151169","馮信凱-1151170","鄭琬蓉-1151062","test01@unidyna.com","謝孟純-1151329","劉芳妤-1151334","劉柏辰-1151331","倪卲瑄-1151326","陳恩欣-1151325","謝東邑-1151330","蔡季伶-1151332","張祖寧-1151337","陳佐惠-1151338","楊仕林-1151328","黃鏹宸-1151333","陳建毅-1151335","游凱翔","黃銘添","戴耶典","林炳輝","賴建宥-1151071","梁秉芳-1100424","黃柏舜-1151120","陳彥霖-1151027","陳登祝-1151368","洪詩妤-1151013","林秉毅-1151353","林寓正-1151358","李怡儒-1111146","趙育珣-1111230","總公司共用","黃思涵-1151485","北部PG督導","楊晶雲-1151482","桃園PG督導","臺中PG督導","嘉義PG督導","臺南PG督導","高雄PG督導","花蓮PG督導","陳雅芳-1081211","武可芯-1151486","劉雅婷-1151488","王穩能","劉榮順-1060167","阮國評","萬庭喻-1151504","黃春煥","莊婷雯-1151509","謝政諺-1041042","黃泰綸-1051040","葉家慧-1151515","陳昭慧-1151517"],"C":["新增","更新","刪除"],"D":["是","否"],"E":["五大C","五大B","五大A","連鎖超市C","CVST","系統店B","系統店A","鋪貨商","F","菸酒專","量販C","量販B","量販A","連鎖超市B","連鎖超市A","CVS","無分級","C","B","A"],"F":["營業中","結束營業"]};
+const ST={scopes:{},model:null,fileName:"",tab:"overview",filter:{},page:{},search:{},sel:new Set(),recheck:null,gmap:new Map()};
+const PAGE=100;
+const wsMark=s=>esc(s).replace(/[ 　]/g,m=>`<mark class="ws" title="${m===" "?"半形空白":m==="　"?"全形空白":"特殊字元"}">␣</mark>`);
+function setStatus(msg,isErr){const el=$("status");el.textContent=msg||"";el.className="status"+(isErr?" err":"");el.hidden=!msg;}
+
+// ---- 資料存取 ----
+function inScope(g,rule){const sc=ST.scopes[rule];return !sc||(!sc.office&&!sc.suo)||g.rows.some(r=>(!sc.office||S(r["營業處名稱"])===sc.office)&&(!sc.suo||S(r["營業所/課"])===sc.suo));}
+function ruleGroups(rule){return ST.model.groups[rule]||[];}
+function scopedGroups(rule){return ruleGroups(rule).filter(g=>inScope(g,rule));}
+function renderScope(){
+  const el=$("scope"),k=ST.tab;
+  if(!ST.model||!RULE_BY_KEY[k]||!ruleGroups(k).length){el.hidden=true;return;}
+  const sc=ST.scopes[k]||{office:"",suo:""},offs=new Map(),suos=new Map();
+  for(const g of ruleGroups(k)){
+    const O=new Set(),X=new Set();
+    for(const r of g.rows){const o=S(r["營業處名稱"])||"",x=S(r["營業所/課"])||"";O.add(o);if(!sc.office||o===sc.office)X.add(x);}
+    for(const o of O)if(o)offs.set(o,(offs.get(o)||0)+1);
+    for(const x of X)if(x)suos.set(x,(suos.get(x)||0)+1);
+  }
+  const ol=[...offs.keys()].sort((a,b)=>offRank(a)-offRank(b)||cmp(a,b)),sl=[...suos.keys()].sort(cmp);
+  const opt=(l,v,cur,n)=>`<option value="${esc(v)}" ${v===cur?"selected":""}>${esc(l)}${n!=null?`（${n}）`:""}</option>`;
+  el.hidden=false;
+  el.innerHTML=`<select class="in" id="scOffice" aria-label="營業處">${opt("全部營業處","",sc.office)}${ol.map(o=>opt(o,o,sc.office,offs.get(o))).join("")}</select><select class="in" id="scSuo" aria-label="營業所/課">${opt("全部營業所/課","",sc.suo)}${sl.map(o=>opt(o,o,sc.suo,suos.get(o))).join("")}</select>`;
+}
+function uniqueGroups(raw){const s=new Set();const a=[];for(const r of RULES)for(const g of ruleGroups(r.key,raw))if(!s.has(g.id)){s.add(g.id);a.push(g);}return a;}
+function counts(list){const c={pending:0,done:0,skip:0};for(const g of list)c[g.status]++;return c;}
+
+// ---- 版面外框 ----
+function renderTabs(){
+  if(!ST.model){$("tabs").hidden=true;$("prog").hidden=true;return;}
+  $("tabs").hidden=false;$("prog").hidden=false;
+  const items=[{k:"overview",t:"總覽"},...RULES.map(r=>({k:r.key,t:r.title,rule:true})),{k:"pivot",t:"樞紐統計"},{k:"export",t:"匯出"}];
+  const _sl=$("tabs").scrollLeft;$("tabs").innerHTML=items.map(it=>{
+    let badge="";
+    if(it.rule){const c=counts(ruleGroups(it.k));const tot=ruleGroups(it.k).length;
+      badge=tot===0?`<span class="bd ok">✓</span>`:c.pending===0?`<span class="bd ok">✓ ${tot}</span>`:`<span class="bd warn">${c.pending}</span>`;}
+    return `<button type="button" role="tab" class="tab${ST.tab===it.k?" on":""}" data-tab="${it.k}" aria-selected="${ST.tab===it.k}">${esc(it.t)}${badge}</button>`;}).join("");$("tabs").scrollLeft=_sl;
+  renderProgress();
+}
+function renderProgress(){
+  if(!ST.model)return;
+  const all=uniqueGroups(),c=counts(all);
+  const {patches}=compilePatches(ST.model);
+  const total=all.length;
+  $("progText").innerHTML=`已確認 <b>${fmt(c.done)}</b> / ${fmt(total)} 項` + `・待處理 <b>${fmt(c.pending)}</b>・將匯出 <b>${fmt(patches.size)}</b> 列`;
+  $("progBar").style.width=total?Math.round((c.done+c.skip)/total*100)+"%":"100%";
+}
+
+// ---- 修正列（同類錯誤用緊湊列表，勾選即採用） ----
+const tip=g=>{const t=[g.info,...g.notes.filter(n=>!n.startsWith("店名含"))].filter(Boolean).join("\n");return t?`<span class="tip" tabindex="0" title="${esc(t)}" aria-label="${esc(t)}">ⓘ</span>`:"";};
+const lv=x=>`<span class="lv ${x==="S"?"s":x==="A"?"a":""}">${esc(x)}</span>`;
+function leaderHTML(g){
+  const s=g.rows.filter(r=>S(r["客戶等級"])==="S").length,a=g.rows.filter(r=>S(r["客戶等級"])==="A").length;
+  const tag=[s===0?"無主訪人":s>1?`${s} 位主訪人`:"",a?`${a} 位 A`:""].filter(Boolean).join("・");
+  const opts=g.rows.map(r=>{const n=S(r["執行人員"])||S(r["客戶名稱"])||r["客戶ID"];return `<option value="${r._i}" ${r._i===g.value?"selected":""}>${esc(n)}（${esc(r["客戶ID"])}・${esc(S(r["客戶等級"])||"空白")}）${r._i===g.suggested?" 建議":""}</option>`;}).join("");
+  return `<div class="rw" data-gid="${g.id}" data-status="${g.status}"><input type="checkbox" class="ck" aria-label="採用此修正">
+    <div class="who" title="${esc(g.reason||"")}"><strong>${esc(g.name)}</strong> <span class="mono code">${esc(g.code)}</span> <span class="warnline xs">${tag}</span></div>
+    <div class="fix"><div class="ff"><select class="in" data-lead aria-label="主訪人"><option value="">請選擇主訪人</option>${opts}</select></div></div><div class="vm"></div></div>`;
+}
+function fieldsHTML(g){
+  const r0=g.rows[0],one=g.fields.length===1;
+  const out=g.fields.map(f=>{
+    const cur=g.rule==="店名空白"?wsMark(S(r0[f])||""):esc(S(r0[f])||"（空白）");
+    let ctl;
+    if(g.kind==="select"){const opts=g.options||[],sug=g.suggested&&opts.includes(g.suggested)?g.suggested:null,list=sug?[sug,...opts.filter(o=>o!==sug)]:opts;
+      ctl=`<select class="in" data-field="${esc(f)}" aria-label="${esc(f)}"><option value="">請選擇</option>${list.map(o=>`<option value="${esc(o)}" ${g.vals[f]===o?"selected":""}>${esc(o)}${o===sug?"（建議）":""}</option>`).join("")}</select>`;
+    }else ctl=`<input class="in mono" type="text" data-field="${esc(f)}" value="${esc(g.vals[f]||"")}" spellcheck="false" autocomplete="off" aria-label="${esc(f)}" placeholder="${one?(g.rule==="傳統代碼"?"0000-00000":g.rule==="餐酒代碼"?"0000-0-0000":"修正後"):esc(f)}">`;
+    return `<div class="ff"><span class="bad mono" title="${esc(f)}">${cur}</span><span class="arr">→</span>${ctl}</div>`;}).join("");
+  const chips=g.chips.length?`<div class="chips">${g.chips.map((c,i)=>`<button type="button" class="chipbtn" data-chip="${i}" title="${esc(c.hint||"")}">${esc(c.label)}${c.hint?`<small>${esc(c.hint)}</small>`:""}</button>`).join("")}</div>`:"";
+  return out+chips;
+}
+function cardHTML(g){
+  if(g.kind==="leader")return leaderHTML(g);
+  const meta=[g.area,g.suo].filter(Boolean).join(" ・ ")+(g.rows.length>1?` ・ ${g.rows.length} 列`:"");
+  return `<div class="rw" data-gid="${g.id}" data-status="${g.status}"><input type="checkbox" class="ck" aria-label="採用此修正">
+    <div class="who" title="${esc(meta)}"><strong>${esc(g.name)}</strong> <span class="mono code">${esc(g.code)}</span>${tip(g)}${g.warnPUA?` <span class="warnline xs">⚠ 疑似缺字，請對照原店名</span>`:""}</div>
+    <div class="fix">${fieldsHTML(g)}</div><div class="vm"></div></div>`;
+}
+function refreshCard(el,g,full){
+  if(full){el.outerHTML=cardHTML(g);el=document.querySelector(`[data-gid="${g.id}"]`);}
+  const v=validateGroup(ST.model,g);
+  el.dataset.status=g.status;
+  const cb=el.querySelector("input.ck");cb.checked=g.status==="done";cb.disabled=!v.ok;
+  const e=v.items.find(i=>i.level==="err"),w=v.items.find(i=>i.level==="warn");
+  const empty=g.kind==="leader"?g.value==null:g.fields.every(f=>!(g.vals[f]||"").trim());
+  el.querySelector(".vm").innerHTML=e?(empty?"":`<span class="m err">× ${esc(e.text)}</span>`):w?`<span class="m warn">！${esc(w.text)}</span>`:`<span class="m ok">✓${g.kind==="leader"&&g.value!=null?(n=>n?` 改 ${n} 列`:"")(g.rows.filter(r=>S(r["客戶等級"])!==(r._i===g.value?"S":"-")).length):""}</span>`;
+  return el;
+}
+
+// ---- 規則頁 ----
+function filtered(rule){
+  const f=ST.filter[rule]||"pending",q=(ST.search[rule]||"").trim().toLowerCase();
+  return scopedGroups(rule).filter(g=>(f==="all"||g.status===f)&&(!q||[g.name,g.code,g.area,g.suo,g.chan,g.type,...g.rows.map(r=>S(r["執行人員"])||"")].join("\u0001").toLowerCase().includes(q)));
+}
+function renderRule(rule){
+  const R=RULE_BY_KEY[rule],all=scopedGroups(rule),c=counts(all),f=ST.filter[rule]||"pending";
+  const readyN=filtered(rule).filter(g=>g.status==="pending"&&validateGroup(ST.model,g).ok).length;
+  const bulk=R.kind==="select"?`<span class="bulkset">全部設為<select class="in" id="bulkVal"><option value="">請選擇</option>${[...new Set(all.flatMap(g=>g.options||[]))].map(o=>`<option>${esc(o)}</option>`).join("")}</select><button type="button" class="btn sm" data-act="bulkset">套用</button></span>`:"";
+  $("pane").innerHTML=`<section class="panel"><div class="phead"><h2>${esc(R.title)}<span class="cnt">${fmt(all.length)} 項</span></h2><div class="right">${esc(R.short)}<span class="xs">　｜　Enter 跳下一列、可從 Excel 貼上整欄、Ctrl+D 同上一列</span><details class="more"><summary>詳細規則</summary>${esc(R.right)}</details></div></div>
+    ${all.length===0?`<div class="empty">沒有異常。</div>`:`
+    <div class="toolbar"><div class="seg" role="group" aria-label="狀態">${[["pending","待處理",c.pending],["done","已確認",c.done],["all","全部",all.length]].map(([k,t,n])=>`<button type="button" class="${f===k?"on":""}" data-filter="${k}">${t} ${fmt(n)}</button>`).join("")}</div>
+      ${all.length>10?`<input type="search" id="q" class="in" placeholder="搜尋" value="${esc(ST.search[rule]||"")}" aria-label="搜尋">`:""}
+      ${bulk}<button type="button" class="btn primary" data-act="confirmall" ${readyN?"":"disabled"}>全部採用（${fmt(readyN)}）</button></div>
+    <div class="rwh"><span></span><span>店家</span><span>${R.kind==="leader"?"主訪人（選一位）":"現值 → 修正後"}</span><span></span></div><div id="list"></div><div id="pager" class="pager"></div>`}
+  </section>`;
+  if(all.length)renderList(rule);
+}
+function renderList(rule){
+  const list=filtered(rule),pages=Math.max(1,Math.ceil(list.length/PAGE));
+  let p=Math.min(ST.page[rule]||0,pages-1);ST.page[rule]=p;
+  const slice=list.slice(p*PAGE,p*PAGE+PAGE);
+  $("list").innerHTML=slice.length?slice.map(cardHTML).join(""):`<div class="empty">沒有符合條件的項目。</div>`;
+  slice.forEach(g=>refreshCard(document.querySelector(`[data-gid="${g.id}"]`),g,false));
+  $("pager").innerHTML=pages>1?`<button type="button" class="btn" data-page="-1" ${p===0?"disabled":""}>上一頁</button><span>第 ${p+1} / ${pages} 頁（共 ${fmt(list.length)} 項）</span><button type="button" class="btn" data-page="1" ${p>=pages-1?"disabled":""}>下一頁</button>`:`<span>共 ${fmt(list.length)} 項</span>`;
+}
+
+// ---- 總覽 ----
+function renderOverview(){
+  const rows=RULES.map(r=>{const g=ruleGroups(r.key),c=counts(g);
+    return `<tr><td><b>${esc(r.title)}</b></td><td class="muted">${esc(r.short)}</td><td class="num">${fmt(g.length)}</td><td class="num">${fmt(c.done)}</td><td class="num ${c.pending?"warnc":""}">${fmt(c.pending)}</td><td><button type="button" class="btn sm" data-tab="${r.key}">${g.length?"處理":"查看"}</button></td></tr>`;}).join("");
+  $("pane").innerHTML=`<section class="panel"><div class="phead"><h2>總覽</h2><p class="right">${esc(ST.fileName)}：匯入 ${fmt(ST.model.rows.length)} 筆，納入檢查 ${fmt(ST.model.base.length)} 筆。</p></div>
+    <div class="tbl"><table><thead><tr><th>檢查項目</th><th>規則</th><th class="num">異常店家</th><th class="num">已確認</th><th class="num">待處理</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+}
+
+// ---- 樞紐 ----
+function renderPivot(){
+  const m=new Map();
+  for(const r of ST.model.base){const a=S(r["通路別"])??"(未設定)",b=S(r["店家型態"])??"(未設定)",c=S(r["店家等級"])??"(未設定)";
+    if(!m.has(a))m.set(a,new Map());const mb=m.get(a);if(!mb.has(b))mb.set(b,new Map());const mc=mb.get(b);mc.set(c,(mc.get(c)||0)+(r["店家代碼"]!=null?1:0));}
+  let body="";
+  for(const a of [...m.keys()].sort()){let sub=0,h="";
+    for(const b of [...m.get(a).keys()].sort())for(const c of [...m.get(a).get(b).keys()].sort()){const n=m.get(a).get(b).get(c);sub+=n;h+=`<tr><td>${esc(a)}</td><td>${esc(b)}</td><td>${esc(c)}</td><td class="num">${fmt(n)}</td></tr>`;}
+    body+=h+`<tr class="sub"><td colspan="3">${esc(a)} 合計</td><td class="num">${fmt(sub)}</td></tr>`;}
+  $("pane").innerHTML=`<section class="panel"><div class="phead"><div><h2>樞紐統計</h2><p class="right">對應原檔「樞紐表」：計數 - 店家代碼，依通路別、店家型態、店家等級分組。</p></div></div>
+    <div class="tbl tall"><table><thead><tr><th>通路別</th><th>店家型態</th><th>店家等級</th><th class="num">計數 - 店家代碼</th></tr></thead><tbody>${body}</tbody></table></div></section>`;
+}
+
+// ---- 匯出 ----
+async function renderExport(){
+  const {patches,log}=compilePatches(ST.model);
+  const all=uniqueGroups(true),c=counts(all);
+  const stores=new Set(log.map(e=>S(e.row["店家代碼"])+"|"+S(e.row["店家名稱"]))).size;
+  $("pane").innerHTML=`<section class="panel"><div class="phead"><div><h2>匯出匯入檔</h2><p class="right">只包含已確認的修正，格式與「匯入範例」相同（26 欄，新增/更新/刪除＝更新）。</p></div></div>
+    <div class="stats"><div><b>${fmt(patches.size)}</b><span>將匯出列數</span></div><div><b>${fmt(stores)}</b><span>涉及店家</span></div><div><b>${fmt(c.done)}</b><span>已確認項目</span></div><div class="${c.pending?"warnc":""}"><b>${fmt(c.pending)}</b><span>待處理（不會匯出）</span></div></div>
+    <div class="exp-acts"><button type="button" class="btn primary lg" id="dlImport" ${patches.size?"":"disabled"}>下載匯入檔（.xlsx）</button><button type="button" class="btn lg" id="dlLog" ${log.length?"":"disabled"}>下載修正紀錄（.xlsx）</button></div>
+    <p class="hintline">畫面上的修正只存在這個分頁，重新整理或關閉就會消失。請在離開前先下載匯入檔。</p>
+    <h3>修正後複查</h3><div id="recheck" class="muted">計算中…</div>
+    <details class="more" style="margin:6px 18px 12px"><summary>匯入系統步驟</summary><ol class="steps"><li>下載「匯入檔」，確認內容無誤。</li><li>到系統的客戶資料匯入頁上傳（第一個工作表「匯入範例」）。</li><li>匯入後重新匯出最新資料，拖進此頁再檢查一次。</li></ol></details></section>`;
+  $("dlImport").addEventListener("click",()=>exportFile("import"));
+  $("dlLog").addEventListener("click",()=>exportFile("log"));
+  await tick();
+  const after=analyze(applyPatches(ST.model.rows,patches));
+  const warns=[];for(const g of all)if(g.status==="done"){const v=validateGroup(ST.model,g);v.items.filter(i=>i.level==="warn").forEach(i=>warns.push(`${g.name}（${g.code}）：${i.text}`));}
+  $("recheck").className="";
+  $("recheck").innerHTML=`<div class="tbl"><table><thead><tr><th>檢查項目</th><th class="num">原異常列數</th><th class="num">修正後仍異常</th><th>狀態</th></tr></thead><tbody>${RULES.map(r=>{
+    const b=ST.model.out[r.key].length,a=after.out[r.key].length;
+    return `<tr><td>${esc(r.title)}</td><td class="num">${fmt(b)}</td><td class="num ${a?"warnc":""}">${fmt(a)}</td><td>${b===0?'<span class="chip mute">無異常</span>':a===0?'<span class="chip ok">已全部修正</span>':a<b?'<span class="chip warn">部分修正</span>':'<span class="chip warn">尚未修正</span>'}</td></tr>`;}).join("")}</tbody></table></div>`+
+    (warns.length?`<div class="warnbox"><b>請留意 ${warns.length} 項提醒</b><ul>${warns.slice(0,12).map(w=>`<li>${esc(w)}</li>`).join("")}</ul>${warns.length>12?`<p>其餘 ${warns.length-12} 項請回到各頁籤查看。</p>`:""}</div>`:"");
+}
+async function exportFile(kind){
+  let downloads=null;try{downloads=await window.claude?.use?.("downloads");}catch(e){}
+  if(typeof ExcelJS==="undefined"){setStatus("匯出元件尚未載入，請稍後再試。",true);return;}
+  const {patches,log}=compilePatches(ST.model);
+  const d=new Date(),ymd=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
+  try{
+    let wb,name;
+    if(kind==="import"){const rows=[...patches.keys()].sort((a,b)=>a-b).map(i=>Object.assign({},ST.model.rows[i],patches.get(i)));wb=templateWorkbook(ExcelJS,rows,TPL_LISTS);name=`客戶資料匯入_${ymd}.xlsx`;}
+    else{wb=logWorkbook(ExcelJS,log);name=`客戶資料修正紀錄_${ymd}.xlsx`;}
+    const buf=await wb.xlsx.writeBuffer();
+    const blob=new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    if(downloads)await downloads.save({filename:name,data:blob});
+    else{const a=document.createElement("a");const u=URL.createObjectURL(blob);a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);}
+    setStatus(`已儲存 ${name}`);
+  }catch(e){if(e&&e.code==="declined")setStatus("已取消儲存。");else setStatus("匯出失敗："+(e&&e.message||e),true);}
+}
+
+// ---- 主繪製 ----
+function renderPane(){
+  if(!ST.model){return;}
+  const t=ST.tab;
+  if(t==="overview")renderOverview();else if(t==="pivot")renderPivot();else if(t==="export")renderExport();else renderRule(t);
+}
+function go(tab){ST.tab=tab;ST.sel.clear();renderScope();renderTabs();renderPane();const st=document.querySelector(".sticky"),y=$("pane").offsetTop-st.offsetHeight-8;if(window.scrollY>y)window.scrollTo(0,Math.max(0,y));}
+
+// ---- 事件 ----
+function groupOf(el){const a=el.closest("[data-gid]");return a?{el:a,g:ST.gmap.get(a.dataset.gid)}:null;}
+function touched(g,el){g.status=validateGroup(ST.model,g).ok?"done":"pending";refreshCard(el,g,false);renderTabs();}
+document.addEventListener("click",e=>{
+  const t=e.target.closest("[data-tab]");if(t&&ST.model){go(t.dataset.tab);return;}
+  const f=e.target.closest("[data-filter]");if(f){const r=ST.tab;ST.filter[r]=f.dataset.filter;ST.page[r]=0;renderRule(r);return;}
+  const pg=e.target.closest("[data-page]");if(pg){ST.page[ST.tab]=(ST.page[ST.tab]||0)+Number(pg.dataset.page);renderList(ST.tab);$("pane").scrollIntoView({behavior:"smooth",block:"start"});return;}
+  const chip=e.target.closest("[data-chip]");
+  if(chip){const x=groupOf(chip);if(!x)return;const c=x.g.chips[Number(chip.dataset.chip)];const inp=x.el.querySelector("input[data-field]");inp.value=c.value;x.g.vals[inp.dataset.field]=c.value;touched(x.g,x.el);inp.focus();return;}
+  const act=e.target.closest("[data-act]");if(!act)return;
+  const a=act.dataset.act;
+  if(a==="confirmall"){let n=0;for(const g of filtered(ST.tab))if(g.status==="pending"&&validateGroup(ST.model,g).ok){g.status="done";n++;}
+    setStatus(`已確認 ${fmt(n)} 項。`);renderRule(ST.tab);renderTabs();return;}
+  if(a==="bulkset"){const v=$("bulkVal").value;if(!v){setStatus("請先選擇要設定的值。",true);return;}
+    let ok=0;for(const g of filtered(ST.tab)){if(g.status!=="pending"||!g.options||!g.options.includes(v))continue;g.vals[g.fields[0]]=v;if(validateGroup(ST.model,g).ok){g.status="done";ok++;}}
+    setStatus(`已套用 ${fmt(ok)} 項。`);renderRule(ST.tab);renderTabs();}
+});
+document.addEventListener("input",e=>{
+  const inp=e.target.closest("input[data-field]");
+  if(inp){const x=groupOf(inp);if(!x)return;x.g.vals[inp.dataset.field]=inp.value;touched(x.g,x.el);return;}
+  if(e.target.id==="q"){ST.search[ST.tab]=e.target.value;ST.page[ST.tab]=0;renderList(ST.tab);}
+});
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.id==="scOffice"||t.id==="scSuo"){const k=ST.tab,sc=ST.scopes[k]||(ST.scopes[k]={office:"",suo:""});if(t.id==="scOffice"){sc.office=t.value;sc.suo="";}else sc.suo=t.value;ST.page={};renderScope();renderRule(k);return;}
+  if(t.matches("select[data-lead]")){const x=groupOf(t);if(!x)return;x.g.value=t.value===""?null:Number(t.value);touched(x.g,x.el);return;}
+  if(t.matches("select[data-field]")){const x=groupOf(t);if(!x)return;x.g.vals[t.dataset.field]=t.value;touched(x.g,x.el);return;}
+  if(t.matches("input[type=radio]")){const x=groupOf(t);if(!x)return;x.g.value=Number(t.value);touched(x.g,x.el);return;}
+  if(t.matches("input.ck")){const x=groupOf(t);if(!x)return;x.g.status=t.checked?"done":"pending";
+    const filt=ST.filter[ST.tab]||"pending";if(filt!=="all"&&x.g.status!==filt)renderRule(ST.tab);else refreshCard(x.el,x.g,false);renderTabs();}
+});
+
+// ---- 試算表式操作：Enter 下移、Ctrl+D 複製上列、貼上整欄 ----
+const CELL="[data-field],[data-lead]";
+function setCell(t,v){const x=groupOf(t);if(!x)return;
+  if(t.matches("[data-lead]")){if(![...t.options].some(o=>o.value===v))return;t.value=v;x.g.value=v===""?null:Number(v);}
+  else{if(t.tagName==="SELECT"&&![...t.options].some(o=>o.value===v))return;t.value=v;x.g.vals[t.dataset.field]=v;}
+  touched(x.g,x.el);}
+document.addEventListener("keydown",e=>{
+  const t=e.target.closest(CELL);if(!t)return;const row=t.closest(".rw");if(!row)return;
+  if(e.key==="Enter"||(t.tagName==="INPUT"&&(e.key==="ArrowDown"||e.key==="ArrowUp"))){
+    const n=e.key==="ArrowUp"?row.previousElementSibling:row.nextElementSibling;
+    if(n&&n.classList.contains("rw")){const f=n.querySelector(CELL);if(f){e.preventDefault();f.focus();if(f.select)f.select();}}return;}
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="d"){
+    const p=row.previousElementSibling;if(!p||!p.classList.contains("rw"))return;
+    const i=[...row.querySelectorAll(CELL)].indexOf(t),src=p.querySelectorAll(CELL)[i];if(!src)return;
+    e.preventDefault();setCell(t,src.value);}
+});
+document.addEventListener("paste",e=>{
+  const t=e.target.closest("input[data-field]");if(!t)return;
+  const lines=((e.clipboardData||window.clipboardData).getData("text")||"").replace(/\r/g,"").split("\n");
+  if(lines.length&&lines[lines.length-1]==="")lines.pop();
+  if(lines.length<2)return;
+  e.preventDefault();let row=t.closest(".rw");const k=[...row.querySelectorAll("input[data-field]")].indexOf(t);
+  for(const ln of lines){if(!row||!row.classList.contains("rw"))break;const f=row.querySelectorAll("input[data-field]")[k];if(f)setCell(f,ln.split("\t")[0].trim());row=row.nextElementSibling;}
+});
+
+// ---- 匯入 ----
+async function handleFile(file){
+  if(!file)return;
+  setStatus("讀取檔案中…");await tick();
+  try{
+    const buf=await file.arrayBuffer();
+    setStatus(`解析 Excel 中…（${(buf.byteLength/1048576).toFixed(1)} MB，筆數多時需要數秒）`);await tick();
+    const wb=XLSX.read(buf,{type:"array",dense:true,cellText:false,cellDates:false});
+    let aoa=null;
+    for(const name of wb.SheetNames){
+      const a=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:true,defval:null,blankrows:false});
+      if(a.length&&a[0]&&REQUIRED.every(c=>a[0].map(x=>String(x??"").trim()).includes(c))){aoa=a;break;}
+    }
+    if(!aoa){const first=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:null,blankrows:false})[0]||[];
+      throw new Error("找不到客戶資料欄位。缺少："+REQUIRED.filter(c=>!first.map(x=>String(x??"").trim()).includes(c)).join("、")+"（第一列需為標題列）");}
+    setStatus("套用檢查規則、產生建議值中…");await tick();
+    const head=aoa[0].map(x=>String(x??"").trim()),idx=COLS.map(c=>head.indexOf(c));
+    const rows=new Array(aoa.length-1);
+    for(let i=1;i<aoa.length;i++){const a=aoa[i],o={};for(let j=0;j<COLS.length;j++){const v=idx[j]<0?null:a[idx[j]];o[COLS[j]]=(v===""||v===undefined)?null:v;}rows[i-1]=o;}
+    const model=buildModel(rows);
+    ST.model=model;ST.scopes={};ST.fileName=file.name;ST.tab="overview";ST.filter={};ST.page={};ST.search={};ST.sel.clear();
+    ST.gmap=new Map();for(const g of uniqueGroups())ST.gmap.set(g.id,g);
+    $("drop").classList.add("compact");$("dropText").hidden=true;$("dropMeta").hidden=false;$("reBtn").hidden=false;
+    const bad=RULES.filter(r=>ruleGroups(r.key).length>0).length;
+    document.body.classList.add("loaded");$("dropMeta").innerHTML=`<b>客戶檢查表</b><span class="fname">${esc(file.name)}</span><span>匯入 <b>${fmt(rows.length)}</b> 筆</span><span>納入檢查 <b>${fmt(model.base.length)}</b> 筆</span><span>有異常的項目 <b>${bad}</b> / ${RULES.length}</span>`;
+    $("intro").hidden=true;setStatus("");renderScope();
+    renderTabs();renderPane();
+  }catch(err){setStatus("匯入失敗："+(err&&err.message||err),true);}
+}
+const drop=$("drop"),input=$("file");
+input.addEventListener("change",()=>{handleFile(input.files[0]);input.value="";});
+drop.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();input.click();}});
+["dragenter","dragover"].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("over");}));
+["dragleave","drop"].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault();if(ev==="drop"||!e.relatedTarget)drop.classList.remove("over");}));
+document.addEventListener("drop",e=>{const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];if(f)handleFile(f);});
+$("intro").innerHTML=`<p class="muted" style="margin:0">匯入後自動檢查：${RULES.map(r=>esc(r.title)).join("、")}</p>`;
+renderTabs();
+
+})();
+</script>
+
+</body></html>
