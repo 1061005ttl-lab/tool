@@ -31,8 +31,8 @@ body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:16px/1
 @keyframes f3{to{transform:translate(-12vw,-16vh) scale(1.2)}}
 .veil{position:fixed;inset:0;z-index:-2;background:rgba(255,255,255,.55);pointer-events:none}
 #net{position:fixed;inset:0;z-index:-1;pointer-events:none}
-#fx{position:fixed;inset:0;z-index:50;pointer-events:none;mix-blend-mode:multiply}
-[data-theme="yong"] #fx{mix-blend-mode:normal}
+#fx{position:fixed;inset:0;z-index:50;pointer-events:none}
+[data-theme="song"] #fx,[data-theme="qinghua"] #fx{mix-blend-mode:multiply}
 .gridbg{position:fixed;inset:0;z-index:-1;pointer-events:none;
   background-image:linear-gradient(rgba(13,16,32,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(13,16,32,.05) 1px,transparent 1px);
   background-size:56px 56px;mask-image:radial-gradient(ellipse at 50% 0%,#000 30%,transparent 80%)}
@@ -159,7 +159,7 @@ h1{margin:0;font:900 64px/1 "Microsoft JhengHei",sans-serif;letter-spacing:.04em
 [data-theme="song"] .aurora,[data-theme="song"] .veil,
 [data-theme="yong"] .aurora,[data-theme="yong"] .veil{display:none}
 [data-theme="song"] .gridbg,[data-theme="yong"] .gridbg{background:none}
-.shan{display:none;position:fixed;left:0;right:0;bottom:0;height:42vh;z-index:-1;pointer-events:none;opacity:.9}
+.shan{display:none;position:fixed;left:0;bottom:0;width:100%;height:42vh;z-index:-1;pointer-events:none;opacity:.9}
 [data-theme="song"] .shan{display:block}
 .shan .s1{fill:rgba(var(--cel),.22)}.shan .s2{fill:rgba(var(--inkr),.14)}.shan .s3{fill:rgba(var(--inkr),.10)}.shan .sun{fill:var(--b);opacity:.5}
 [data-theme="song"] .kicker{font-family:var(--serif);color:var(--sub)}
@@ -223,6 +223,101 @@ h1{margin:0;font:900 64px/1 "Microsoft JhengHei",sans-serif;letter-spacing:.04em
 [data-theme="yong"] .btn:hover{color:var(--x2);border-color:var(--x)}
 [data-theme="yong"] .btn.go{background:linear-gradient(135deg,var(--m1),var(--m));color:#fff8e6;box-shadow:0 6px 16px -8px var(--m)}
 [data-theme="yong"] .btn.go:hover{background:linear-gradient(135deg,var(--x1),var(--x2));color:#fff}
+/* ── 平面主題共用骨架（青花、敦煌、花磚、廟宇、枯山水、賽博龐克、包浩斯、唐三彩）：各主題只填變數 ── */
+[data-flat] .aurora,[data-flat] .veil{display:none}
+[data-flat] .gridbg{background:none}
+[data-flat] body{font-family:var(--f-font);background:var(--f-body-bg);background-attachment:fixed}
+[data-flat] .kicker{font-family:var(--f-font);color:var(--f-acc)}
+[data-flat] .kicker b{background:var(--f-acc);height:2px}
+[data-flat] h1{font:700 64px/1 var(--f-font);letter-spacing:var(--f-ls,.2em);background:none;color:var(--f-title);-webkit-text-fill-color:var(--f-title);animation:none;text-shadow:var(--f-title-shadow,none)}
+[data-flat] .logo{background:var(--f-logo-bg);color:var(--f-logo-color);border-radius:var(--f-logo-radius,8px);box-shadow:var(--f-logo-shadow,none);animation:none;font-family:var(--f-font)}
+[data-flat] .logo::after,[data-flat] .card::before,[data-flat] .card::after,[data-flat] .card .sweep,[data-flat] .corner{display:none}
+[data-flat] .chip,[data-flat] .pbtn{background:var(--f-chip-bg);border-color:var(--f-line);color:var(--f-ink);border-radius:var(--f-radius-s);box-shadow:none;font-family:var(--f-font)}
+[data-flat] .chip em{color:var(--f-acc)}
+[data-flat] .note,[data-flat] .plabel,[data-flat] .status{color:var(--f-sub);font-family:var(--f-font)}
+[data-flat] .card{background:var(--f-card-bg);border:var(--f-card-border);border-radius:var(--f-radius);box-shadow:var(--f-card-shadow);backdrop-filter:none}
+[data-flat] .card:hover{box-shadow:var(--f-card-shadow-h,var(--f-card-shadow))}
+[data-flat] .num{font:700 30px/1 var(--f-font);-webkit-text-stroke:0;color:var(--f-num)}
+[data-flat] .t{font-family:var(--f-font);color:var(--f-ink);text-shadow:var(--f-t-shadow,none)}
+[data-flat] .v{background:var(--f-v-bg);color:var(--f-v-color);border:var(--f-v-border,0);border-radius:var(--f-radius-s);font-family:var(--f-font)}
+[data-flat] .btn{font-family:var(--f-font);border-radius:var(--f-radius-s);background:var(--f-btn-bg,transparent);border:1px solid var(--f-line);color:var(--f-ink)}
+[data-flat] .btn:hover{border-color:var(--f-acc);color:var(--f-acc)}
+[data-flat] .btn.go{background:var(--f-go-bg);color:var(--f-go-color);box-shadow:none;border:0}
+[data-flat] .btn.go:hover{filter:brightness(1.12);color:var(--f-go-color)}
+:root[data-flat]{--serifF:"Noto Serif TC","Songti TC","PMingLiU",serif}
+
+/* 青花：白瓷、鈷藍纏枝 */
+:root[data-theme="qinghua"]{--b:#1d3f8f;--f-font:var(--serifF);--f-acc:#1d3f8f;--f-ink:#1d3f8f;--f-sub:#5b6b8a;--f-title:#1d3f8f;
+  --f-body-bg:#fbfcfd url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cg fill='none' stroke='%232a4f9a' stroke-opacity='.13' stroke-width='1.4'%3E%3Cpath d='M0 60 C20 30 40 30 60 60 S100 90 120 60'/%3E%3Ccircle cx='60' cy='60' r='9'/%3E%3Cpath d='M60 51 C56 44 64 44 60 51M69 60 C76 56 76 64 69 60M60 69 C64 76 56 76 60 69M51 60 C44 64 44 56 51 60'/%3E%3Cpath d='M30 38 c-6 -8 4 -12 6 -4M90 82 c6 8 -4 12 -6 4'/%3E%3C/g%3E%3C/svg%3E");
+  --f-logo-bg:#1d3f8f;--f-logo-color:#fff;--f-logo-radius:4px;--f-logo-shadow:0 0 0 3px #fbfcfd,0 0 0 4.5px #1d3f8f;
+  --f-chip-bg:#fff;--f-line:rgba(29,63,143,.35);--f-radius:4px;--f-radius-s:2px;
+  --f-card-bg:#fff;--f-card-border:2px solid #1d3f8f;--f-card-shadow:0 0 0 4px #fff,0 0 0 5px #1d3f8f;--f-card-shadow-h:0 0 0 4px #fff,0 0 0 5px #1d3f8f,0 16px 28px -14px rgba(29,63,143,.55);
+  --f-num:rgba(29,63,143,.25);--f-v-bg:transparent;--f-v-color:#1d3f8f;--f-v-border:1px solid #1d3f8f;--f-go-bg:#1d3f8f;--f-go-color:#fff}
+/* 敦煌：土紅、石青、石綠、赭黃 */
+:root[data-theme="dunhuang"]{--b:#a8442a;--f-font:var(--serifF);--f-acc:#a8442a;--f-ink:#5a2414;--f-sub:#8a5a3a;--f-title:#7a2e1c;
+  --f-body-bg:radial-gradient(ellipse at 20% 10%,rgba(255,240,210,.7),transparent 60%),radial-gradient(circle at 85% 80%,rgba(160,80,50,.18),transparent 50%),repeating-radial-gradient(circle at 30% 40%,rgba(120,70,40,.04) 0 2px,transparent 2px 7px),#e6cfa6;
+  --f-logo-bg:#a8442a;--f-logo-color:#f5e6c8;--f-logo-radius:6px;--f-logo-shadow:0 0 0 3px #e6cfa6,0 0 0 5px #2f7b78;
+  --f-chip-bg:rgba(245,230,200,.92);--f-line:rgba(168,68,42,.45);--f-radius:6px;--f-radius-s:3px;
+  --f-card-bg:rgba(245,230,200,.95);--f-card-border:3px solid #a8442a;--f-card-shadow:inset 0 0 0 4px #e6cfa6,inset 0 0 0 6px #2f7b78;--f-card-shadow-h:inset 0 0 0 4px #e6cfa6,inset 0 0 0 6px #2f7b78,0 14px 26px -14px rgba(122,46,28,.6);
+  --f-num:rgba(168,68,42,.3);--f-v-bg:#2f7b78;--f-v-color:#f5e6c8;--f-go-bg:#a8442a;--f-go-color:#f5e6c8}
+/* 臺灣花磚：粉綠、粉紅、鵝黃 */
+:root[data-theme="huazhuan"]{--b:#5fa58f;--f-font:"Microsoft JhengHei",sans-serif;--f-acc:#3f8a74;--f-ink:#2f5d50;--f-sub:#3f5f56;--f-title:#2f5d50;--f-ls:.12em;
+  --f-body-bg:linear-gradient(rgba(255,252,244,.62),rgba(255,252,244,.62)),radial-gradient(circle at 50% 50%,#f4b6c2 0 9px,#fff 9px 12px,transparent 12px) 0 0/60px 60px,conic-gradient(from 45deg at 50% 50%,#9fd3c0 0 25%,#f6e3a1 0 50%,#9fd3c0 0 75%,#f6e3a1 0) 0 0/60px 60px;
+  --f-logo-bg:#5fa58f;--f-logo-color:#fff;--f-logo-radius:4px;--f-logo-shadow:inset 0 0 0 4px #f4b6c2;
+  --f-chip-bg:#fffaf0;--f-line:rgba(95,165,143,.55);--f-radius:4px;--f-radius-s:4px;
+  --f-card-bg:#fffaf0;--f-card-border:6px solid #5fa58f;--f-card-shadow:inset 0 0 0 3px #f4b6c2;--f-card-shadow-h:inset 0 0 0 3px #f4b6c2,0 14px 26px -14px rgba(47,93,80,.55);
+  --f-num:rgba(95,165,143,.4);--f-v-bg:#f4b6c2;--f-v-color:#7a2f45;--f-go-bg:#5fa58f;--f-go-color:#fff}
+/* 廟宇：朱紅、金、寶藍、剪黏 */
+:root[data-theme="miao"]{--b:#d4a017;--f-font:var(--serifF);--f-acc:#ffd96a;--f-ink:#8f1d16;--f-sub:#ffe6a8;--f-title:#ffd96a;--f-title-shadow:0 3px 0 #5e0f0a,0 0 22px rgba(255,217,106,.45);
+  --f-body-bg:radial-gradient(ellipse at 50% 0%,#c0392b,#7d1610 70%);
+  --f-logo-bg:#ffd96a;--f-logo-color:#8f1d16;--f-logo-radius:8px;--f-logo-shadow:0 0 0 3px #7d1610,0 0 0 5px #1f4fa0;
+  --f-chip-bg:#fff7e0;--f-line:#d4a017;--f-radius:8px;--f-radius-s:4px;
+  --f-card-bg:linear-gradient(180deg,#fff7e0,#fde9b8);--f-card-border:3px solid #d4a017;--f-card-shadow:0 0 0 3px #1f4fa0,0 10px 24px rgba(0,0,0,.35);--f-card-shadow-h:0 0 0 3px #1f4fa0,0 0 26px rgba(255,217,106,.55);
+  --f-num:rgba(143,29,22,.25);--f-v-bg:#1f4fa0;--f-v-color:#ffd96a;--f-go-bg:#8f1d16;--f-go-color:#ffd96a}
+[data-theme="miao"] .chip em{color:#8f1d16}
+/* 枯山水：白砂耙紋、灰石 */
+:root[data-theme="karesansui"]{--b:#5d5b55;--f-font:var(--serifF);--f-acc:#5d5b55;--f-ink:#3d3d38;--f-sub:#6d6a60;--f-title:#3d3d38;--f-ls:.3em;
+  --f-body-bg:radial-gradient(ellipse 60px 44px at 92% 22%,#7a776f 0 60%,transparent 62%),radial-gradient(ellipse 34px 26px at 6% 88%,#7a776f 0 60%,transparent 62%),repeating-linear-gradient(0deg,#ece6d8 0 7px,#e0d8c6 7px 8px);
+  --f-logo-bg:radial-gradient(circle at 35% 30%,#a19e95,#5d5b55);--f-logo-color:#f3efe6;--f-logo-radius:50%;
+  --f-chip-bg:rgba(250,248,242,.95);--f-line:#b9b3a4;--f-radius:2px;--f-radius-s:2px;
+  --f-card-bg:rgba(250,248,242,.96);--f-card-border:1px solid #b9b3a4;--f-card-shadow:0 10px 24px -18px rgba(0,0,0,.4);--f-card-shadow-h:0 14px 30px -16px rgba(0,0,0,.45);
+  --f-num:rgba(93,91,85,.22);--f-v-bg:transparent;--f-v-color:#5d5b55;--f-v-border:1px solid #8d887b;--f-go-bg:#3d3d38;--f-go-color:#f3efe6}
+/* 賽博龐克：深紫夜色、霓虹粉藍 */
+:root[data-theme="cyber"]{--b:#20e3ff;--f-font:"JetBrains Mono","Microsoft JhengHei",monospace;--f-acc:#20e3ff;--f-ink:#e6faff;--f-sub:#c39be6;--f-title:#ff3ea5;--f-ls:.12em;
+  --f-title-shadow:0 0 10px #ff3ea5,0 0 30px rgba(255,62,165,.55);--f-t-shadow:0 0 6px rgba(32,227,255,.8);
+  --f-body-bg:linear-gradient(180deg,#120420,#2a0a3e 60%,#3b0f4f);
+  --f-logo-bg:#120420;--f-logo-color:#20e3ff;--f-logo-radius:4px;--f-logo-shadow:0 0 0 1.5px #20e3ff,0 0 22px rgba(32,227,255,.55);
+  --f-chip-bg:rgba(20,6,34,.85);--f-line:rgba(32,227,255,.5);--f-radius:2px;--f-radius-s:0;
+  --f-card-bg:rgba(20,6,34,.88);--f-card-border:1px solid #20e3ff;--f-card-shadow:0 0 16px rgba(32,227,255,.3),inset 0 0 18px rgba(255,62,165,.15);--f-card-shadow-h:0 0 28px rgba(255,62,165,.55),inset 0 0 18px rgba(32,227,255,.25);
+  --f-num:rgba(255,62,165,.4);--f-v-bg:transparent;--f-v-color:#ff3ea5;--f-v-border:1px solid #ff3ea5;--f-go-bg:#ff3ea5;--f-go-color:#120420}
+[data-theme="cyber"] .btn{color:#20e3ff}
+[data-theme="cyber"] .card:hover{animation:glitch .32s steps(2) 2}
+@keyframes glitch{25%{transform:translate(3px,0);text-shadow:-3px 0 #ff3ea5,3px 0 #20e3ff;filter:hue-rotate(40deg)}
+  50%{transform:translate(-3px,2px);clip-path:polygon(0 8%,100% 8%,100% 52%,0 52%)}75%{transform:translate(0,-2px)}}
+/* 包浩斯：紅黃藍原色、黑線、幾何 */
+:root[data-theme="bauhaus"]{--b:#e63b2e;--f-font:"Space Grotesk","Microsoft JhengHei",sans-serif;--f-acc:#e63b2e;--f-ink:#111;--f-sub:#444;--f-title:#111;--f-ls:.08em;
+  --f-body-bg:radial-gradient(circle at 97% 97%,#f5c518 0 130px,transparent 131px),radial-gradient(circle at 2% 96%,#1f4fd1 0 70px,transparent 71px),#f2ede4;
+  --f-logo-bg:#e63b2e;--f-logo-color:#fff;--f-logo-radius:50%;--f-logo-shadow:6px 6px 0 #1f4fd1;
+  --f-chip-bg:#fff;--f-line:#111;--f-radius:0;--f-radius-s:0;
+  --f-card-bg:#fff;--f-card-border:3px solid #111;--f-card-shadow:8px 8px 0 #1f4fd1;--f-card-shadow-h:10px 10px 0 #e63b2e;
+  --f-num:rgba(17,17,17,.14);--f-v-bg:#f5c518;--f-v-color:#111;--f-go-bg:#e63b2e;--f-go-color:#fff}
+[data-theme="bauhaus"] .hero{border-bottom:3px solid #111;padding-bottom:8px;margin-bottom:15px}
+/* 唐三彩：黃綠褐三色釉 */
+:root[data-theme="sancai"]{--b:#3f7d3a;--f-font:var(--serifF);--f-acc:#3f7d3a;--f-ink:#6b3410;--f-sub:#8a6a4a;--f-title:#7a3f14;
+  --f-body-bg:radial-gradient(ellipse at 10% 5%,rgba(217,165,33,.35),transparent 55%),radial-gradient(ellipse at 95% 95%,rgba(63,125,58,.25),transparent 55%),radial-gradient(ellipse at 60% 50%,rgba(138,75,31,.08),transparent 60%),#f6ecd6;
+  --f-logo-bg:radial-gradient(circle at 35% 30%,#f0c040,#d9a521 45%,#3f7d3a 75%,#8a4b1f);--f-logo-color:#fff8e6;--f-logo-radius:50%;--f-logo-shadow:0 0 0 3px #f6ecd6,0 0 0 4.5px #c8961e;
+  --f-chip-bg:#fffaf0;--f-line:rgba(200,150,30,.6);--f-radius:14px;--f-radius-s:999px;
+  --f-card-bg:#fffaf0;--f-card-border:2px solid #c8961e;--f-card-shadow:0 0 0 4px #fffaf0,0 0 0 6px #3f7d3a,0 14px 26px -16px #7a3f14;--f-card-shadow-h:0 0 0 4px #fffaf0,0 0 0 6px #d9a521,0 18px 30px -14px #7a3f14;
+  --f-num:rgba(200,150,30,.45);--f-v-bg:linear-gradient(135deg,#d9a521,#8a4b1f);--f-v-color:#fff;--f-go-bg:#3f7d3a;--f-go-color:#fff8e6}
+
+/* 風格下拉選單 */
+.gsel{position:relative}
+.gmenu{position:absolute;right:0;top:34px;z-index:60;display:grid;grid-template-columns:repeat(3,auto);gap:6px;padding:10px;border-radius:12px;
+  background:rgba(255,255,255,.97);border:1px solid rgba(0,0,0,.12);box-shadow:0 18px 40px -12px rgba(0,0,0,.35)}
+.gmenu[hidden]{display:none}
+.gmenu .pbtn{background:#fff;color:#222;border-color:rgba(0,0,0,.14);border-radius:999px;font-family:"Microsoft JhengHei",sans-serif;box-shadow:none}
+.gmenu .pbtn[aria-pressed="true"]{border-color:#7b2dff;color:#7b2dff}
+#gbtn b{font-weight:400;opacity:.6;margin-left:2px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -251,7 +346,7 @@ h1{margin:0;font:900 64px/1 "Microsoft JhengHei",sans-serif;letter-spacing:.04em
     </div>
     <div class="side">
       <div class="picker">
-        <div class="prow" id="grpRow"><span class="plabel">風格</span></div>
+        <div class="prow"><span class="plabel">風格</span><div class="gsel"><button class="pbtn" id="gbtn" type="button"></button><div class="gmenu" id="gmenu" hidden></div></div></div>
         <div class="prow" id="subRow"></div>
       </div>
       <div class="hud">
@@ -277,10 +372,18 @@ var GROUPS = [
   {id:'yong', name:'雍正', dot:'conic-gradient(#e9b949 0 33%,#b8456c 0 66%,#1f3d7a 0)', subs:[
     ['', '霽藍', '#1f3d7a'], ['yanzhi', '胭脂紅', '#b8456c'], ['lemon', '檸檬黃', '#e6c229'], ['sky', '天藍', '#8fbcdc'],
     ['turq', '松石綠', '#3fb3a4'], ['coral', '珊瑚紅', '#e2674a'], ['fenqing', '粉青', '#9cc3ad'], ['qiezi', '茄皮紫', '#8a5aa6']]},
-  {id:'hacker', name:'駭客', dot:'radial-gradient(circle,#00ff66 0 30%,#000 70%)', subs:[]}
+  {id:'hacker', name:'駭客', dot:'radial-gradient(circle,#00ff66 0 30%,#000 70%)', subs:[]},
+  {id:'qinghua', name:'青花', flat:1, dot:'radial-gradient(circle,#fff 0 35%,#1d3f8f 38%)', subs:[]},
+  {id:'dunhuang', name:'敦煌', flat:1, dot:'conic-gradient(#a8442a 0 33%,#2f7b78 0 66%,#e6cfa6 0)', subs:[]},
+  {id:'huazhuan', name:'臺灣花磚', flat:1, dot:'conic-gradient(#9fd3c0 0 25%,#f6e3a1 0 50%,#9fd3c0 0 75%,#f4b6c2 0)', subs:[]},
+  {id:'miao', name:'廟宇', flat:1, dot:'radial-gradient(circle,#ffd96a 0 35%,#c0392b 38%)', subs:[]},
+  {id:'karesansui', name:'枯山水', flat:1, dot:'repeating-linear-gradient(0deg,#ece6d8 0 2px,#a19e95 2px 3px)', subs:[]},
+  {id:'cyber', name:'賽博龐克', flat:1, dot:'linear-gradient(135deg,#ff3ea5,#20e3ff)', subs:[]},
+  {id:'bauhaus', name:'包浩斯', flat:1, dot:'conic-gradient(#e63b2e 0 33%,#f5c518 0 66%,#1f4fd1 0)', subs:[]},
+  {id:'sancai', name:'唐三彩', flat:1, dot:'conic-gradient(#d9a521 0 33%,#3f7d3a 0 66%,#8a4b1f 0)', subs:[]}
 ];
 (function(){
-  var root = document.documentElement, grpRow = document.getElementById('grpRow'), subRow = document.getElementById('subRow');
+  var root = document.documentElement, gbtn = document.getElementById('gbtn'), gmenu = document.getElementById('gmenu'), subRow = document.getElementById('subRow');
   // 先記在記憶體；瀏覽器不准存（例如私密視窗）時，這次開著的期間一樣能切換
   var mem = {};
   function get(k, d){ if (k in mem) return mem[k]; try{ var v = localStorage.getItem(k); return v === null ? d : v; }catch(e){ return d; } }
@@ -291,13 +394,19 @@ var GROUPS = [
     var g = GROUPS.filter(function(x){ return x.id === gid; })[0] || GROUPS[0], sub = get('yz-sub-' + g.id, '');
     if (g.id === 'tech'){ if (sub) root.setAttribute('data-theme', sub); else root.removeAttribute('data-theme'); root.removeAttribute('data-sub'); }
     else { root.setAttribute('data-theme', g.id); if (sub) root.setAttribute('data-sub', sub); else root.removeAttribute('data-sub'); }
+    if (g.flat) root.setAttribute('data-flat', ''); else root.removeAttribute('data-flat');
     put('yz-group', g.id);
-    [].forEach.call(grpRow.querySelectorAll('.pbtn'), function(b){ b.setAttribute('aria-pressed', b.dataset.g === g.id ? 'true' : 'false'); });
+    gbtn.innerHTML = '<i></i>'; gbtn.firstChild.style.background = g.dot; gbtn.appendChild(document.createTextNode(g.name));
+    var arrow = document.createElement('b'); arrow.textContent = '▾'; gbtn.appendChild(arrow);
+    [].forEach.call(gmenu.querySelectorAll('.pbtn'), function(b){ b.setAttribute('aria-pressed', b.dataset.g === g.id ? 'true' : 'false'); });
     subRow.innerHTML = '';
     g.subs.forEach(function(s){ var b = btn(s[1], s[2], function(){ put('yz-sub-' + g.id, s[0]); apply(g.id); });
       b.setAttribute('aria-pressed', s[0] === sub ? 'true' : 'false'); subRow.appendChild(b); });
   }
-  GROUPS.forEach(function(g){ var b = btn(g.name, g.dot, function(){ apply(g.id); }); b.dataset.g = g.id; grpRow.appendChild(b); });
+  // 風格多，改成下拉選單：按「風格」按鈕展開，選了就收起來；點其他地方也會收起來
+  GROUPS.forEach(function(g){ var b = btn(g.name, g.dot, function(){ apply(g.id); gmenu.hidden = true; }); b.dataset.g = g.id; gmenu.appendChild(b); });
+  gbtn.onclick = function(e){ e.stopPropagation(); gmenu.hidden = !gmenu.hidden; };
+  document.addEventListener('click', function(e){ if (!gmenu.hidden && !gmenu.contains(e.target)) gmenu.hidden = true; });
   apply(get('yz-group', 'tech'));
 })();
 
@@ -312,7 +421,9 @@ var GROUPS = [
   var T=[], LX=-999, LY=-999;
   addEventListener('resize',size); size();
   addEventListener('mousemove',function(e){ M.x=e.clientX; M.y=e.clientY;
-    var th=document.documentElement.getAttribute('data-theme'); if(th!=='song'&&th!=='yong') return;
+    var th=document.documentElement.getAttribute('data-theme');
+    if(FX[th]){ FX[th].move(M.x,M.y,e.target.closest?e.target.closest('.card'):null); return; }
+    if(th!=='song'&&th!=='yong') return;
     var card=th==='yong'&&e.target.closest?e.target.closest('.card'):null;
     var d=Math.hypot(M.x-LX,M.y-LY); if(d<(th==='song'?14:card?9:26)) return; LX=M.x; LY=M.y;
     if(th==='song') T.push({k:'ink',x:M.x+(Math.random()-.5)*6,y:M.y+(Math.random()-.5)*6,r:2,R:16+Math.random()*30,a:.26});
@@ -351,6 +462,75 @@ var GROUPS = [
         g2.addColorStop(0,'rgba('+c+','+(p.life*.42)+')'); g2.addColorStop(1,'rgba('+c+',0)');
         fx.fillStyle=g2; fx.beginPath(); fx.arc(hx,hy,p.r*1.3,0,7); fx.fill(); fx.restore(); } }
   }
+  // ── 八個平面主題的滑鼠特效。Q＝共用粒子清單（換主題時清空）；背景類畫在 cx（卡片後面），其餘畫在 fx（卡片上面）
+  var Q=[], lastTh=null, QX=-999, QY=-999;
+  function far(x,y,d){ if(Math.hypot(x-QX,y-QY)<d) return false; QX=x; QY=y; return true; }
+  function cap(n){ if(Q.length>n) Q.splice(0,Q.length-n); }
+  function clipCard(el,r){ var b=el.getBoundingClientRect(); fx.beginPath(); if(fx.roundRect) fx.roundRect(b.left,b.top,b.width,b.height,r); else fx.rect(b.left,b.top,b.width,b.height); fx.clip(); return b; }
+  var FX={
+    // 青花：走過的地方鈷藍暈開，邊緣有發色斑點（疊在卡片上、用相乘混色，像釉下彩）
+    qinghua:{move:function(x,y){ if(!far(x,y,16)) return; Q.push({x:x+scrollX,y:y+scrollY,r:3,R:20+Math.random()*24,a:.5,dots:[0,1,2,3,4,5,6,7,8,9].map(function(){ return [Math.random()*6.28,.7+Math.random()*.5,1+Math.random()*1.6]; })}); cap(140); },
+      draw:function(){ for(var i=Q.length-1;i>=0;i--){ var p=Q[i]; p.r+=(p.R-p.r)*.07; p.a*=.99; if(p.a<.02){ Q.splice(i,1); continue; }
+        var x=p.x-scrollX, y=p.y-scrollY, g=fx.createRadialGradient(x,y,0,x,y,p.r); g.addColorStop(0,'rgba(22,52,140,'+p.a+')'); g.addColorStop(.55,'rgba(36,74,170,'+(p.a*.6)+')'); g.addColorStop(1,'rgba(60,100,190,0)');
+        fx.fillStyle=g; fx.beginPath(); fx.arc(x,y,p.r,0,7); fx.fill(); fx.fillStyle='rgba(16,40,120,'+(p.a*.8)+')';
+        p.dots.forEach(function(d){ fx.beginPath(); fx.arc(x+Math.cos(d[0])*p.r*d[1],y+Math.sin(d[0])*p.r*d[1],d[2],0,7); fx.fill(); }); } }},
+    // 敦煌：沿滑鼠軌跡飄出土紅、石青、石綠、赭黃彩帶
+    dunhuang:{move:function(x,y){ Q.push({x:x,y:y,life:1}); cap(60); },
+      draw:function(){ var t=performance.now()/600, cols=['168,68,42','47,123,120','86,150,98','204,150,60'];
+        for(var i=Q.length-1;i>=0;i--){ Q[i].life-=.012; Q[i].y+=.25; Q[i].x+=Math.sin(t+i*.4)*.4; if(Q[i].life<=0) Q.splice(i,1); }
+        if(Q.length<3) return; fx.lineCap='round';
+        for(var band=0;band<2;band++) for(var j=1;j<Q.length;j++){ var a=Q[j-1], b=Q[j], k=j/Q.length, off=band*7*Math.sin(t+j*.3);
+          fx.strokeStyle='rgba('+cols[Math.floor((k*3+band)%4)]+','+(b.life*.85)+')'; fx.lineWidth=(2+10*Math.sin(k*Math.PI))*b.life;
+          fx.beginPath(); fx.moveTo(a.x+off,a.y+off*.6); fx.lineTo(b.x+off,b.y+off*.6); fx.stroke(); } }},
+    // 臺灣花磚：滑鼠停在卡片上，四個角外側展開八瓣花磚紋並旋轉
+    huazhuan:{st:{cur:null,want:null,k:0}, move:function(x,y,card){ this.st.want=card; },
+      draw:function(){ var s=this.st;
+        if(s.want&&s.want!==s.cur){ s.k-=.15; if(s.k<=0){ s.k=0; s.cur=s.want; } } else if(s.want) s.k+=(1-s.k)*.08; else s.k-=s.k*.12;
+        if(!s.cur||!s.cur.isConnected||s.k<.005) return;
+        var b=s.cur.getBoundingClientRect(), r=22*s.k, d=10, t=performance.now()/1400;
+        [[b.left-d,b.top-d],[b.right+d,b.top-d],[b.left-d,b.bottom+d],[b.right+d,b.bottom+d]].forEach(function(q,i){
+          fx.save(); fx.translate(q[0],q[1]); fx.rotate(t*(i%2?1:-1)+s.k*2); fx.globalAlpha=s.k;
+          for(var n=0;n<8;n++){ fx.rotate(Math.PI/4); fx.fillStyle=n%2?'#f4b6c2':'#5fa58f'; fx.beginPath(); fx.ellipse(0,-r*.55,r*.2,r*.45,0,0,7); fx.fill(); }
+          fx.fillStyle='#f6e3a1'; fx.beginPath(); fx.arc(0,0,r*.28,0,7); fx.fill(); fx.strokeStyle='#5fa58f'; fx.lineWidth=2; fx.beginPath(); fx.arc(0,0,r*.95,0,7); fx.stroke();
+          fx.fillStyle='#e8798f'; fx.beginPath(); fx.arc(0,0,r*.1,0,7); fx.fill(); fx.restore(); }); }},
+    // 廟宇：灑出剪黏彩色碎瓷片，旋轉落下
+    miao:{move:function(x,y){ if(!far(x,y,8)) return; var C=['#1f9c5a','#1f4fa0','#f2c230','#e8eef2','#d23a2a','#3fb8c9'];
+        for(var i=0;i<2;i++){ var n=3+Math.floor(Math.random()*2), pts=[]; for(var j=0;j<n;j++){ var an=j/n*6.28+Math.random()*.6; pts.push([Math.cos(an)*(4+Math.random()*5),Math.sin(an)*(4+Math.random()*5)]); }
+          Q.push({x:x,y:y,vx:(Math.random()-.5)*3,vy:-1.5-Math.random()*2,rot:Math.random()*6,vr:(Math.random()-.5)*.3,pts:pts,c:C[Math.floor(Math.random()*C.length)],life:1}); } cap(220); },
+      draw:function(){ for(var i=Q.length-1;i>=0;i--){ var p=Q[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=.12; p.rot+=p.vr; p.life-=.012; if(p.life<=0||p.y>H+20){ Q.splice(i,1); continue; }
+        fx.save(); fx.translate(p.x,p.y); fx.rotate(p.rot); fx.globalAlpha=p.life; fx.fillStyle=p.c; fx.strokeStyle='rgba(255,255,255,.7)'; fx.lineWidth=1;
+        fx.beginPath(); p.pts.forEach(function(q,j){ j?fx.lineTo(q[0],q[1]):fx.moveTo(q[0],q[1]); }); fx.closePath(); fx.fill(); fx.stroke(); fx.restore(); } }},
+    // 枯山水：耙出三圈同心波紋
+    karesansui:{move:function(x,y){ if(!far(x,y,30)) return; Q.push({x:x+scrollX,y:y+scrollY,r:4,life:1}); cap(50); },
+      draw:function(){ for(var i=Q.length-1;i>=0;i--){ var p=Q[i]; p.r+=.6; p.life-=.006; if(p.life<=0){ Q.splice(i,1); continue; }
+        for(var k=0;k<3;k++){ var rr=p.r-k*8; if(rr<=0) continue; var x=p.x-scrollX, y=p.y-scrollY;
+          fx.strokeStyle='rgba(150,140,118,'+(p.life*.55)+')'; fx.lineWidth=2; fx.beginPath(); fx.arc(x,y,rr,0,7); fx.stroke();
+          fx.strokeStyle='rgba(255,252,244,'+(p.life*.7)+')'; fx.lineWidth=1; fx.beginPath(); fx.arc(x,y,rr+1.5,0,7); fx.stroke(); } } }},
+    // 賽博龐克：背景雨絲＋粉藍霓虹殘影（停在卡片上的訊號干擾在 CSS）
+    cyber:{rain:null, move:function(x,y){ Q.push({x:x,y:y,life:1}); cap(40); },
+      draw:function(){ if(!this.rain||this.rain.w!==W){ this.rain={w:W,d:[]}; for(var i=0;i<W*H/9000;i++) this.rain.d.push({x:Math.random()*W,y:Math.random()*H,v:4+Math.random()*4}); }
+        cx.strokeStyle='rgba(120,200,255,.22)'; cx.lineWidth=1;
+        this.rain.d.forEach(function(r){ r.y+=r.v; if(r.y>H){ r.y=-10; r.x=Math.random()*W; } cx.beginPath(); cx.moveTo(r.x,r.y); cx.lineTo(r.x-2,r.y+12); cx.stroke(); });
+        for(var i=Q.length-1;i>=0;i--){ Q[i].life-=.03; if(Q[i].life<=0) Q.splice(i,1); }
+        [['#ff3ea5',0],['#20e3ff',3]].forEach(function(s){ fx.strokeStyle=s[0]; fx.shadowColor=s[0]; fx.shadowBlur=12; fx.lineCap='round';
+          for(var j=1;j<Q.length;j++){ var a=Q[j-1], b=Q[j]; fx.globalAlpha=b.life; fx.lineWidth=3*b.life; fx.beginPath(); fx.moveTo(a.x+s[1],a.y-s[1]); fx.lineTo(b.x+s[1],b.y-s[1]); fx.stroke(); } });
+        fx.globalAlpha=1; fx.shadowBlur=0; }},
+    // 包浩斯：彈出紅黃藍黑的圓、方、三角
+    bauhaus:{move:function(x,y){ if(!far(x,y,34)) return; var C=['#e63b2e','#f5c518','#1f4fd1','#111'];
+        Q.push({x:x,y:y,s:0,S:16+Math.random()*22,sh:Math.floor(Math.random()*3),c:C[Math.floor(Math.random()*4)],rot:Math.random()*6,life:1}); cap(40); },
+      draw:function(){ for(var i=Q.length-1;i>=0;i--){ var p=Q[i]; p.s+=(p.S-p.s)*.25; p.life-=.012; p.rot+=.01; if(p.life<=0){ Q.splice(i,1); continue; }
+        fx.save(); fx.translate(p.x,p.y); fx.rotate(p.rot); fx.globalAlpha=Math.min(1,p.life*1.4); fx.fillStyle=p.c; fx.beginPath();
+        if(p.sh===0) fx.arc(0,0,p.s/2,0,7); else if(p.sh===1) fx.rect(-p.s/2,-p.s/2,p.s,p.s); else { fx.moveTo(0,-p.s/2); fx.lineTo(p.s/2,p.s/2); fx.lineTo(-p.s/2,p.s/2); fx.closePath(); }
+        fx.fill(); fx.restore(); } }},
+    // 唐三彩：在卡片上移動，黃綠褐釉拉成長條往下流（只在那張卡片裡）
+    sancai:{move:function(x,y,card){ if(!card||!far(x,y,7)) return; var b=card.getBoundingClientRect(), C=['217,165,33','63,125,58','138,75,31','236,214,160'];
+        Q.push({el:card,x:x-b.left,y:y-b.top,w:6+Math.random()*7,len:0,vy:.3+Math.random()*.5,c:C[Math.floor(Math.random()*4)],life:1,wob:Math.random()*6}); cap(160); },
+      draw:function(){ for(var i=Q.length-1;i>=0;i--){ var p=Q[i]; p.len+=p.vy; p.vy*=.995; p.life-=.005; if(p.life<=0||!p.el.isConnected){ Q.splice(i,1); continue; }
+        fx.save(); var b=clipCard(p.el,14); fx.globalCompositeOperation='multiply'; var x=b.left+p.x, y=b.top+p.y, sx=Math.sin(p.wob+p.len/14)*2;
+        var g=fx.createLinearGradient(x,y,x,y+p.len+p.w); g.addColorStop(0,'rgba('+p.c+','+(p.life*.55)+')'); g.addColorStop(1,'rgba('+p.c+','+(p.life*.25)+')');
+        fx.fillStyle=g; fx.beginPath(); fx.moveTo(x-p.w/2,y); fx.quadraticCurveTo(x-p.w/2+sx,y+p.len/2,x-p.w*.35+sx,y+p.len); fx.arc(x+sx,y+p.len,p.w*.45,Math.PI,0,false);
+        fx.quadraticCurveTo(x+p.w/2+sx,y+p.len/2,x+p.w/2,y); fx.closePath(); fx.fill(); fx.restore(); } }}
+  };
   function col(){ return getComputedStyle(document.documentElement).getPropertyValue('--b').trim()||'#7b2dff'; }
   function hex(c,a){ var m=c.match(/^#(..)(..)(..)$/); return m?'rgba('+parseInt(m[1],16)+','+parseInt(m[2],16)+','+parseInt(m[3],16)+','+a+')':c; }
   var CH='01アイウエオカキクケコサシスセソタチツテトナニヌネノ0123456789ABCDEF訪', FS=16, drops=[], last=0;
@@ -369,6 +549,8 @@ var GROUPS = [
     var th=document.documentElement.getAttribute('data-theme');
     if(th==='hacker'){ if(!wasHacker){ cx.fillStyle='#000'; cx.fillRect(0,0,W,H); wasHacker=true; T=[]; fx.clearRect(0,0,W,H); } rain(t||0); requestAnimationFrame(tick); return; }
     wasHacker=false;
+    if(th!==lastTh){ Q=[]; T=[]; fx.clearRect(0,0,W,H); lastTh=th; }
+    if(FX[th]){ cx.clearRect(0,0,W,H); fx.clearRect(0,0,W,H); FX[th].draw(); requestAnimationFrame(tick); return; }
     if(th==='song'||th==='yong'){ cx.clearRect(0,0,W,H); trail(th); requestAnimationFrame(tick); return; }
     if(T.length){ T=[]; fx.clearRect(0,0,W,H); }
     var c=col(); cx.clearRect(0,0,W,H);
