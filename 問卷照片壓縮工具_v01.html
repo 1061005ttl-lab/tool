@@ -1,0 +1,201 @@
+<!--
+問卷照片壓縮工具 v01（單檔 HTML，離線瀏覽器即可用，僅需連網載入 JSZip）
+用途：匯入帶照片的問卷 xlsx，把 xl/media 內的照片降畫質（縮小長邊＋重新 JPEG 壓縮），
+      照片留在原儲存格／原位置，匯出新的 xlsx 給操作者。
+做法：不解析錨點，直接在 zip 層替換 xl/media 內的圖檔，所以「內嵌於儲存格」與「浮動圖片」兩種都適用。
+      非 JPEG 的圖（png/bmp/webp）轉成 .jpg 後，會同步改 .rels 的指向與 [Content_Types].xml。
+      壓縮後反而沒變小的照片、GIF、無法解碼的圖，一律保留原檔。
+v01 初版：預設值沿用「問卷照片檢視工具」匯出壓縮的邏輯（長邊 1600px／JPEG 0.72）。
+-->
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>問卷照片壓縮工具 v01</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root{--bg:#f4f5f9;--card:#fff;--text:#222;--dim:#667;--line:#dde0ea;--pri:#5b4bd5;--ok:#1b8a4b;--bad:#c0392b}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.6 "Noto Sans TC","Microsoft JhengHei",sans-serif}
+  .wrap{max-width:900px;margin:0 auto;padding:20px 16px 60px}
+  h1{font-size:20px;margin:0 0 4px} .sub{color:var(--dim);margin:0 0 16px;font-size:13px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+  .drop{border:2px dashed #b9b4ea;border-radius:10px;padding:28px;text-align:center;color:var(--dim);cursor:pointer;background:#fafaff}
+  .drop.over{background:#ecebff;border-color:var(--pri)}
+  .opts{display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+  .opts label{display:flex;align-items:center;gap:6px}
+  select,input[type=number]{padding:4px 6px;border:1px solid var(--line);border-radius:6px;font:inherit;background:#fff;color:var(--text)}
+  input[type=number]{width:70px}
+  button{font:inherit;border:1px solid var(--pri);background:var(--pri);color:#fff;border-radius:7px;padding:5px 14px;cursor:pointer}
+  button.ghost{background:#fff;color:var(--pri)} button:disabled{opacity:.45;cursor:default}
+  table{width:100%;border-collapse:collapse} th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+  th{font-size:12px;color:var(--dim)} td.n{text-align:right;white-space:nowrap}
+  .bar{height:6px;background:#e6e8f2;border-radius:3px;overflow:hidden;margin-top:4px;min-width:120px}
+  .bar i{display:block;height:100%;width:0;background:var(--pri)}
+  .ok{color:var(--ok)} .bad{color:var(--bad)} .dim{color:var(--dim);font-size:12px}
+  .row{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  @media (prefers-color-scheme:dark){:root{--bg:#16171d;--card:#20222b;--text:#e8e9f0;--dim:#9a9db0;--line:#33364a}
+    .drop{background:#1b1c26;border-color:#4a4690} .drop.over{background:#26273a} select,input[type=number]{background:#2a2d3a} button.ghost{background:transparent}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📷 問卷照片壓縮工具 <span class="dim">v01</span></h1>
+  <p class="sub">匯入帶照片的問卷 xlsx → 降低照片畫質 → 匯出新的 xlsx（照片仍在原位置）。原檔不會被改動。</p>
+
+  <div class="card opts">
+    <label>畫質預設
+      <select id="preset">
+        <option value="1600,72">標準（長邊 1600px／品質 72）</option>
+        <option value="1280,65" selected>較小（長邊 1280px／品質 65）</option>
+        <option value="1024,55">小（長邊 1024px／品質 55）</option>
+        <option value="800,45">最小（長邊 800px／品質 45）</option>
+        <option value="custom">自訂…</option>
+      </select></label>
+    <label id="customBox" style="display:none">長邊 <input type="number" id="maxDim" value="1280" min="200" max="4000">px　品質 <input type="number" id="quality" value="65" min="10" max="95">%</label>
+    <label>略過小於 <input type="number" id="minKB" value="50" min="0">KB 的照片</label>
+  </div>
+
+  <div class="drop" id="drop">把 .xlsx 拖進來，或點這裡選檔（可多選）<input type="file" id="file" accept=".xlsx,.xlsm" multiple hidden></div>
+
+  <div class="card" id="listCard" style="display:none;margin-top:14px">
+    <div class="row" style="margin-bottom:8px">
+      <b>處理清單</b>
+      <span><button class="ghost" id="btnClear">清空</button> <button id="btnAll" disabled>全部下載</button></span>
+    </div>
+    <table><thead><tr><th>檔案</th><th class="n">照片</th><th class="n">原大小</th><th class="n">壓縮後</th><th class="n">節省</th><th></th></tr></thead><tbody id="rows"></tbody></table>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const items = []; // {file,row,blob,outName,state}
+let busy = false;
+const fmt = b => b >= 1048576 ? (b/1048576).toFixed(1)+' MB' : Math.max(1,Math.round(b/1024))+' KB';
+
+$('preset').onchange = () => {
+  const v = $('preset').value; $('customBox').style.display = v === 'custom' ? '' : 'none';
+  if (v !== 'custom'){ const [d,q] = v.split(','); $('maxDim').value = d; $('quality').value = q; }
+};
+$('preset').onchange();
+const drop = $('drop');
+drop.onclick = () => $('file').click();
+drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); };
+drop.ondragleave = () => drop.classList.remove('over');
+drop.ondrop = e => { e.preventDefault(); drop.classList.remove('over'); addFiles(e.dataTransfer.files); };
+$('file').onchange = e => { addFiles(e.target.files); e.target.value = ''; };
+$('btnClear').onclick = () => { if (busy) return; items.length = 0; $('rows').innerHTML = ''; $('listCard').style.display = 'none'; };
+$('btnAll').onclick = async () => { for (const it of items) if (it.blob){ save(it); await new Promise(r => setTimeout(r, 400)); } };
+
+function addFiles(list){
+  [...list].filter(f => /\.xlsx?m?$/i.test(f.name) && !/\.xls$/i.test(f.name)).forEach(file => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td></td><td class="n">–</td><td class="n"></td><td class="n">–</td><td class="n">–</td><td class="n"></td>';
+    tr.cells[0].textContent = file.name;
+    tr.cells[0].insertAdjacentHTML('beforeend', '<div class="dim st">等待中…</div><div class="bar"><i></i></div>');
+    tr.cells[2].textContent = fmt(file.size);
+    $('rows').appendChild(tr);
+    items.push({file, tr, blob: null});
+  });
+  $('listCard').style.display = items.length ? '' : 'none';
+  run();
+}
+
+async function run(){
+  if (busy) return; busy = true;
+  for (const it of items){
+    if (it.done) continue;
+    try{ await compressXlsx(it); }
+    catch(e){ console.error(e); setSt(it, '失敗：' + (e.message || e), 'bad'); }
+    it.done = true;
+  }
+  busy = false; $('btnAll').disabled = !items.some(i => i.blob);
+}
+function setSt(it, txt, cls){ const s = it.tr.querySelector('.st'); s.textContent = txt; s.className = 'st dim ' + (cls || ''); }
+function setBar(it, p){ it.tr.querySelector('.bar i').style.width = Math.round(p*100) + '%'; }
+function save(it){
+  const a = document.createElement('a'); a.href = URL.createObjectURL(it.blob); a.download = it.outName;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 20000);
+}
+
+async function decode(blob){
+  try{ return await createImageBitmap(blob, {imageOrientation: 'from-image'}); }
+  catch(e){
+    return await new Promise((res, rej) => { const u = URL.createObjectURL(blob), im = new Image();
+      im.onload = () => { URL.revokeObjectURL(u); res(im); }; im.onerror = () => { URL.revokeObjectURL(u); rej(new Error('decode')); }; im.src = u; });
+  }
+}
+async function shrink(bytes, ext, maxDim, q){
+  const blob = new Blob([bytes], {type: /^jpe?g$/i.test(ext) ? 'image/jpeg' : 'image/' + ext.toLowerCase()});
+  const img = await decode(blob);
+  const w0 = img.width || img.naturalWidth, h0 = img.height || img.naturalHeight;
+  const s = Math.min(1, maxDim / Math.max(w0, h0));
+  const w = Math.max(1, Math.round(w0 * s)), h = Math.max(1, Math.round(h0 * s));
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const ctx = c.getContext('2d'); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); // 透明 PNG 轉 JPEG 時墊白底
+  ctx.drawImage(img, 0, 0, w, h);
+  if (img.close) img.close();
+  const out = await new Promise(r => c.toBlob(r, 'image/jpeg', q));
+  c.width = c.height = 0;
+  return out ? new Uint8Array(await out.arrayBuffer()) : null;
+}
+
+async function compressXlsx(it){
+  const maxDim = +$('maxDim').value || 1280, q = Math.min(95, Math.max(10, +$('quality').value || 65)) / 100;
+  const minBytes = (+$('minKB').value || 0) * 1024;
+  setSt(it, '讀取中…');
+  const zip = await JSZip.loadAsync(it.file);
+  const names = Object.keys(zip.files).filter(n => /^xl\/media\/[^/]+\.(jpe?g|png|bmp|webp)$/i.test(n));
+  const ctName = '[Content_Types].xml';
+  let ct = zip.file(ctName) ? await zip.file(ctName).async('string') : '';
+  const jpgExt = /Extension="jpg"/i.test(ct) ? 'jpg' : /Extension="jpeg"/i.test(ct) ? 'jpeg' : 'jpg';
+  const renames = []; let done = 0, replaced = 0, before = 0, after = 0, idx = 0;
+
+  async function worker(){
+    while (idx < names.length){
+      const name = names[idx++];
+      try{
+        const bytes = await zip.file(name).async('uint8array');
+        before += bytes.length;
+        const ext = name.split('.').pop();
+        let kept = bytes;
+        if (bytes.length >= minBytes){
+          const out = await shrink(bytes, ext, maxDim, q);
+          if (out && out.length < bytes.length){
+            replaced++;
+            if (/^jpe?g$/i.test(ext)){ zip.file(name, out); }
+            else { const nn = name.replace(/\.[^.]+$/, '.' + jpgExt); zip.remove(name); zip.file(nn, out); renames.push([name.split('/').pop(), nn.split('/').pop()]); }
+            kept = out;
+          }
+        }
+        after += kept.length;
+      }catch(e){ console.warn('略過無法處理的圖：' + name, e); const b = zip.file(name) ? (await zip.file(name).async('uint8array')).length : 0; after += b; }
+      setBar(it, ++done / names.length * 0.7); setSt(it, `壓縮照片 ${done} / ${names.length}`);
+    }
+  }
+  await Promise.all([worker(), worker(), worker()]);
+
+  if (renames.length){ // 改 rels 指向；補 Content_Types
+    for (const rn of Object.keys(zip.files).filter(n => /\.rels$/i.test(n))){
+      let t = await zip.file(rn).async('string'), ch = false;
+      for (const [o, n] of renames){ const a = '/' + o + '"', b = '/' + n + '"'; if (t.includes(a)){ t = t.split(a).join(b); ch = true; } }
+      if (ch) zip.file(rn, t);
+    }
+    if (!new RegExp('Extension="' + jpgExt + '"', 'i').test(ct)){
+      ct = ct.replace(/(<Types[^>]*>)/, `$1<Default Extension="${jpgExt}" ContentType="image/jpeg"/>`); zip.file(ctName, ct);
+    }
+  }
+  setSt(it, '打包中…');
+  it.blob = await zip.generateAsync({type: 'blob', compression: 'DEFLATE', compressionOptions: {level: 6}}, m => setBar(it, 0.7 + m.percent / 100 * 0.3));
+  it.outName = it.file.name.replace(/\.(xlsx|xlsm)$/i, '') + '_壓縮.' + (/\.xlsm$/i.test(it.file.name) ? 'xlsm' : 'xlsx');
+  const c = it.tr.cells; c[1].textContent = `${replaced} / ${names.length}`; c[3].textContent = fmt(it.blob.size);
+  const pct = Math.round((1 - it.blob.size / it.file.size) * 100); c[4].innerHTML = `<b class="${pct > 0 ? 'ok' : ''}">${pct}%</b>`;
+  const b = document.createElement('button'); b.textContent = '下載'; b.onclick = () => save(it); c[5].appendChild(b);
+  setSt(it, names.length ? '完成' : '完成（檔內沒有可壓縮的照片）', 'ok'); setBar(it, 1);
+  $('btnAll').disabled = false;
+}
+</script>
+</body>
+</html>
