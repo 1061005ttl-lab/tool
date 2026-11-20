@@ -40,7 +40,7 @@ body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:16px/1
 main{padding:22px 40px 56px;position:relative}
 
 /* ── 標題區 ── */
-.hero{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px 12px;margin-bottom:26px} /* 響應式：寬度夠時風格列在大標右邊，不夠時自動換到大標下方 */
+.hero{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px 8px;margin-bottom:26px} /* 響應式：寬度夠時風格列在大標右邊，不夠時自動換到大標下方 */
 .brand{display:flex;align-items:center;gap:16px;flex-shrink:0}
 .logo{position:relative;width:64px;height:64px;border-radius:18px;display:grid;place-items:center;flex-shrink:0;
   font:900 38px/1 "Microsoft JhengHei",sans-serif;color:#fff;
@@ -67,8 +67,8 @@ h1{margin:0;font:900 56px/1 "Microsoft JhengHei",sans-serif;letter-spacing:.04em
 
 /* ── 風格／選色切換：兩排固定高度，換風格時版面不跳 ── */
 .picker{display:flex;flex-direction:column;align-items:flex-end;gap:8px} /* 放在大標右邊：風格一排、下面一排是這個風格的配色（換風格時自動換） */
-.picker .prow{gap:3px;flex-wrap:wrap;justify-content:flex-end;height:auto;min-height:28px;row-gap:6px}
-.hero .picker .pbtn{padding:0 6px;gap:4px;font:600 12px/1 "Microsoft JhengHei",sans-serif;letter-spacing:0} /* 按鈕字型固定，各主題寬度一致，換主題時版面不跳 */
+.picker .prow{gap:2px;flex-wrap:wrap;justify-content:flex-end;height:auto;min-height:28px;row-gap:6px}
+.hero .picker .pbtn{padding:0 5px;gap:4px;font:600 12px/1 "Microsoft JhengHei",sans-serif;letter-spacing:0} /* 按鈕字型固定，各主題寬度一致，換主題時版面不跳 */
 .picker .pbtn i{width:9px;height:9px}
 .picker .subwrap{width:0;min-width:100%;justify-content:flex-end;flex-wrap:nowrap} /* 配色排不撐寬：寬度跟風格排一樣 */
 .prow{display:flex;gap:6px;align-items:center;height:28px;white-space:nowrap}
@@ -549,9 +549,37 @@ h1{margin:0;font:900 56px/1 "Microsoft JhengHei",sans-serif;letter-spacing:.04em
   background:repeating-linear-gradient(-45deg,var(--ev3) 0 8px,#111 8px 16px);transition:opacity .2s}
 [data-theme="eva"] .card:hover::after{opacity:1;animation:alertblink .5s steps(1) 3}
 
+/* ── 女神異聞錄風：放射集中線、網點、黑白紅撞色、斜切色塊（只取視覺語言，不放標誌或角色） ──
+   --pa 主色、--pb 深色（卡片底）、--pc 亮色（字）、--pr1/--pr2 放射線兩色 */
+:root[data-theme="persona"]{--pa:#e5191c;--pb:#0b0b0b;--pc:#ffffff;--pr1:#c8141a;--pr2:#e01f26;--pdot:0,0,0;--pink:#ffffff;
+  --b:var(--pa);--f-font:"Microsoft JhengHei",sans-serif;--f-acc:var(--pc);--f-ink:var(--pc);--f-sub:var(--pink);--f-title:var(--pc);
+  --f-title-shadow:4px 4px 0 var(--pb),-2px -2px 0 var(--pa);
+  --f-body-bg:linear-gradient(162deg,transparent 0 72%,var(--pb) 72% 80%,transparent 80%),radial-gradient(rgba(var(--pdot),.22) 1.3px,transparent 1.8px) 0 0/9px 9px,repeating-conic-gradient(from 0deg at 88% 8%,var(--pr1) 0 5deg,var(--pr2) 5deg 10deg);
+  --f-logo-bg:var(--pb);--f-logo-color:var(--pa);--f-logo-radius:0;--f-logo-shadow:5px 5px 0 var(--pc);
+  --f-chip-bg:var(--pb);--f-line:var(--pc);--f-radius:0;--f-radius-s:0;
+  --f-card-bg:var(--pb);--f-card-border:3px solid var(--pc);--f-card-shadow:7px 7px 0 var(--pa),7px 7px 0 3px var(--pb);--f-card-shadow-h:9px 9px 0 var(--pc),9px 9px 0 3px var(--pb);
+  --f-num:color-mix(in srgb,var(--pa) 70%,transparent);--f-v-bg:var(--pa);--f-v-color:var(--pc);--f-go-bg:var(--pa);--f-go-color:var(--pc)}
+/* 女神異聞錄的幾種色：5代（紅黑白，預設）、3代（深藍水色）、4代（黃黑） */
+:root[data-theme="persona"][data-sub="p3"]{--pa:#29b6ff;--pb:#0a1838;--pc:#e8f6ff;--pr1:#0c1d42;--pr2:#10275a;--pdot:120,200,255;--pink:#bfe6ff}
+:root[data-theme="persona"][data-sub="p4"]{--pa:#ffd400;--pb:#121212;--pc:#ffffff;--pr1:#ffcf00;--pr2:#ffdc33;--pdot:0,0,0;--pink:#121212;--f-v-color:#121212;--f-go-color:#121212;
+  --f-title:#121212;--f-title-shadow:4px 4px 0 #ffffff,-2px -2px 0 #ff8a00;--f-acc:#121212}
+/* 標題列：撞色、斜切 */
+[data-theme="persona"] .v{transform:rotate(-5deg)}
+[data-theme="persona"] .num{font-style:italic;font-weight:900}
+/* 卡片滑過：主色斜切色帶「刷」地切進來＋右上角網點 */
+@keyframes slashin{from{transform:translateX(-110%) skewX(-18deg)}to{transform:translateX(0) skewX(-18deg)}}
+[data-theme="persona"] .card .sweep{display:block;inset:0 -30px 0 auto;width:62%;transform:translateX(-110%) skewX(-18deg);
+  background:linear-gradient(90deg,transparent 0 6%,var(--pa) 6% 14%,transparent 14% 20%,var(--pa) 20% 100%);opacity:0}
+[data-theme="persona"] .card:hover .sweep{opacity:.9;animation:slashin .22s cubic-bezier(.2,.9,.2,1) forwards}
+[data-theme="persona"] .card::after{display:block;content:"";position:absolute;inset:0 0 auto auto;width:90px;height:60px;z-index:0;border-radius:0;opacity:0;
+  background:radial-gradient(var(--pc) 1.4px,transparent 1.9px) 0 0/7px 7px;-webkit-mask:linear-gradient(225deg,#000 20%,transparent 75%);mask:linear-gradient(225deg,#000 20%,transparent 75%);transition:opacity .2s}
+[data-theme="persona"] .card:hover::after{opacity:.6}
+[data-theme="persona"] .card:hover .v{background:var(--pc);color:var(--pb)}
+[data-theme="persona"] .card:hover .btn.go{background:var(--pc);color:var(--pb)} /* 色帶跟開啟鈕同色，滑過時開啟鈕反白才看得到 */
+
 /* 大標、小字標語、「訪」字：所有主題同一種字型和字距，只換顏色（使用者 2026-11-20：換主題時不要跳來跳去） */
-.hero h1{font:900 56px/1 "Microsoft JhengHei","PingFang TC",sans-serif!important;letter-spacing:.06em!important}
-.hero .kicker{font:700 13px/1 var(--mono)!important;letter-spacing:.42em!important}
+.hero h1{font:900 48px/1 "Microsoft JhengHei","PingFang TC",sans-serif!important;letter-spacing:.06em!important}
+.hero .kicker{font:700 12px/1 var(--mono)!important;letter-spacing:.24em!important}
 .hero .logo{font:900 32px/1 "Microsoft JhengHei","PingFang TC",sans-serif!important}
 .card .t{font:800 20px/1.4 "Microsoft JhengHei","PingFang TC",sans-serif!important;letter-spacing:0!important}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -630,6 +658,8 @@ var GROUPS = [
     ['u6', '6號機', 'linear-gradient(135deg,#1f3a8a 55%,#9fc2ff 55%)'], ['u8', '8號機', 'linear-gradient(135deg,#c2337a 55%,#4fd27a 55%)'],
     ['u13', '13號機', 'linear-gradient(135deg,#3a1f5c 55%,#ff3b3b 55%)'], ['alert', '警戒', 'repeating-linear-gradient(-45deg,#ff6a00 0 3px,#111 3px 6px)'],
     ['day', '白晝', 'linear-gradient(135deg,#f2f0ea 55%,#6a3fa0 55%)']]},
+  {id:'persona', name:'女神異聞錄', flat:1, dot:'conic-gradient(#e5191c 0 50%,#0b0b0b 0 75%,#fff 0)', subs:[
+    ['', '5代', 'conic-gradient(#e5191c 0 50%,#0b0b0b 0 75%,#fff 0)'], ['p3', '3代', 'conic-gradient(#29b6ff 0 50%,#0a1838 0)'], ['p4', '4代', 'conic-gradient(#ffd400 0 50%,#121212 0)']]},
   {id:'sancai', name:'唐三彩', flat:1, dot:'conic-gradient(#d9a521 0 33%,#3f7d3a 0 66%,#8a4b1f 0)', subs:[
     ['', '三彩', 'conic-gradient(#d9a521 0 33%,#3f7d3a 0 66%,#8a4b1f 0)'], ['lan', '藍彩', 'linear-gradient(135deg,#2a4f9a 50%,#d9a521 50%)'],
     ['baiyou', '白釉綠彩', 'linear-gradient(135deg,#f7f3e8 50%,#3f7d3a 50%)'], ['jiaotai', '絞胎', 'repeating-linear-gradient(115deg,#e9d9bd 0 3px,#8a5a34 3px 5px)'], ['jiang', '醬釉', '#6e3418']]}
@@ -779,6 +809,14 @@ var GROUPS = [
           var x=p.x-scrollX, y=p.y-scrollY, r=p.R-2; fx.save(); fx.beginPath();
           for(var k=0;k<6;k++){ var an=Math.PI/6+k*Math.PI/3; fx[k?'lineTo':'moveTo'](x+Math.cos(an)*r,y+Math.sin(an)*r); } fx.closePath();
           fx.globalAlpha=p.life*.18; fx.fillStyle=B; fx.fill(); fx.globalAlpha=p.life*.9; fx.strokeStyle=A; fx.lineWidth=1.6; fx.shadowColor=A; fx.shadowBlur=10; fx.stroke(); fx.restore(); } }},
+    // 女神異聞錄：滑鼠走過的地方蹦出黑框的星星和鋸齒碎片，旋轉後淡出（漫畫撞色感）
+    persona:{move:function(x,y){ if(!far(x,y,26)) return; var cs=getComputedStyle(document.documentElement), C=[cs.getPropertyValue('--pa').trim(),cs.getPropertyValue('--pc').trim(),cs.getPropertyValue('--pb').trim()];
+        Q.push({x:x,y:y,s:0,S:14+Math.random()*16,star:Math.random()<.55,rot:Math.random()*6,vr:(Math.random()-.5)*.12,c:C[Math.floor(Math.random()*3)],o:C[2],life:1}); cap(50); },
+      draw:function(){ for(var i=Q.length-1;i>=0;i--){ var p=Q[i]; p.s+=(p.S-p.s)*.3; p.rot+=p.vr; p.life-=.014; if(p.life<=0){ Q.splice(i,1); continue; }
+        fx.save(); fx.translate(p.x,p.y); fx.rotate(p.rot); fx.globalAlpha=Math.min(1,p.life*1.6); fx.beginPath();
+        if(p.star){ for(var k=0;k<10;k++){ var r=k%2?p.s*.42:p.s, an=k*Math.PI/5-Math.PI/2; fx[k?'lineTo':'moveTo'](Math.cos(an)*r,Math.sin(an)*r); } }
+        else { fx.moveTo(-p.s,-p.s*.25); fx.lineTo(p.s*.2,-p.s*.55); fx.lineTo(p.s*.05,-p.s*.1); fx.lineTo(p.s,p.s*.3); fx.lineTo(-p.s*.1,p.s*.5); fx.lineTo(0,p.s*.1); }
+        fx.closePath(); fx.fillStyle=p.c; fx.fill(); fx.lineWidth=3; fx.strokeStyle=p.c===p.o?'#fff':p.o; fx.stroke(); fx.restore(); } }},
     // 唐三彩：滑鼠走過的地方，黃綠褐釉拉成長條往下流
     sancai:{move:function(x,y){ if(!far(x,y,7)) return; var C=pal('--glz','217,165,33|63,125,58|138,75,31|236,214,160');
         Q.push({x:x+scrollX,y:y+scrollY,w:6+Math.random()*7,len:0,vy:.3+Math.random()*.5,c:C[Math.floor(Math.random()*C.length)],life:1,wob:Math.random()*6}); cap(160); },
