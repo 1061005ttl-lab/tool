@@ -591,10 +591,15 @@ h1{margin:0;font:900 56px/1 "Microsoft JhengHei",sans-serif;letter-spacing:.04em
   --f-card-shadow-h:inset 0 0 0 2px color-mix(in srgb,var(--ffb) 70%,#000),0 0 0 2px color-mix(in srgb,var(--ffb) 70%,#000),0 0 22px color-mix(in srgb,var(--ffg) 60%,transparent);
   --f-num:color-mix(in srgb,var(--ffl) 30%,transparent);--f-v-bg:transparent;--f-v-color:var(--ffg);--f-v-border:1px solid var(--ffg);--f-go-bg:var(--ffl);--f-go-color:var(--ffb)}
 [data-theme="ff"] .btn{color:var(--ffink)}
-/* 太空戰士的幾種色，照各代代表視覺：4代（經典藍色漸層視窗，預設）、1代（像素純藍窗）、6代（魔導紫）、7代（魔晄綠）、8代（銀藍）、
+/* 太空戰士的幾種色，照各代代表視覺：4代（經典藍色漸層視窗，預設）、1代（像素純藍窗）、2代（野玫瑰）、3代（四色水晶）、5代（隕石）、11代（珍珠）、6代（魔導紫）、7代（魔晄綠）、8代（銀藍）、
    9代（羊皮紙童話）、10代（海與幻光）、12代（伊瓦利斯金銅）、13代（水晶白粉）、14代（深灰金框）、15代（黑銀）、16代（火焰暗紅） */
 :root[data-theme="ff"][data-sub="ff1"]{--ffa:#0000a8;--ffb:#0000a8;--ffl:#ffffff;--ffg:#fcfcfc;--ffsub:#c8c8ff;--ffsky:linear-gradient(180deg,#000,#000);--f-radius:0;--f-radius-s:0;--f-logo-radius:0;
   --f-title-shadow:3px 3px 0 #0000a8,0 0 0 transparent}
+/* 2代野玫瑰紅、3代四色光之水晶、5代隕石紫、11代線上世界的深青金 */
+:root[data-theme="ff"][data-sub="ff2"]{--ffa:#1a1a7a;--ffb:#0a0a3a;--ffl:#ffffff;--ffg:#ff5a7a;--ffsub:#f0c8d4;--ffsky:linear-gradient(180deg,#0a0208,#1e0612 70%,#2a0a1a)}
+:root[data-theme="ff"][data-sub="ff3"]{--ffa:#2040b0;--ffb:#08164a;--ffl:#ffffff;--ffg:#9af0ff;--ffsub:#d2e4ff;--ffsky:linear-gradient(180deg,#02040e,#081230 70%,#0c1a44)}
+:root[data-theme="ff"][data-sub="ff5"]{--ffa:#3a2a8a;--ffb:#100a36;--ffl:#ffe6c8;--ffg:#ff9a3a;--ffsub:#e0d0f0;--ffsky:linear-gradient(180deg,#05020e,#160a2e 70%,#2a1040)}
+:root[data-theme="ff"][data-sub="ff11"]{--ffa:#2a4a52;--ffb:#0c1c20;--ffl:#e6d29a;--ffg:#bfe8ff;--ffsub:#c8d6d0;--ffsky:linear-gradient(180deg,#030808,#0c1a1c 70%,#14282a)}
 :root[data-theme="ff"][data-sub="ff6"]{--ffa:#3a3a8a;--ffb:#12123a;--ffl:#d8d0ff;--ffg:#c9a0ff;--ffsub:#cfc6f0;--ffsky:linear-gradient(180deg,#0a0612,#1e1428 70%,#2a1a2e)}
 :root[data-theme="ff"][data-sub="ff7"]{--ffa:#2a5ab8;--ffb:#0b1a40;--ffl:#e0e8ff;--ffg:#6cff8a;--ffsub:#bfe8cc;--ffsky:linear-gradient(180deg,#020806,#0a1f16 70%,#103024)}
 :root[data-theme="ff"][data-sub="ff8"]{--ffa:#5a6a8a;--ffb:#1a2234;--ffl:#e6ecf5;--ffg:#a8c8ff;--ffsub:#c6d2e6;--ffsky:linear-gradient(180deg,#05070c,#0e1420 70%,#141c2c)}
@@ -701,8 +706,9 @@ var GROUPS = [
   {id:'persona', name:'女神', flat:1, dot:'conic-gradient(#e5191c 0 50%,#0b0b0b 0 75%,#fff 0)', subs:[
     ['', '5代', 'conic-gradient(#e5191c 0 50%,#0b0b0b 0 75%,#fff 0)'], ['p3', '3代', 'conic-gradient(#29b6ff 0 50%,#0a1838 0)'], ['p4', '4代', 'conic-gradient(#ffd400 0 50%,#121212 0)']]},
   {id:'ff', name:'FF', flat:1, dot:'linear-gradient(180deg,#2d4bc0,#0a1452)', subs:[
-    ['ff1', '1代', '#0000a8'], ['', '4代', 'linear-gradient(180deg,#2d4bc0,#0a1452)'], ['ff6', '6代', 'linear-gradient(180deg,#c9a0ff,#3a3a8a)'], ['ff7', '7代', 'linear-gradient(135deg,#2a5ab8 50%,#6cff8a 50%)'],
-    ['ff8', '8代', 'linear-gradient(180deg,#a8c8ff,#5a6a8a)'], ['ff9', '9代', 'linear-gradient(180deg,#fbf4e2,#c98a1e)'], ['ff10', '10代', 'linear-gradient(180deg,#7ff0ff,#1a8aa8)'], ['ff12', '12代', 'linear-gradient(180deg,#ffd27a,#5a4a2a)'],
+    ['ff1', '1代', '#0000a8'], ['ff2', '2代', 'linear-gradient(135deg,#1a1a7a 50%,#ff5a7a 50%)'], ['ff3', '3代', 'conic-gradient(#6cff8a 0 25%,#ff5a5a 0 50%,#5ab0ff 0 75%,#ffd84a 0)'],
+    ['', '4代', 'linear-gradient(180deg,#2d4bc0,#0a1452)'], ['ff5', '5代', 'linear-gradient(135deg,#3a2a8a 50%,#ff9a3a 50%)'], ['ff6', '6代', 'linear-gradient(180deg,#c9a0ff,#3a3a8a)'], ['ff7', '7代', 'linear-gradient(135deg,#2a5ab8 50%,#6cff8a 50%)'],
+    ['ff8', '8代', 'linear-gradient(180deg,#a8c8ff,#5a6a8a)'], ['ff9', '9代', 'linear-gradient(180deg,#fbf4e2,#c98a1e)'], ['ff10', '10代', 'linear-gradient(180deg,#7ff0ff,#1a8aa8)'], ['ff11', '11代', 'linear-gradient(135deg,#2a4a52 50%,#e6d29a 50%)'], ['ff12', '12代', 'linear-gradient(180deg,#ffd27a,#5a4a2a)'],
     ['ff13', '13代', 'linear-gradient(135deg,#f4fbff 50%,#ff8ac8 50%)'], ['ff14', '14代', 'linear-gradient(135deg,#3a3f4a 50%,#e6cf8a 50%)'], ['ff15', '15代', 'linear-gradient(135deg,#0a0a0c 50%,#c0c4cc 50%)'], ['ff16', '16代', 'linear-gradient(135deg,#5a1410 50%,#ff6a2a 50%)']]},
   {id:'sancai', name:'唐三彩', flat:1, dot:'conic-gradient(#d9a521 0 33%,#3f7d3a 0 66%,#8a4b1f 0)', subs:[
     ['', '三彩', 'conic-gradient(#d9a521 0 33%,#3f7d3a 0 66%,#8a4b1f 0)'], ['lan', '藍彩', 'linear-gradient(135deg,#2a4f9a 50%,#d9a521 50%)'],
@@ -888,6 +894,21 @@ var GROUPS = [
               fx.fillRect(-s*.7,L15*.35,s*1.4,s*.25); fx.fillRect(-s*.12,L15*.35,s*.24,s*.9); }
             fx.restore(); continue; }
           if(sub==='ff1'){ fx.save(); fx.globalAlpha=p.life; fx.fillStyle=L; var q=Math.round(p.s/2)*2; fx.fillRect(Math.round(p.x/4)*4,Math.round(p.y/4)*4,q,q); fx.restore(); continue; }
+          // 2代：野玫瑰花瓣，旋轉飄落
+          if(sub==='ff2'){ p.vy=Math.min(p.vy+.012,.7); p.x+=Math.sin(p.ph+p.y/25)*.5; fx.save(); fx.translate(p.x,p.y); fx.rotate(p.rot*3); fx.globalAlpha=p.life;
+            var gp=fx.createRadialGradient(0,-p.s*.3,0,0,0,p.s); gp.addColorStop(0,'#ffd0dc'); gp.addColorStop(1,'#d42a4a'); fx.fillStyle=gp;
+            fx.beginPath(); fx.moveTo(0,p.s*.7); fx.bezierCurveTo(p.s*.9,p.s*.1,p.s*.5,-p.s*.8,0,-p.s*.4); fx.bezierCurveTo(-p.s*.5,-p.s*.8,-p.s*.9,p.s*.1,0,p.s*.7); fx.fill(); fx.restore(); continue; }
+          // 3代：風火水土四色光之水晶
+          if(sub==='ff3'){ var C3=['#6cff8a','#ff5a5a','#5ab0ff','#ffd84a']; G=p.c3||(p.c3=C3[Math.floor(Math.random()*4)]); }
+          // 5代：隕石，拖著尾巴從右上往左下劃過
+          if(sub==='ff5'){ if(!p.m5){ p.m5=1; p.vx=-2.2-Math.random()*1.5; p.vy=2+Math.random()*1.2; } fx.save(); fx.globalAlpha=p.life;
+            var tl=fx.createLinearGradient(p.x,p.y,p.x-p.vx*10,p.y-p.vy*10); tl.addColorStop(0,'#fff3d0'); tl.addColorStop(.3,G); tl.addColorStop(1,'rgba(255,120,40,0)');
+            fx.strokeStyle=tl; fx.lineWidth=p.s*.45; fx.lineCap='round'; fx.beginPath(); fx.moveTo(p.x,p.y); fx.lineTo(p.x-p.vx*10,p.y-p.vy*10); fx.stroke();
+            fx.fillStyle='#fff6e0'; fx.shadowColor=G; fx.shadowBlur=14; fx.beginPath(); fx.arc(p.x,p.y,p.s*.35,0,7); fx.fill(); fx.restore(); continue; }
+          // 11代：珍珠，帶淡彩虹光澤
+          if(sub==='ff11'){ fx.save(); fx.globalAlpha=p.life; var r11=p.s*.55, gpe=fx.createRadialGradient(-r11*.35,-r11*.35,r11*.1,0,0,r11);
+            gpe.addColorStop(0,'#ffffff'); gpe.addColorStop(.5,'#e8eef8'); gpe.addColorStop(.8,G); gpe.addColorStop(1,'rgba(180,160,220,.6)');
+            fx.translate(p.x,p.y); fx.fillStyle=gpe; fx.shadowColor=G; fx.shadowBlur=10*tw; fx.beginPath(); fx.arc(0,0,r11,0,7); fx.fill(); fx.restore(); continue; }
           if(sub==='ff10'||sub==='ff16'){ fx.save(); fx.globalAlpha=p.life*tw; var rr=sub==='ff10'?p.s*.55:p.s*.25, gg=fx.createRadialGradient(p.x,p.y,0,p.x,p.y,rr*3);
             gg.addColorStop(0,L); gg.addColorStop(.25,G); gg.addColorStop(1,'rgba(0,0,0,0)'); fx.fillStyle=gg; fx.beginPath(); fx.arc(p.x,p.y,rr*3,0,7); fx.fill();
             if(sub==='ff16'){ p.vy-=.02; p.x+=Math.sin(p.ph+p.y/20)*.4; } fx.restore(); continue; }
