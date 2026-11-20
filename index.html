@@ -70,7 +70,7 @@ h1{margin:0;font:900 56px/1 "Microsoft JhengHei",sans-serif;letter-spacing:.04em
 .picker .prow{gap:2px;flex-wrap:wrap;justify-content:flex-end;height:auto;min-height:28px;row-gap:6px}
 .hero .picker .pbtn{padding:0 5px;gap:4px;font:600 12px/1 "Microsoft JhengHei",sans-serif;letter-spacing:0} /* 按鈕字型固定，各主題寬度一致，換主題時版面不跳 */
 .picker .pbtn i{width:9px;height:9px}
-.picker .subwrap{width:0;min-width:100%;justify-content:flex-end;flex-wrap:nowrap} /* 配色排不撐寬：寬度跟風格排一樣 */
+.picker .subwrap{justify-content:flex-end;flex-wrap:nowrap}
 .prow{display:flex;gap:6px;align-items:center;height:28px;white-space:nowrap}
 .plabel{font:700 12px/1 "Microsoft JhengHei",sans-serif;letter-spacing:.15em;color:var(--sub);margin-right:4px;width:36px;flex-shrink:0}
 .pbtn{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:999px;cursor:pointer;
@@ -577,6 +577,46 @@ h1{margin:0;font:900 56px/1 "Microsoft JhengHei",sans-serif;letter-spacing:.04em
 [data-theme="persona"] .card:hover .v{background:var(--pc);color:var(--pb)}
 [data-theme="persona"] .card:hover .btn.go{background:var(--pc);color:var(--pb)} /* 色帶跟開啟鈕同色，滑過時開啟鈕反白才看得到 */
 
+/* ── 太空戰士風：藍色漸層選單視窗、白色圓角框、水晶、行動條（只取視覺語言，不放標誌、角色或原作圖案） ──
+   --ffa/--ffb 視窗上下兩色、--ffl 框線、--ffg 光（水晶、行動條）、--ffink 字、--ffsky 背景 */
+:root[data-theme="ff"]{--ffa:#2d4bc0;--ffb:#0a1452;--ffl:#ffffff;--ffg:#7fd4ff;--ffink:#ffffff;--ffsub:#c9d6ff;--ffsky:linear-gradient(180deg,#020617,#0b1440 70%,#16205a);
+  --b:var(--ffg);--f-font:"Microsoft JhengHei",sans-serif;--f-acc:var(--ffg);--f-ink:var(--ffink);--f-sub:var(--ffsub);--f-title:var(--ffink);
+  --f-title-shadow:0 0 14px var(--ffg),2px 2px 0 var(--ffb);
+  --f-body-bg:radial-gradient(1.2px 1.2px at 12% 18%,#fff,transparent),radial-gradient(1px 1px at 32% 64%,#fff,transparent),radial-gradient(1.4px 1.4px at 58% 28%,#fff,transparent),radial-gradient(1px 1px at 78% 72%,#fff,transparent),radial-gradient(1.2px 1.2px at 90% 12%,#fff,transparent),radial-gradient(1px 1px at 46% 90%,#fff,transparent),
+    radial-gradient(ellipse 40% 50% at 85% 10%,color-mix(in srgb,var(--ffg) 25%,transparent),transparent 70%),var(--ffsky);
+  --f-logo-bg:linear-gradient(180deg,var(--ffa),var(--ffb));--f-logo-color:var(--ffink);--f-logo-radius:10px;--f-logo-shadow:inset 0 0 0 2px var(--ffl),0 0 0 2px color-mix(in srgb,var(--ffb) 80%,#000),0 0 18px color-mix(in srgb,var(--ffg) 50%,transparent);
+  --f-chip-bg:linear-gradient(180deg,var(--ffa),var(--ffb));--f-line:var(--ffl);--f-radius:10px;--f-radius-s:6px;
+  --f-card-bg:linear-gradient(180deg,var(--ffa),var(--ffb));--f-card-border:2px solid var(--ffl);
+  --f-card-shadow:inset 0 0 0 2px color-mix(in srgb,var(--ffb) 70%,#000),0 0 0 2px color-mix(in srgb,var(--ffb) 70%,#000),0 12px 24px -12px #000;
+  --f-card-shadow-h:inset 0 0 0 2px color-mix(in srgb,var(--ffb) 70%,#000),0 0 0 2px color-mix(in srgb,var(--ffb) 70%,#000),0 0 22px color-mix(in srgb,var(--ffg) 60%,transparent);
+  --f-num:color-mix(in srgb,var(--ffl) 30%,transparent);--f-v-bg:transparent;--f-v-color:var(--ffg);--f-v-border:1px solid var(--ffg);--f-go-bg:var(--ffl);--f-go-color:var(--ffb)}
+[data-theme="ff"] .btn{color:var(--ffink)}
+/* 太空戰士的幾種色，照各代代表視覺：4代（經典藍色漸層視窗，預設）、1代（像素純藍窗）、6代（魔導紫）、7代（魔晄綠）、8代（銀藍）、
+   9代（羊皮紙童話）、10代（海與幻光）、12代（伊瓦利斯金銅）、13代（水晶白粉）、14代（深灰金框）、15代（黑銀）、16代（火焰暗紅） */
+:root[data-theme="ff"][data-sub="ff1"]{--ffa:#0000a8;--ffb:#0000a8;--ffl:#ffffff;--ffg:#fcfcfc;--ffsub:#c8c8ff;--ffsky:linear-gradient(180deg,#000,#000);--f-radius:0;--f-radius-s:0;--f-logo-radius:0;
+  --f-title-shadow:3px 3px 0 #0000a8,0 0 0 transparent}
+:root[data-theme="ff"][data-sub="ff6"]{--ffa:#3a3a8a;--ffb:#12123a;--ffl:#d8d0ff;--ffg:#c9a0ff;--ffsub:#cfc6f0;--ffsky:linear-gradient(180deg,#0a0612,#1e1428 70%,#2a1a2e)}
+:root[data-theme="ff"][data-sub="ff7"]{--ffa:#2a5ab8;--ffb:#0b1a40;--ffl:#e0e8ff;--ffg:#6cff8a;--ffsub:#bfe8cc;--ffsky:linear-gradient(180deg,#020806,#0a1f16 70%,#103024)}
+:root[data-theme="ff"][data-sub="ff8"]{--ffa:#5a6a8a;--ffb:#1a2234;--ffl:#e6ecf5;--ffg:#a8c8ff;--ffsub:#c6d2e6;--ffsky:linear-gradient(180deg,#05070c,#0e1420 70%,#141c2c)}
+:root[data-theme="ff"][data-sub="ff9"]{--ffa:#fbf4e2;--ffb:#e6d6ac;--ffl:#6a4a20;--ffg:#c98a1e;--ffink:#3a2810;--ffsub:#6a5638;--ffsky:linear-gradient(180deg,#fdf6e6,#f1e2bd 70%,#e8d3a2);--f-go-color:#fff8e6;
+  --f-title-shadow:0 0 12px rgba(201,138,30,.45),2px 2px 0 #fff}
+:root[data-theme="ff"][data-sub="ff10"]{--ffa:#1a8aa8;--ffb:#062a3a;--ffl:#e0fbff;--ffg:#7ff0ff;--ffsub:#bfeaf2;--ffsky:linear-gradient(180deg,#010a12,#04283a 70%,#0a4a5a)}
+:root[data-theme="ff"][data-sub="ff12"]{--ffa:#5a4a2a;--ffb:#1e160a;--ffl:#e8cf8a;--ffg:#ffd27a;--ffsub:#e0cfa6;--ffsky:linear-gradient(180deg,#0a0704,#1a1208 70%,#24180a)}
+:root[data-theme="ff"][data-sub="ff13"]{--ffa:#f4fbff;--ffb:#cfe6f5;--ffl:#5a8aa8;--ffg:#ff8ac8;--ffink:#1a3a52;--ffsub:#4a6a82;--ffsky:linear-gradient(180deg,#f6fbff,#e4f1fa 70%,#dcecf8);--f-go-color:#fff;
+  --f-title-shadow:0 0 14px rgba(255,138,200,.5),2px 2px 0 #fff}
+:root[data-theme="ff"][data-sub="ff14"]{--ffa:#3a3f4a;--ffb:#15181e;--ffl:#c9b47a;--ffg:#e6cf8a;--ffsub:#c8c2b0;--ffsky:linear-gradient(180deg,#07080a,#12141a 70%,#1a1d24)}
+:root[data-theme="ff"][data-sub="ff15"]{--ffa:#2a2a2e;--ffb:#0a0a0c;--ffl:#c0c4cc;--ffg:#9ab0d0;--ffsub:#a8acb4;--ffsky:linear-gradient(180deg,#000,#0a0a0c 70%,#121216)}
+:root[data-theme="ff"][data-sub="ff16"]{--ffa:#5a1410;--ffb:#1a0606;--ffl:#e8c27a;--ffg:#ff6a2a;--ffsub:#e6b8a0;--ffsky:linear-gradient(180deg,#0a0202,#2a0806 70%,#4a0e08)}
+/* 卡片滑過：① 工具名稱左邊出現跳動的選單游標 ② 底部行動條充滿、滿了閃一下 ③ 視窗框發光（--f-card-shadow-h） */
+@keyframes ffcursor{0%,100%{transform:translateX(0)}50%{transform:translateX(4px)}}
+@keyframes atbfull{0%,100%{filter:none}50%{filter:brightness(1.8)}}
+[data-theme="ff"] .card::after{display:block;content:"";position:absolute;inset:auto;left:4px;top:29px;width:0;height:0;z-index:2;border-radius:0;background:none;opacity:0;
+  border-style:solid;border-width:7px 0 7px 11px;border-color:transparent transparent transparent var(--ffl);filter:drop-shadow(0 0 4px var(--ffg));transition:opacity .15s}
+[data-theme="ff"] .card:hover::after{opacity:1;animation:ffcursor .6s ease-in-out infinite}
+[data-theme="ff"] .card::before{display:block;content:"";position:absolute;inset:auto auto 6px 8px;width:0;height:5px;z-index:1;border-radius:3px;padding:0;opacity:1;
+  -webkit-mask:none;mask:none;background:linear-gradient(90deg,var(--ffg),var(--ffl));box-shadow:0 0 8px var(--ffg);transition:width 1.1s linear}
+[data-theme="ff"] .card:hover::before{width:calc(100% - 16px);animation:atbfull .4s 1.1s 2}
+
 /* 大標、小字標語、「訪」字：所有主題同一種字型和字距，只換顏色（使用者 2026-11-20：換主題時不要跳來跳去） */
 .hero h1{font:900 48px/1 "Microsoft JhengHei","PingFang TC",sans-serif!important;letter-spacing:.06em!important}
 .hero .kicker{font:700 12px/1 var(--mono)!important;letter-spacing:.24em!important}
@@ -635,7 +675,7 @@ var GROUPS = [
     ['', '永宣', '#1d3f8f'], ['yuan', '元青花', '#14286b'], ['chenghua', '成化', '#6f92cf'], ['jiajing', '嘉靖', '#3a2f8f'], ['kangxi', '康熙', '#1f5fbf'], ['youlihong', '釉裡紅', '#a8322a']]},
   {id:'dunhuang', name:'敦煌', flat:1, dot:'conic-gradient(#a8442a 0 33%,#2f7b78 0 66%,#e6cfa6 0)', subs:[
     ['', '盛唐', '#a8442a'], ['beiwei', '北魏', '#8a3a22'], ['xixia', '西夏', '#3f7f5f'], ['feitian', '飛天', '#2f5f8f'], ['lu', '九色鹿', '#e8b48f']]},
-  {id:'huazhuan', name:'臺灣花磚', flat:1, dot:'conic-gradient(#9fd3c0 0 25%,#f6e3a1 0 50%,#9fd3c0 0 75%,#f4b6c2 0)', subs:[
+  {id:'huazhuan', name:'花磚', flat:1, dot:'conic-gradient(#9fd3c0 0 25%,#f6e3a1 0 50%,#9fd3c0 0 75%,#f4b6c2 0)', subs:[
     ['', '粉綠', 'conic-gradient(#9fd3c0 0 25%,#f4b6c2 0 50%,#9fd3c0 0 75%,#f4b6c2 0)'], ['lan', '藍白', 'conic-gradient(#3f78b5 0 25%,#fff 0 50%,#3f78b5 0 75%,#fff 0)'],
     ['zhe', '赭黃', 'conic-gradient(#b8653a 0 25%,#f2d27a 0 50%,#b8653a 0 75%,#f2d27a 0)'], ['zi', '紫藤', 'conic-gradient(#8a6bb8 0 25%,#f3e0a8 0 50%,#8a6bb8 0 75%,#f3e0a8 0)'],
     ['zhulv', '朱綠', 'conic-gradient(#3f8a5a 0 25%,#e0705a 0 50%,#3f8a5a 0 75%,#e0705a 0)']]},
@@ -658,8 +698,12 @@ var GROUPS = [
     ['u6', '6號機', 'linear-gradient(135deg,#1f3a8a 55%,#9fc2ff 55%)'], ['u8', '8號機', 'linear-gradient(135deg,#c2337a 55%,#4fd27a 55%)'],
     ['u13', '13號機', 'linear-gradient(135deg,#3a1f5c 55%,#ff3b3b 55%)'], ['alert', '警戒', 'repeating-linear-gradient(-45deg,#ff6a00 0 3px,#111 3px 6px)'],
     ['day', '白晝', 'linear-gradient(135deg,#f2f0ea 55%,#6a3fa0 55%)']]},
-  {id:'persona', name:'女神異聞錄', flat:1, dot:'conic-gradient(#e5191c 0 50%,#0b0b0b 0 75%,#fff 0)', subs:[
+  {id:'persona', name:'女神', flat:1, dot:'conic-gradient(#e5191c 0 50%,#0b0b0b 0 75%,#fff 0)', subs:[
     ['', '5代', 'conic-gradient(#e5191c 0 50%,#0b0b0b 0 75%,#fff 0)'], ['p3', '3代', 'conic-gradient(#29b6ff 0 50%,#0a1838 0)'], ['p4', '4代', 'conic-gradient(#ffd400 0 50%,#121212 0)']]},
+  {id:'ff', name:'FF', flat:1, dot:'linear-gradient(180deg,#2d4bc0,#0a1452)', subs:[
+    ['ff1', '1代', '#0000a8'], ['', '4代', 'linear-gradient(180deg,#2d4bc0,#0a1452)'], ['ff6', '6代', 'linear-gradient(180deg,#c9a0ff,#3a3a8a)'], ['ff7', '7代', 'linear-gradient(135deg,#2a5ab8 50%,#6cff8a 50%)'],
+    ['ff8', '8代', 'linear-gradient(180deg,#a8c8ff,#5a6a8a)'], ['ff9', '9代', 'linear-gradient(180deg,#fbf4e2,#c98a1e)'], ['ff10', '10代', 'linear-gradient(180deg,#7ff0ff,#1a8aa8)'], ['ff12', '12代', 'linear-gradient(180deg,#ffd27a,#5a4a2a)'],
+    ['ff13', '13代', 'linear-gradient(135deg,#f4fbff 50%,#ff8ac8 50%)'], ['ff14', '14代', 'linear-gradient(135deg,#3a3f4a 50%,#e6cf8a 50%)'], ['ff15', '15代', 'linear-gradient(135deg,#0a0a0c 50%,#c0c4cc 50%)'], ['ff16', '16代', 'linear-gradient(135deg,#5a1410 50%,#ff6a2a 50%)']]},
   {id:'sancai', name:'唐三彩', flat:1, dot:'conic-gradient(#d9a521 0 33%,#3f7d3a 0 66%,#8a4b1f 0)', subs:[
     ['', '三彩', 'conic-gradient(#d9a521 0 33%,#3f7d3a 0 66%,#8a4b1f 0)'], ['lan', '藍彩', 'linear-gradient(135deg,#2a4f9a 50%,#d9a521 50%)'],
     ['baiyou', '白釉綠彩', 'linear-gradient(135deg,#f7f3e8 50%,#3f7d3a 50%)'], ['jiaotai', '絞胎', 'repeating-linear-gradient(115deg,#e9d9bd 0 3px,#8a5a34 3px 5px)'], ['jiang', '醬釉', '#6e3418']]}
@@ -671,7 +715,8 @@ var GROUPS = [
   function get(k, d){ if (k in mem) return mem[k]; try{ var v = localStorage.getItem(k); return v === null ? d : v; }catch(e){ return d; } }
   function put(k, v){ mem[k] = v; try{ localStorage.setItem(k, v); }catch(e){} }
   function btn(label, bg, on){ var b = document.createElement('button'); b.type = 'button'; b.className = 'pbtn';
-    b.innerHTML = '<i></i>'; b.firstChild.style.background = bg; b.appendChild(document.createTextNode(label)); b.onclick = on; return b; }
+    b.innerHTML = '<i></i><span class="nm"></span>'; b.firstChild.style.background = bg; b.lastChild.textContent = label;
+    b.setAttribute('data-name', label); b.setAttribute('aria-label', label); b.onclick = on; return b; }
   function apply(gid){
     var g = GROUPS.filter(function(x){ return x.id === gid; })[0] || GROUPS[0], sub = get('yz-sub-' + g.id, '');
     if (g.id === 'tech'){ if (sub) root.setAttribute('data-theme', sub); else root.removeAttribute('data-theme'); root.removeAttribute('data-sub'); }
@@ -817,6 +862,39 @@ var GROUPS = [
         if(p.star){ for(var k=0;k<10;k++){ var r=k%2?p.s*.42:p.s, an=k*Math.PI/5-Math.PI/2; fx[k?'lineTo':'moveTo'](Math.cos(an)*r,Math.sin(an)*r); } }
         else { fx.moveTo(-p.s,-p.s*.25); fx.lineTo(p.s*.2,-p.s*.55); fx.lineTo(p.s*.05,-p.s*.1); fx.lineTo(p.s,p.s*.3); fx.lineTo(-p.s*.1,p.s*.5); fx.lineTo(0,p.s*.1); }
         fx.closePath(); fx.fillStyle=p.c; fx.fill(); fx.lineWidth=3; fx.strokeStyle=p.c===p.o?'#fff':p.o; fx.stroke(); fx.restore(); } }},
+    // 太空戰士：滑鼠走過的地方浮出小東西往上飄（各代不同：水晶／像素方塊／幻光／火星）
+    ff:{move:function(x,y){ if(!far(x,y,22)) return; Q.push({x:x,y:y,vy:-.35-Math.random()*.5,vx:(Math.random()-.5)*.3,s:6+Math.random()*8,rot:Math.random()*6,vr:(Math.random()-.5)*.05,life:1,ph:Math.random()*6}); cap(60); },
+      draw:function(){ var cs=getComputedStyle(document.documentElement), G=cs.getPropertyValue('--ffg').trim()||'#7fd4ff', L=cs.getPropertyValue('--ffl').trim()||'#fff';
+        for(var i=Q.length-1;i>=0;i--){ var p=Q[i]; p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr; p.life-=.008; if(p.life<=0){ Q.splice(i,1); continue; }
+          var tw=.6+.4*Math.sin(p.ph+performance.now()/180), sub=document.documentElement.getAttribute('data-sub')||'';
+          // 各代特效（代表物，只畫簡單的形，不用原作圖案）：1代像素方塊、6代魔石、7代魔晶球、8代卡片、9代羽毛、10代幻光、12代金幣、14代高水晶、15代幻影劍、16代火星；4、13代水晶
+          if(sub==='ff6'||sub==='ff7'||sub==='ff8'||sub==='ff9'||sub==='ff12'||sub==='ff14'||sub==='ff15'){ fx.save(); fx.translate(p.x,p.y); fx.globalAlpha=p.life; var s=p.s;
+            if(sub==='ff6'){ fx.rotate(p.rot); fx.beginPath(); for(var k=0;k<6;k++){ var an=k*Math.PI/3; fx[k?'lineTo':'moveTo'](Math.cos(an)*s,Math.sin(an)*s*1.3); } fx.closePath();
+              var g6=fx.createLinearGradient(-s,-s,s,s); g6.addColorStop(0,'#ffd6ff'); g6.addColorStop(.5,G); g6.addColorStop(1,'#5a2a8a'); fx.fillStyle=g6; fx.shadowColor=G; fx.shadowBlur=14*tw; fx.fill();
+              fx.strokeStyle='rgba(255,255,255,.7)'; fx.lineWidth=1; fx.beginPath(); fx.moveTo(-s,0); fx.lineTo(s,0); fx.moveTo(0,-s*1.3); fx.lineTo(0,s*1.3); fx.stroke(); }
+            else if(sub==='ff7'){ var MC=['#6cff8a','#5ab0ff','#ff5a5a','#ffd84a','#c08aff'], mc=p.mc||(p.mc=MC[Math.floor(Math.random()*5)]); var r7=s*.8, g7=fx.createRadialGradient(-r7*.35,-r7*.35,r7*.1,0,0,r7);
+              g7.addColorStop(0,'#fff'); g7.addColorStop(.35,mc); g7.addColorStop(1,'rgba(0,0,0,.6)'); fx.fillStyle=g7; fx.shadowColor=mc; fx.shadowBlur=16*tw; fx.beginPath(); fx.arc(0,0,r7,0,7); fx.fill(); }
+            else if(sub==='ff8'){ fx.rotate(p.rot*.3); fx.scale(Math.cos(p.ph+performance.now()/400),1); var w8=s*1.2, h8=s*1.6; fx.fillStyle='#f4f1e8'; fx.strokeStyle=G; fx.lineWidth=2;
+              fx.beginPath(); fx.rect(-w8/2,-h8/2,w8,h8); fx.fill(); fx.stroke(); fx.fillStyle=G; fx.fillRect(-w8/2+3,-h8/2+3,w8-6,h8*.45); }
+            else if(sub==='ff9'){ fx.rotate(p.rot+Math.sin(p.ph+performance.now()/500)*.5); fx.fillStyle=L; fx.globalAlpha=p.life*.9; fx.beginPath(); fx.moveTo(0,-s*1.6);
+              fx.quadraticCurveTo(s*.9,-s*.2,0,s*1.6); fx.quadraticCurveTo(-s*.9,-s*.2,0,-s*1.6); fx.fill(); fx.strokeStyle=G; fx.lineWidth=1; fx.beginPath(); fx.moveTo(0,-s*1.5); fx.lineTo(0,s*1.9); fx.stroke(); p.vy=Math.min(p.vy+.01,.6); }
+            else if(sub==='ff12'){ fx.scale(Math.cos(p.ph+performance.now()/300),1); var r12=s*.75; fx.fillStyle='#e6b84a'; fx.strokeStyle='#8a6a1a'; fx.lineWidth=2; fx.shadowColor='#ffd27a'; fx.shadowBlur=10*tw;
+              fx.beginPath(); fx.arc(0,0,r12,0,7); fx.fill(); fx.stroke(); fx.shadowBlur=0; fx.beginPath(); fx.arc(0,0,r12*.6,0,7); fx.stroke(); }
+            else if(sub==='ff14'){ var h14=s*2.6, w14=s*.55; var g14=fx.createLinearGradient(0,-h14,0,h14); g14.addColorStop(0,'#fff'); g14.addColorStop(.5,G); g14.addColorStop(1,'rgba(60,140,255,.3)');
+              fx.fillStyle=g14; fx.shadowColor='#6ab8ff'; fx.shadowBlur=14*tw; fx.beginPath(); fx.moveTo(0,-h14); fx.lineTo(w14,-h14*.2); fx.lineTo(w14*.6,h14); fx.lineTo(-w14*.6,h14); fx.lineTo(-w14,-h14*.2); fx.closePath(); fx.fill();
+              fx.strokeStyle='rgba(120,190,255,'+(.5*tw)+')'; fx.lineWidth=1; fx.beginPath(); fx.ellipse(0,0,s*1.6,s*.45,performance.now()/600,0,7); fx.stroke(); }
+            else { fx.rotate(Math.PI/4+p.rot*.2); fx.globalAlpha=p.life*.75; fx.fillStyle='rgba(140,190,255,.55)'; fx.strokeStyle='#bfe0ff'; fx.lineWidth=1.2; fx.shadowColor='#7fb8ff'; fx.shadowBlur=12*tw;
+              var L15=s*2.2; fx.beginPath(); fx.moveTo(0,-L15); fx.lineTo(s*.22,-L15*.75); fx.lineTo(s*.22,L15*.35); fx.lineTo(-s*.22,L15*.35); fx.lineTo(-s*.22,-L15*.75); fx.closePath(); fx.fill(); fx.stroke();
+              fx.fillRect(-s*.7,L15*.35,s*1.4,s*.25); fx.fillRect(-s*.12,L15*.35,s*.24,s*.9); }
+            fx.restore(); continue; }
+          if(sub==='ff1'){ fx.save(); fx.globalAlpha=p.life; fx.fillStyle=L; var q=Math.round(p.s/2)*2; fx.fillRect(Math.round(p.x/4)*4,Math.round(p.y/4)*4,q,q); fx.restore(); continue; }
+          if(sub==='ff10'||sub==='ff16'){ fx.save(); fx.globalAlpha=p.life*tw; var rr=sub==='ff10'?p.s*.55:p.s*.25, gg=fx.createRadialGradient(p.x,p.y,0,p.x,p.y,rr*3);
+            gg.addColorStop(0,L); gg.addColorStop(.25,G); gg.addColorStop(1,'rgba(0,0,0,0)'); fx.fillStyle=gg; fx.beginPath(); fx.arc(p.x,p.y,rr*3,0,7); fx.fill();
+            if(sub==='ff16'){ p.vy-=.02; p.x+=Math.sin(p.ph+p.y/20)*.4; } fx.restore(); continue; }
+          fx.save(); fx.translate(p.x,p.y); fx.rotate(p.rot); fx.globalAlpha=p.life;
+          fx.beginPath(); fx.moveTo(0,-p.s*1.6); fx.lineTo(p.s*.6,0); fx.lineTo(0,p.s*1.6); fx.lineTo(-p.s*.6,0); fx.closePath();
+          var g=fx.createLinearGradient(-p.s,-p.s,p.s,p.s); g.addColorStop(0,L); g.addColorStop(.5,G); g.addColorStop(1,'rgba(255,255,255,.2)');
+          fx.fillStyle=g; fx.shadowColor=G; fx.shadowBlur=12*tw; fx.fill(); fx.globalAlpha=p.life*tw; fx.strokeStyle=L; fx.lineWidth=1; fx.beginPath(); fx.moveTo(0,-p.s*1.6); fx.lineTo(0,p.s*1.6); fx.stroke(); fx.restore(); } }},
     // 唐三彩：滑鼠走過的地方，黃綠褐釉拉成長條往下流
     sancai:{move:function(x,y){ if(!far(x,y,7)) return; var C=pal('--glz','217,165,33|63,125,58|138,75,31|236,214,160');
         Q.push({x:x+scrollX,y:y+scrollY,w:6+Math.random()*7,len:0,vy:.3+Math.random()*.5,c:C[Math.floor(Math.random()*C.length)],life:1,wob:Math.random()*6}); cap(160); },
