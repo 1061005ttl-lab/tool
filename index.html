@@ -9,7 +9,7 @@
 @media (prefers-color-scheme:dark){:root{--bg:#17191c;--card:#202328;--ink:#e8e6e1;--sub:#a3a8ae;--line:#33373d;--accent:#5cc2a3;--accent-bg:#1d3530}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "Microsoft JhengHei","PingFang TC","Noto Sans TC",sans-serif}
-main{max-width:960px;margin:0 auto;padding:28px 16px 48px}
+main{padding:24px 32px 40px}
 h1{font-size:26px;margin:0 0 4px}
 .lead{color:var(--sub);margin:0 0 20px}
 .note{background:var(--accent-bg);border-left:4px solid var(--accent);padding:10px 14px;border-radius:6px;margin:0 0 24px;font-size:15px}
@@ -28,10 +28,7 @@ a.card:hover,a.card:focus-visible{border-color:var(--accent);transform:translate
   <h1>英政工具庫</h1>
   <p class="lead">點一下工具卡片就會開啟。</p>
   <p class="note">這些工具只是操作畫面：你拖進去的檔案只在自己電腦的瀏覽器裡計算，不會上傳。</p>
-  <h2>主要工具</h2>
   <div class="grid" id="main"></div>
-  <h2>其他工具</h2>
-  <div class="grid" id="other"></div>
   <p class="status" id="status"></p>
 </main>
 <script>
@@ -73,10 +70,9 @@ function card(x){
 }
 function render(files, note){
   var cards = pickLatest(files).map(card).sort(function(a,b){ return a.o - b.o || a.t.localeCompare(b.t,'zh-Hant'); });
-  var main = document.getElementById('main'), other = document.getElementById('other');
-  main.innerHTML = ''; other.innerHTML = '';
-  cards.forEach(function(c){ (c.main ? main : other).appendChild(c.el); });
-  other.previousElementSibling.hidden = other.hidden = !other.children.length;
+  var main = document.getElementById('main');
+  main.innerHTML = '';
+  cards.forEach(function(c){ main.appendChild(c.el); });
   document.getElementById('status').textContent = note || '';
 }
 render(FALLBACK, '');
