@@ -40,9 +40,9 @@ body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:16px/1
 main{padding:22px 40px 56px;position:relative}
 
 /* ── 標題區 ── */
-.hero{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px 16px;margin-bottom:26px} /* 響應式：寬度夠時風格列在大標右邊，不夠時自動換到大標下方 */
-.brand{display:flex;align-items:center;gap:22px;flex-shrink:0}
-.logo{position:relative;width:78px;height:78px;border-radius:22px;display:grid;place-items:center;flex-shrink:0;
+.hero{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px 12px;margin-bottom:26px} /* 響應式：寬度夠時風格列在大標右邊，不夠時自動換到大標下方 */
+.brand{display:flex;align-items:center;gap:16px;flex-shrink:0}
+.logo{position:relative;width:64px;height:64px;border-radius:18px;display:grid;place-items:center;flex-shrink:0;
   font:900 38px/1 "Microsoft JhengHei",sans-serif;color:#fff;
   background:linear-gradient(135deg,var(--a),var(--b) 55%,var(--c));background-size:200% 200%;animation:flow 6s linear infinite;
   box-shadow:0 14px 40px -8px var(--b),inset 0 1px 0 rgba(255,255,255,.5)}
@@ -67,9 +67,9 @@ h1{margin:0;font:900 56px/1 "Microsoft JhengHei",sans-serif;letter-spacing:.04em
 
 /* ── 風格／選色切換：兩排固定高度，換風格時版面不跳 ── */
 .picker{display:flex;flex-direction:column;align-items:flex-end;gap:8px} /* 放在大標右邊：風格一排、下面一排是這個風格的配色（換風格時自動換） */
-.picker .prow{gap:4px;flex-wrap:wrap;justify-content:flex-end;height:auto;min-height:28px;row-gap:6px}
-.hero .picker .pbtn{padding:0 7px;gap:5px;font:600 12px/1 "Microsoft JhengHei",sans-serif;letter-spacing:0} /* 按鈕字型固定，各主題寬度一致，換主題時版面不跳 */
-.picker .pbtn i{width:10px;height:10px}
+.picker .prow{gap:3px;flex-wrap:wrap;justify-content:flex-end;height:auto;min-height:28px;row-gap:6px}
+.hero .picker .pbtn{padding:0 6px;gap:4px;font:600 12px/1 "Microsoft JhengHei",sans-serif;letter-spacing:0} /* 按鈕字型固定，各主題寬度一致，換主題時版面不跳 */
+.picker .pbtn i{width:9px;height:9px}
 .picker .subwrap{width:0;min-width:100%;justify-content:flex-end;flex-wrap:nowrap} /* 配色排不撐寬：寬度跟風格排一樣 */
 .prow{display:flex;gap:6px;align-items:center;height:28px;white-space:nowrap}
 .plabel{font:700 12px/1 "Microsoft JhengHei",sans-serif;letter-spacing:.15em;color:var(--sub);margin-right:4px;width:36px;flex-shrink:0}
@@ -507,10 +507,32 @@ h1{margin:0;font:900 56px/1 "Microsoft JhengHei",sans-serif;letter-spacing:.04em
   transition:opacity .5s,background-position 1.2s ease}
 [data-theme="sancai"] .card:hover .sweep{opacity:1;background-position:-20% 0,0 0,0 0,0 0}
 
+/* ── 福音戰士風：深色面板、六角形網格、黑橙警戒條紋（只取視覺語言，不放任何標誌或名稱） ── */
+:root[data-theme="eva"]{--ev1:#6a3fa0;--ev2:#7bd84b;--ev3:#ff8a00;--evbg:#0d0814;--evpanel:#160d22;--evink:#efe6ff;--evsub:#b7a6d6;--evhexc:255,255,255;
+  --b:var(--ev2);--f-font:"Microsoft JhengHei",sans-serif;--f-acc:var(--ev3);--f-ink:var(--evink);--f-sub:var(--evsub);--f-title:var(--evink);--f-ls:.06em;
+  --f-title-shadow:3px 3px 0 var(--ev1),0 0 24px color-mix(in srgb,var(--ev2) 35%,transparent);
+  --f-body-bg:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='97'%3E%3Cg fill='none' stroke='%23fff' stroke-opacity='.07' stroke-width='1'%3E%3Cpath d='M28 0L56 16V48L28 64L0 48V16Z'/%3E%3Cpath d='M28 64V97M0 48L-28 64M56 48L84 64'/%3E%3C/g%3E%3C/svg%3E"),radial-gradient(ellipse at 15% 0%,color-mix(in srgb,var(--ev1) 45%,transparent),transparent 60%),radial-gradient(ellipse at 100% 100%,color-mix(in srgb,var(--ev2) 14%,transparent),transparent 55%),var(--evbg);
+  --f-logo-bg:var(--ev1);--f-logo-color:var(--ev2);--f-logo-radius:0;--f-logo-shadow:4px 4px 0 var(--ev3),inset 0 0 0 2px var(--ev2);
+  --f-chip-bg:var(--evpanel);--f-line:color-mix(in srgb,var(--ev2) 55%,transparent);--f-radius:0;--f-radius-s:0;
+  --f-card-bg:var(--evpanel);--f-card-border:2px solid color-mix(in srgb,var(--ev2) 70%,transparent);--f-card-shadow:inset 6px 0 0 var(--ev3),0 10px 24px -14px #000;--f-card-shadow-h:inset 6px 0 0 var(--ev3),0 0 0 1px var(--ev2),0 0 26px color-mix(in srgb,var(--ev2) 40%,transparent);
+  --f-num:color-mix(in srgb,var(--ev3) 55%,transparent);--f-v-bg:var(--ev3);--f-v-color:#000;--f-go-bg:var(--ev2);--f-go-color:#000}
+/* 福音戰士風的幾種色：紫綠（預設）、赤橙、藍白、警戒、白晝 */
+:root[data-theme="eva"][data-sub="red"]{--ev1:#b3261e;--ev2:#ff8a00;--ev3:#ffd23f;--evbg:#120606;--evpanel:#1e0b0a;--evink:#ffece0;--evsub:#e0a890}
+:root[data-theme="eva"][data-sub="blue"]{--ev1:#2f5fb0;--ev2:#dfe8f7;--ev3:#ff8a00;--evbg:#070c18;--evpanel:#0e1628;--evink:#e8eef7;--evsub:#9fb2d4}
+:root[data-theme="eva"][data-sub="alert"]{--ev1:#2a2a2a;--ev2:#ff6a00;--ev3:#ff6a00;--evbg:#0a0a0a;--evpanel:#141414;--evink:#ffd9b8;--evsub:#c79a7a}
+:root[data-theme="eva"][data-sub="day"]{--ev1:#6a3fa0;--ev2:#3f9a2a;--ev3:#e65c00;--evbg:#f2f0ea;--evpanel:#ffffff;--evink:#1a1a1a;--evsub:#555;--evhexc:0,0,0;
+  --f-body-bg:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='97'%3E%3Cg fill='none' stroke='%23000' stroke-opacity='.07' stroke-width='1'%3E%3Cpath d='M28 0L56 16V48L28 64L0 48V16Z'/%3E%3Cpath d='M28 64V97M0 48L-28 64M56 48L84 64'/%3E%3C/g%3E%3C/svg%3E"),radial-gradient(ellipse at 15% 0%,rgba(106,63,160,.18),transparent 60%),#f2f0ea;
+  --f-title-shadow:3px 3px 0 color-mix(in srgb,var(--ev1) 35%,transparent);--f-card-shadow:inset 6px 0 0 var(--ev3),0 10px 24px -16px rgba(0,0,0,.35);--f-go-color:#fff}
+/* 標題下方一條黑橙警戒條紋 */
+[data-theme="eva"] .hero{padding-bottom:8px;margin-bottom:12px;border-bottom:6px solid transparent;
+  border-image:repeating-linear-gradient(-45deg,var(--ev3) 0 10px,#111 10px 20px) 6}
+/* 卡片滑過：上緣亮起警戒條紋 */
+[data-theme="eva"] .card .sweep{display:block;inset:0 0 auto 0;height:6px;background:repeating-linear-gradient(-45deg,var(--ev3) 0 8px,#111 8px 16px)}
+
 /* 大標、小字標語、「訪」字：所有主題同一種字型和字距，只換顏色（使用者 2026-11-20：換主題時不要跳來跳去） */
 .hero h1{font:900 56px/1 "Microsoft JhengHei","PingFang TC",sans-serif!important;letter-spacing:.06em!important}
 .hero .kicker{font:700 13px/1 var(--mono)!important;letter-spacing:.42em!important}
-.hero .logo{font:900 38px/1 "Microsoft JhengHei","PingFang TC",sans-serif!important}
+.hero .logo{font:900 32px/1 "Microsoft JhengHei","PingFang TC",sans-serif!important}
 .card .t{font:800 20px/1.4 "Microsoft JhengHei","PingFang TC",sans-serif!important;letter-spacing:0!important}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -581,6 +603,10 @@ var GROUPS = [
     ['', '原色', 'conic-gradient(#e63b2e 0 33%,#f5c518 0 66%,#1f4fd1 0)'], ['pastel', '粉彩', 'conic-gradient(#f28b82 0 33%,#fdd663 0 66%,#8ab4f8 0)'],
     ['earth', '大地', 'conic-gradient(#c0532f 0 33%,#d9a521 0 66%,#2f6f6a 0)'], ['mono', '黑白', 'conic-gradient(#e63b2e 0 33%,#bdbdbd 0 66%,#111 0)'],
     ['night', '夜', 'conic-gradient(#ff5a4a 0 33%,#ffd23f 0 66%,#141414 0)']]},
+  {id:'eva', name:'福音戰士', flat:1, dot:'linear-gradient(135deg,#6a3fa0 55%,#7bd84b 55%)', subs:[
+    ['', '紫綠', 'linear-gradient(135deg,#6a3fa0 55%,#7bd84b 55%)'], ['red', '赤橙', 'linear-gradient(135deg,#b3261e 55%,#ff8a00 55%)'],
+    ['blue', '藍白', 'linear-gradient(135deg,#2f5fb0 55%,#dfe8f7 55%)'], ['alert', '警戒', 'repeating-linear-gradient(-45deg,#ff6a00 0 3px,#111 3px 6px)'],
+    ['day', '白晝', 'linear-gradient(135deg,#f2f0ea 55%,#6a3fa0 55%)']]},
   {id:'sancai', name:'唐三彩', flat:1, dot:'conic-gradient(#d9a521 0 33%,#3f7d3a 0 66%,#8a4b1f 0)', subs:[
     ['', '三彩', 'conic-gradient(#d9a521 0 33%,#3f7d3a 0 66%,#8a4b1f 0)'], ['lan', '藍彩', 'linear-gradient(135deg,#2a4f9a 50%,#d9a521 50%)'],
     ['baiyou', '白釉綠彩', 'linear-gradient(135deg,#f7f3e8 50%,#3f7d3a 50%)'], ['jiaotai', '絞胎', 'repeating-linear-gradient(115deg,#e9d9bd 0 3px,#8a5a34 3px 5px)'], ['jiang', '醬釉', '#6e3418']]}
@@ -720,6 +746,16 @@ var GROUPS = [
         fx.save(); fx.translate(p.x,p.y); fx.rotate(p.rot); fx.globalAlpha=Math.min(1,p.life*1.4); fx.fillStyle=p.c; fx.beginPath();
         if(p.sh===0) fx.arc(0,0,p.s/2,0,7); else if(p.sh===1) fx.rect(-p.s/2,-p.s/2,p.s,p.s); else { fx.moveTo(0,-p.s/2); fx.lineTo(p.s/2,p.s/2); fx.lineTo(-p.s/2,p.s/2); fx.closePath(); }
         fx.fill(); fx.restore(); } }},
+    // 福音戰士風：滑鼠走過的地方，一格格六角形光盾亮起再淡出（對齊背景的六角網格）
+    eva:{move:function(x,y){ if(!far(x,y,18)) return; var R=32, w=Math.sqrt(3)*R, gx=x+scrollX, gy=y+scrollY;
+        var row=Math.round(gy/(1.5*R)), col=Math.round((gx-(row%2?w/2:0))/w), cxp=col*w+(row%2?w/2:0), cyp=row*1.5*R;
+        for(var i=0;i<Q.length;i++) if(Q[i].x===cxp&&Q[i].y===cyp){ Q[i].life=1; return; }
+        Q.push({x:cxp,y:cyp,life:1,R:R}); cap(80); },
+      draw:function(){ var cs=getComputedStyle(document.documentElement), A=cs.getPropertyValue('--ev2').trim(), B=cs.getPropertyValue('--ev3').trim();
+        for(var i=Q.length-1;i>=0;i--){ var p=Q[i]; p.life-=.012; if(p.life<=0){ Q.splice(i,1); continue; }
+          var x=p.x-scrollX, y=p.y-scrollY, r=p.R-2; fx.save(); fx.beginPath();
+          for(var k=0;k<6;k++){ var an=Math.PI/6+k*Math.PI/3; fx[k?'lineTo':'moveTo'](x+Math.cos(an)*r,y+Math.sin(an)*r); } fx.closePath();
+          fx.globalAlpha=p.life*.18; fx.fillStyle=B; fx.fill(); fx.globalAlpha=p.life*.9; fx.strokeStyle=A; fx.lineWidth=1.6; fx.shadowColor=A; fx.shadowBlur=10; fx.stroke(); fx.restore(); } }},
     // 唐三彩：滑鼠走過的地方，黃綠褐釉拉成長條往下流
     sancai:{move:function(x,y){ if(!far(x,y,7)) return; var C=pal('--glz','217,165,33|63,125,58|138,75,31|236,214,160');
         Q.push({x:x+scrollX,y:y+scrollY,w:6+Math.random()*7,len:0,vy:.3+Math.random()*.5,c:C[Math.floor(Math.random()*C.length)],life:1,wob:Math.random()*6}); cap(160); },
