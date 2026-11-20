@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>英政工具庫</title>
+<style>
+:root{--bg:#f6f5f2;--card:#fff;--ink:#1f2328;--sub:#5b6168;--line:#dcdad4;--accent:#1f6f5c;--accent-bg:#e6f2ee}
+@media (prefers-color-scheme:dark){:root{--bg:#17191c;--card:#202328;--ink:#e8e6e1;--sub:#a3a8ae;--line:#33373d;--accent:#5cc2a3;--accent-bg:#1d3530}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "Microsoft JhengHei","PingFang TC","Noto Sans TC",sans-serif}
+main{max-width:960px;margin:0 auto;padding:28px 16px 48px}
+h1{font-size:26px;margin:0 0 4px}
+.lead{color:var(--sub);margin:0 0 20px}
+.note{background:var(--accent-bg);border-left:4px solid var(--accent);padding:10px 14px;border-radius:6px;margin:0 0 24px;font-size:15px}
+h2{font-size:18px;margin:28px 0 10px;color:var(--sub)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+a.card{display:block;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;text-decoration:none;color:inherit;transition:border-color .15s,transform .15s}
+a.card:hover,a.card:focus-visible{border-color:var(--accent);transform:translateY(-1px);outline:none}
+.t{font-size:18px;font-weight:700;margin:0 0 4px}
+.d{font-size:14px;color:var(--sub);margin:0}
+.v{display:inline-block;font-size:12px;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:0 8px;margin-top:8px}
+.status{font-size:13px;color:var(--sub);margin-top:24px}
+</style>
+</head>
+<body>
+<main>
+  <h1>英政工具庫</h1>
+  <p class="lead">點一下工具卡片就會開啟。</p>
+  <p class="note">這些工具只是操作畫面：你拖進去的檔案只在自己電腦的瀏覽器裡計算，不會上傳。<br>唯一例外：儀表板的「同步 Google 試算表」按鈕，要你按下並輸入密碼才會送出。</p>
+  <h2>主要工具</h2>
+  <div class="grid" id="main"></div>
+  <h2>其他工具</h2>
+  <div class="grid" id="other"></div>
+  <p class="status" id="status"></p>
+</main>
+<script>
+// 工具清單：首頁開啟時讀 GitHub 倉庫根目錄的檔名，同名工具只列最新版號；讀不到就用下面的備用清單。
+var REPO_API = 'https://api.github.com/repos/1061005ttl-lab/tool/contents/';
+// 卡片一律連到網站上的工具：這個檔案單獨寄給別人、在自己電腦打開，點卡片也能開
+var SITE = 'https://1061005ttl-lab.github.io/tool/';
+var INFO = {
+  '督導管理系統_執行追蹤儀表板': {t:'執行追蹤儀表板', d:'拖入工作管理、客戶資料、打卡異常原始檔；含異常打卡與店家分配頁籤。', main:1, o:1},
+  '打卡異常檢核工具': {t:'打卡異常檢核工具', d:'檢核打卡異常紀錄。', main:1, o:2},
+  '店家分配試算工具_計算說明': {t:'店家分配計算說明', d:'店家分配的計算方式說明。', main:1, o:3},
+  '原始檔案去識別化工具': {t:'原始檔案去識別化工具', d:'要交給外部的檔案先在這裡去識別化。', main:1, o:4},
+  '原始檔案虛擬生產器': {t:'原始檔案虛擬生產器', d:'產生測試用的虛擬原始檔。', main:1, o:5}
+};
+var FALLBACK = ['督導管理系統_執行追蹤儀表板_v569.html','打卡異常檢核工具_V115.html','店家分配試算工具_計算說明.html','原始檔案去識別化工具_V23.html','原始檔案虛擬生產器_V10.html'];
+
+function pickLatest(names){
+  var best = {};
+  names.forEach(function(n){
+    if (!/\.html?$/i.test(n) || /^(index|英政工具庫)\.html?$/i.test(n)) return;
+    if (/^店家分配試算工具_V\d+\.html$/i.test(n)) return; // v540 起已併入儀表板，不再列出
+    var m = n.match(/^(.*?)_?[vV](\d+)\.html?$/);
+    var base = m ? m[1] : n.replace(/\.html?$/i,'');
+    var ver = m ? parseInt(m[2],10) : 0;
+    var key = base.toLowerCase();
+    if (!best[key] || ver > best[key].ver) best[key] = {base:base, ver:ver, file:n};
+  });
+  return Object.keys(best).map(function(k){ return best[k]; });
+}
+function card(x){
+  var info = INFO[x.base] || {t:x.base.replace(/_/g,' '), d:'', main:0, o:99};
+  var a = document.createElement('a');
+  a.className = 'card'; a.href = SITE + encodeURIComponent(x.file);
+  a.innerHTML = '<p class="t"></p><p class="d"></p>' + (x.ver ? '<span class="v"></span>' : '');
+  a.querySelector('.t').textContent = info.t;
+  a.querySelector('.d').textContent = info.d;
+  if (x.ver) a.querySelector('.v').textContent = '版本 ' + x.ver;
+  return {el:a, main:info.main, o:info.o, t:info.t};
+}
+function render(files, note){
+  var cards = pickLatest(files).map(card).sort(function(a,b){ return a.o - b.o || a.t.localeCompare(b.t,'zh-Hant'); });
+  var main = document.getElementById('main'), other = document.getElementById('other');
+  main.innerHTML = ''; other.innerHTML = '';
+  cards.forEach(function(c){ (c.main ? main : other).appendChild(c.el); });
+  other.previousElementSibling.hidden = other.hidden = !other.children.length;
+  document.getElementById('status').textContent = note || '';
+}
+render(FALLBACK, '');
+fetch(REPO_API, {headers:{Accept:'application/vnd.github+json'}})
+  .then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); })
+  .then(function(list){ render(list.filter(function(x){ return x.type === 'file'; }).map(function(x){ return x.name; })); })
+  .catch(function(){ render(FALLBACK, '（暫時讀不到最新清單，先顯示內建清單）'); });
+</script>
+</body>
+</html>
