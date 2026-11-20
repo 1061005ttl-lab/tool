@@ -4,46 +4,395 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>英政工具庫</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@500;700&family=Noto+Serif+TC:wght@500;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f6f5f2;--card:#fff;--ink:#1f2328;--sub:#5b6168;--line:#dcdad4;--accent:#1f6f5c;--accent-bg:#e6f2ee}
-@media (prefers-color-scheme:dark){:root{--bg:#17191c;--card:#202328;--ink:#e8e6e1;--sub:#a3a8ae;--line:#33373d;--accent:#5cc2a3;--accent-bg:#1d3530}}
+/* 風格分四組：科技、宋、雍正、駭客；每組底下再選色。三個主色 a→b→c 做漸層 */
+:root{--a:#00c2ff;--b:#7b2dff;--c:#ff2d95;--bg:#f4f6fb;--ink:#0d1020;--sub:#5a6278;
+  --mono:"JetBrains Mono",Consolas,monospace;--disp:"Space Grotesk","Microsoft JhengHei",sans-serif;
+  --serif:"Noto Serif TC","Songti TC","PMingLiU","MingLiU",serif}
+/* 科技的幾種色 */
+:root[data-theme="mint"]{--a:#00e0b8;--b:#00a86b;--c:#b8f400;--bg:#f2faf6}
+:root[data-theme="coral"]{--a:#ffb200;--b:#ff3b5c;--c:#c82dff;--bg:#fdf5f2}
+:root[data-theme="ocean"]{--a:#26e0ff;--b:#2f6bff;--c:#6a3bff;--bg:#f1f5fd}
+:root[data-theme="mono"]{--a:#8a94a8;--b:#1a1f2e;--c:#4a5568;--bg:#f5f5f3}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "Microsoft JhengHei","PingFang TC","Noto Sans TC",sans-serif}
-main{padding:24px 32px 40px}
-h1{font-size:26px;margin:0 0 4px}
-.lead{color:var(--sub);margin:0 0 20px}
-.note{background:var(--accent-bg);border-left:4px solid var(--accent);padding:10px 14px;border-radius:6px;margin:0 0 24px;font-size:15px}
-h2{font-size:18px;margin:28px 0 10px;color:var(--sub)}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
-a.card{display:block;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;text-decoration:none;color:inherit;transition:border-color .15s,transform .15s}
-a.card:hover,a.card:focus-visible{border-color:var(--accent);transform:translateY(-1px);outline:none}
-.t{font-size:18px;font-weight:700;margin:0 0 4px}
-.d{font-size:14px;color:var(--sub);margin:0}
-.v{display:inline-block;font-size:12px;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:0 8px;margin-top:8px}
-.status{font-size:13px;color:var(--sub);margin-top:24px}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:16px/1.6 "Microsoft JhengHei","PingFang TC",sans-serif;overflow-x:hidden}
+
+/* ── 背景：流動極光＋粒子網＋格線 ── */
+.aurora{position:fixed;inset:-20%;z-index:-3;filter:blur(70px);opacity:.55;pointer-events:none}
+.aurora i{position:absolute;width:46vw;height:46vw;border-radius:50%;mix-blend-mode:multiply}
+.aurora i:nth-child(1){background:var(--a);top:0;left:5%;animation:f1 18s ease-in-out infinite alternate}
+.aurora i:nth-child(2){background:var(--b);top:10%;right:0;opacity:.6;animation:f2 22s ease-in-out infinite alternate}
+.aurora i:nth-child(3){background:var(--c);bottom:0;left:35%;opacity:.45;animation:f3 20s ease-in-out infinite alternate}
+@keyframes f1{to{transform:translate(18vw,12vh) scale(1.15)}}
+@keyframes f2{to{transform:translate(-20vw,18vh) scale(.9)}}
+@keyframes f3{to{transform:translate(-12vw,-16vh) scale(1.2)}}
+.veil{position:fixed;inset:0;z-index:-2;background:rgba(255,255,255,.55);pointer-events:none}
+#net{position:fixed;inset:0;z-index:-1;pointer-events:none}
+#fx{position:fixed;inset:0;z-index:50;pointer-events:none;mix-blend-mode:multiply}
+[data-theme="yong"] #fx{mix-blend-mode:normal}
+.gridbg{position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background-image:linear-gradient(rgba(13,16,32,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(13,16,32,.05) 1px,transparent 1px);
+  background-size:56px 56px;mask-image:radial-gradient(ellipse at 50% 0%,#000 30%,transparent 80%)}
+
+main{padding:22px 48px 56px;position:relative}
+
+/* ── 標題區 ── */
+.hero{display:flex;align-items:flex-start;justify-content:space-between;gap:32px;margin-bottom:26px}
+.brand{display:flex;align-items:center;gap:22px;flex-shrink:0}
+.logo{position:relative;width:78px;height:78px;border-radius:22px;display:grid;place-items:center;flex-shrink:0;
+  font:900 38px/1 "Microsoft JhengHei",sans-serif;color:#fff;
+  background:linear-gradient(135deg,var(--a),var(--b) 55%,var(--c));background-size:200% 200%;animation:flow 6s linear infinite;
+  box-shadow:0 14px 40px -8px var(--b),inset 0 1px 0 rgba(255,255,255,.5)}
+.logo::after{content:"";position:absolute;inset:-6px;border-radius:26px;border:1.5px dashed var(--b);opacity:.45;animation:spin 14s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes flow{to{background-position:200% 200%}}
+.kicker{font:700 13px/1 var(--mono);letter-spacing:.42em;color:var(--b);margin:0 0 10px;text-transform:uppercase}
+.kicker b{display:inline-block;width:28px;height:2px;background:linear-gradient(90deg,var(--a),var(--c));vertical-align:middle;margin-right:10px}
+h1{margin:0;font:900 64px/1 "Microsoft JhengHei",sans-serif;letter-spacing:.04em;white-space:nowrap;
+  background:linear-gradient(100deg,var(--ink) 20%,var(--b) 45%,var(--c) 55%,var(--ink) 80%);background-size:250% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 7s linear infinite}
+@keyframes shine{from{background-position:120% 0}to{background-position:-130% 0}}
+
+.side{display:flex;flex-direction:column;align-items:flex-end;gap:10px;min-width:0}
+.hud{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.chip{font:700 12px/1 var(--mono);letter-spacing:.12em;padding:9px 13px;border-radius:10px;white-space:nowrap;
+  background:rgba(255,255,255,.75);border:1px solid rgba(13,16,32,.08);box-shadow:0 6px 18px -10px rgba(13,16,32,.4);backdrop-filter:blur(8px)}
+.chip em{font-style:normal;color:var(--b)}
+.chip .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#18d26e;box-shadow:0 0 0 0 rgba(24,210,110,.6);margin-right:8px;vertical-align:1px;animation:ping 1.8s infinite}
+@keyframes ping{70%{box-shadow:0 0 0 8px rgba(24,210,110,0)}100%{box-shadow:0 0 0 0 rgba(24,210,110,0)}}
+.note{font-size:14px;color:var(--sub);margin:12px 0 0}
+
+/* ── 風格／選色切換：兩排固定高度，換風格時版面不跳 ── */
+.picker{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.prow{display:flex;gap:6px;align-items:center;height:28px;white-space:nowrap}
+.plabel{font:700 12px/1 var(--mono);letter-spacing:.15em;color:var(--sub);margin-right:4px}
+.pbtn{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:999px;cursor:pointer;
+  font:600 13px/1 "Microsoft JhengHei",sans-serif;color:var(--ink);background:rgba(255,255,255,.78);border:1px solid rgba(13,16,32,.14);
+  transition:border-color .15s,color .15s,box-shadow .15s}
+.pbtn i{width:12px;height:12px;border-radius:50%;flex-shrink:0;box-shadow:0 0 0 1px rgba(0,0,0,.12)}
+.pbtn:hover{border-color:var(--b)}
+.pbtn[aria-pressed="true"]{border-color:var(--b);color:var(--b);box-shadow:0 0 0 1px var(--b) inset}
+#subRow:empty{visibility:hidden}
+
+/* ── 卡片 ── */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:22px}
+.card{--mx:50%;--my:50%;position:relative;isolation:isolate;display:flex;flex-direction:column;min-height:140px;
+  padding:22px 22px 18px;border-radius:20px;cursor:pointer;overflow:hidden;
+  background:rgba(255,255,255,.72);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.9);
+  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 10px 30px -18px rgba(13,16,32,.45);
+  transition:box-shadow .25s;animation:rise .6s cubic-bezier(.2,.8,.2,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(24px) scale(.97)}}
+/* 旋轉發光邊框 */
+.card::before{content:"";position:absolute;inset:-2px;z-index:-2;border-radius:22px;opacity:0;transition:opacity .3s;
+  background:conic-gradient(from var(--ang,0deg),var(--a),var(--b),var(--c),var(--a));animation:rot 3s linear infinite}
+.card::after{content:"";position:absolute;inset:2px;z-index:-1;border-radius:18px;
+  background:radial-gradient(260px circle at var(--mx) var(--my),color-mix(in srgb,var(--b) 16%,transparent),transparent 70%),rgba(255,255,255,.94)}
+@property --ang{syntax:"<angle>";initial-value:0deg;inherits:false}
+@keyframes rot{to{--ang:360deg}}
+.card:hover,.card:focus-visible{outline:none;
+  box-shadow:0 24px 50px -20px color-mix(in srgb,var(--b) 60%,transparent),0 0 0 1px rgba(255,255,255,.6) inset}
+.card:hover::before,.card:focus-visible::before{opacity:1}
+/* 掠光 */
+.card .sweep{position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.75) 50%,transparent 65%);transform:translateX(-120%)}
+.card:hover .sweep{transition:transform .9s ease;transform:translateX(120%)}
+/* HUD 角框 */
+.corner{position:absolute;width:14px;height:14px;border-color:var(--b);opacity:.35;transition:opacity .25s,width .25s,height .25s}
+.corner.tl{top:10px;left:10px;border-top:2px solid;border-left:2px solid}
+.corner.br{bottom:10px;right:10px;border-bottom:2px solid;border-right:2px solid}
+.card:hover .corner{opacity:1;width:22px;height:22px}
+.num{position:absolute;bottom:14px;left:20px;font:700 40px/1 var(--disp);letter-spacing:-.02em;
+  color:transparent;-webkit-text-stroke:1.2px color-mix(in srgb,var(--b) 35%,transparent);transition:-webkit-text-stroke-color .25s}
+.card:hover .num{-webkit-text-stroke-color:var(--b)}
+.t{position:relative;display:flex;align-items:center;gap:8px;font-size:20px;font-weight:800;margin:4px 0 18px;color:var(--ink);white-space:nowrap}
+.tn{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.foot{position:relative;display:flex;align-items:center;gap:8px;margin-top:auto;min-height:40px}
+.v{display:inline-block;flex-shrink:0;font:700 12px/1 var(--mono);color:#fff;padding:5px 8px;border-radius:6px;letter-spacing:.06em;
+  background:linear-gradient(135deg,var(--a),var(--b))}
+.acts{display:flex;gap:8px;margin-left:auto}
+.btn{position:relative;overflow:hidden;font:700 13px/1 "Microsoft JhengHei",sans-serif;padding:10px 14px;border-radius:10px;cursor:pointer;
+  color:var(--ink);background:#fff;border:1px solid rgba(13,16,32,.12);transition:box-shadow .15s,border-color .15s,color .15s}
+.btn:hover{border-color:var(--b);color:var(--b)}
+.btn.go{color:#fff;border:0;background:linear-gradient(135deg,var(--a),var(--b) 60%,var(--c));background-size:180% 180%;
+  box-shadow:0 8px 20px -8px var(--b)}
+.btn.go:hover{color:#fff;background-position:100% 100%;box-shadow:0 10px 26px -6px var(--b)}
+.btn[disabled]{opacity:.6;cursor:wait}
+.status{font:500 13px/1.4 var(--mono);color:var(--sub);margin-top:26px}
+
+/* ── 駭客：黑底螢光綠＋代碼雨 ── */
+:root[data-theme="hacker"]{--a:#00ff66;--b:#00e05a;--c:#7dff9e;--bg:#000;--ink:#c8ffd8;--sub:#4fd27a;--disp:var(--mono)}
+[data-theme="hacker"] body{font-family:var(--mono)}
+[data-theme="hacker"] .aurora{display:none}
+[data-theme="hacker"] .veil{background:radial-gradient(ellipse at 50% 40%,rgba(0,0,0,.35),rgba(0,0,0,.85))}
+[data-theme="hacker"] .gridbg{background-image:linear-gradient(rgba(0,255,102,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,102,.06) 1px,transparent 1px)}
+[data-theme="hacker"] h1{font-family:var(--mono);background:none;color:#00ff66;-webkit-text-fill-color:#00ff66;
+  text-shadow:0 0 8px #00ff66,0 0 24px rgba(0,255,102,.6);animation:flick 4s infinite}
+@keyframes flick{0%,92%,100%{opacity:1}93%{opacity:.4}95%{opacity:1}96%{opacity:.6}}
+[data-theme="hacker"] .logo{background:#000;color:#00ff66;border:1.5px solid #00ff66;text-shadow:0 0 10px #00ff66;box-shadow:0 0 24px rgba(0,255,102,.5),inset 0 0 18px rgba(0,255,102,.25);animation:none}
+[data-theme="hacker"] .chip,[data-theme="hacker"] .pbtn{background:rgba(0,20,8,.85);border-color:rgba(0,255,102,.35);color:#00ff66;box-shadow:0 0 12px rgba(0,255,102,.15);font-family:var(--mono)}
+[data-theme="hacker"] .card{background:rgba(0,14,6,.78);border-color:rgba(0,255,102,.3);box-shadow:0 0 0 1px rgba(0,255,102,.08) inset,0 0 22px rgba(0,255,102,.08)}
+[data-theme="hacker"] .card::after{background:radial-gradient(260px circle at var(--mx) var(--my),rgba(0,255,102,.16),transparent 70%),rgba(0,10,4,.94)}
+[data-theme="hacker"] .card:hover{box-shadow:0 0 34px rgba(0,255,102,.35)}
+[data-theme="hacker"] .card .sweep{background:linear-gradient(180deg,transparent 40%,rgba(0,255,102,.18) 50%,transparent 60%);transform:translateY(-120%)}
+[data-theme="hacker"] .card:hover .sweep{transform:translateY(120%)}
+[data-theme="hacker"] .t{color:#00ff66;text-shadow:0 0 6px rgba(0,255,102,.6)}
+[data-theme="hacker"] .t .tn::before{content:"> ";opacity:.7}
+[data-theme="hacker"] .v{background:transparent;color:#00ff66;border:1px solid #00ff66}
+[data-theme="hacker"] .btn{background:#000;color:#00ff66;border-color:rgba(0,255,102,.5);font-family:var(--mono)}
+[data-theme="hacker"] .btn:hover{color:#000;background:#00ff66;border-color:#00ff66}
+[data-theme="hacker"] .btn.go{background:#00ff66;color:#000;box-shadow:0 0 16px rgba(0,255,102,.6)}
+
+/* ── 宋：宣紙、墨、朱砂印、淡墨遠山 ── */
+:root[data-theme="song"]{--a:#8fb3a9;--b:#a8322a;--c:#5e7f78;--bg:#efe9dc;--ink:#2b2622;--sub:#6d645a;
+  --paper:250,246,236;--cel:143,179,169;--inkr:43,38,34}
+/* 宋的幾種色：天青（汝窯，預設）、月白、梅子青（龍泉）、秋香、藕荷、黛藍 */
+:root[data-theme="song"][data-sub="moon"]{--a:#c9d6df;--c:#6f8798;--bg:#eef1f2;--cel:170,192,206;--paper:250,251,250;--b:#9b3b34}
+:root[data-theme="song"][data-sub="plum"]{--a:#7fae8a;--c:#3f7a57;--bg:#e8efe4;--cel:110,160,120;--paper:247,249,240}
+:root[data-theme="song"][data-sub="qiu"]{--a:#c9b06b;--c:#8a6d2f;--bg:#f1eadb;--cel:201,176,107;--paper:252,247,234;--b:#8c2f1f}
+:root[data-theme="song"][data-sub="ou"]{--a:#c7a4ad;--c:#8a5c69;--bg:#f2eaea;--cel:199,164,173;--paper:252,248,246}
+:root[data-theme="song"][data-sub="dai"]{--a:#5b6f8e;--c:#33486b;--bg:#e6e9ee;--cel:91,111,142;--paper:248,249,251;--ink:#1d2433;--inkr:29,36,51}
+[data-theme="song"] body{font-family:var(--serif);
+  background:radial-gradient(ellipse at 20% 0%,rgba(var(--cel),.35),transparent 60%),radial-gradient(ellipse at 100% 100%,rgba(var(--cel),.25),transparent 55%),var(--bg)}
+[data-theme="song"] .aurora,[data-theme="song"] .veil,
+[data-theme="yong"] .aurora,[data-theme="yong"] .veil{display:none}
+[data-theme="song"] .gridbg,[data-theme="yong"] .gridbg{background:none}
+.shan{display:none;position:fixed;left:0;right:0;bottom:0;height:42vh;z-index:-1;pointer-events:none;opacity:.9}
+[data-theme="song"] .shan{display:block}
+.shan .s1{fill:rgba(var(--cel),.22)}.shan .s2{fill:rgba(var(--inkr),.14)}.shan .s3{fill:rgba(var(--inkr),.10)}.shan .sun{fill:var(--b);opacity:.5}
+[data-theme="song"] .kicker{font-family:var(--serif);color:var(--sub)}
+[data-theme="song"] .kicker b{background:var(--b);height:1px}
+[data-theme="song"] h1{font:700 64px/1 var(--serif);letter-spacing:.28em;background:none;color:var(--ink);-webkit-text-fill-color:var(--ink);animation:none}
+[data-theme="song"] .logo{background:var(--b);border-radius:6px;font-family:var(--serif);color:rgb(var(--paper));box-shadow:none;animation:none;
+  outline:2px solid var(--b);outline-offset:3px}
+[data-theme="song"] .logo::after,[data-theme="yong"] .logo::after{display:none}
+[data-theme="song"] .chip,[data-theme="song"] .pbtn{background:rgba(var(--paper),.85);border-color:rgba(var(--inkr),.22);border-radius:2px;box-shadow:none;font-family:var(--serif);letter-spacing:.12em}
+[data-theme="song"] .chip em{color:var(--b)}
+[data-theme="song"] .card{border-radius:4px;background:rgba(var(--paper),.85);border:1px solid rgba(var(--inkr),.25);
+  box-shadow:0 0 0 4px rgba(var(--paper),.85),0 0 0 5px rgba(var(--inkr),.18),0 12px 24px -16px rgba(var(--inkr),.4);backdrop-filter:none}
+[data-theme="song"] .card::before,[data-theme="yong"] .card::before{display:none}
+[data-theme="song"] .card::after{border-radius:3px;background:radial-gradient(260px circle at var(--mx) var(--my),rgba(var(--cel),.22),transparent 70%),rgba(var(--paper),.92)}
+[data-theme="song"] .card:hover{box-shadow:0 0 0 4px rgba(var(--paper),.9),0 0 0 5px rgba(var(--cel),.9),0 18px 30px -16px rgba(var(--inkr),.45)}
+[data-theme="song"] .card .sweep,[data-theme="song"] .corner,[data-theme="yong"] .corner{display:none}
+[data-theme="song"] .num{font:700 15px/1 var(--serif);color:rgb(var(--paper));-webkit-text-stroke:0;background:var(--b);padding:7px 5px;border-radius:3px;
+  letter-spacing:.1em;bottom:18px;left:22px;opacity:.9}
+[data-theme="song"] .t{font-family:var(--serif);letter-spacing:.08em}
+[data-theme="song"] .v{background:none;color:var(--c);border:1px solid var(--c);border-radius:2px;font-family:var(--serif)}
+[data-theme="song"] .btn{font-family:var(--serif);border-radius:2px;background:transparent;border-color:rgba(var(--inkr),.35);letter-spacing:.1em}
+[data-theme="song"] .btn:hover{color:var(--b);border-color:var(--b)}
+[data-theme="song"] .btn.go{background:var(--ink);color:rgb(var(--paper));box-shadow:none}
+[data-theme="song"] .btn.go:hover{background:var(--b);color:rgb(var(--paper))}
+[data-theme="song"] .status,[data-theme="yong"] .status{font-family:var(--serif)}
+
+/* ── 雍正：官窯單色釉＋描金回紋。--m 主色（字、開啟鈕）、--x 點綴色（圖示、滑過） ── */
+:root[data-theme="yong"]{--m:#1f3d7a;--m1:#2a4f96;--m2:#16295a;--x:#b8456c;--x1:#d7668d;--x2:#8e2f52;--gold:#c79a3a;
+  --bg:#fbf7ef;--ypaper:#fffdf7;--glow:233,185,73;--xr:184,69,108;--a:#e9b949;--b:var(--x);--c:var(--m);--ink:var(--m);--sub:#6b6a78;
+  --huiwen:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='10'%3E%3Cpath d='M0 9H8V3H4V6H6' fill='none' stroke='%23c79a3a' stroke-width='1.2'/%3E%3Cpath d='M10 1H18V7H14V4H16' fill='none' stroke='%23c79a3a' stroke-width='1.2'/%3E%3C/svg%3E")}
+/* 雍正的幾種釉色（預設＝霽藍配胭脂紅） */
+:root[data-theme="yong"][data-sub="yanzhi"]{--m:#9c2f55;--m1:#b8456c;--m2:#7a2142;--x:#e88aa6;--x1:#f2aec2;--x2:#c25a7e;--bg:#fdf4f5;--xr:232,138,166}
+:root[data-theme="yong"][data-sub="lemon"]{--m:#7d6210;--m1:#9a7a18;--m2:#5c470a;--x:#e6c229;--x1:#f3dc62;--x2:#c9a516;--bg:#fffbe8;--xr:230,194,41}
+:root[data-theme="yong"][data-sub="sky"]{--m:#2d5f86;--m1:#3f78a3;--m2:#1f4664;--x:#8fbcdc;--x1:#b5d5ea;--x2:#5f97c0;--bg:#f3f8fc;--xr:143,188,220}
+:root[data-theme="yong"][data-sub="turq"]{--m:#1f6f68;--m1:#2b8a81;--m2:#14524d;--x:#3fb3a4;--x1:#7fd3c7;--x2:#2a8f83;--bg:#f1faf8;--xr:63,179,164}
+:root[data-theme="yong"][data-sub="coral"]{--m:#a8381f;--m1:#c24a2c;--m2:#7f2814;--x:#e2674a;--x1:#f0957d;--x2:#bf4b31;--bg:#fdf3ee;--xr:226,103,74}
+:root[data-theme="yong"][data-sub="fenqing"]{--m:#3d6b58;--m1:#4f8670;--m2:#2b4f40;--x:#9cc3ad;--x1:#c0dccc;--x2:#76a68b;--bg:#f3f8f3;--xr:156,195,173}
+:root[data-theme="yong"][data-sub="qiezi"]{--m:#4b2a5e;--m1:#64397c;--m2:#341d42;--x:#8a5aa6;--x1:#b38ac9;--x2:#6a4285;--bg:#f7f2f9;--xr:138,90,166}
+[data-theme="yong"] body{font-family:var(--serif);
+  background:radial-gradient(ellipse at 0% 0%,rgba(var(--glow),.16),transparent 55%),radial-gradient(ellipse at 100% 20%,rgba(var(--xr),.14),transparent 55%),var(--bg)}
+[data-theme="yong"] .hero{margin-bottom:0;padding-bottom:16px;border-bottom:10px solid transparent;border-image:var(--huiwen) 0 0 10 0 round}
+[data-theme="yong"] .kicker{font-family:var(--serif);color:var(--gold)}
+[data-theme="yong"] .kicker b{background:var(--gold);height:1px}
+[data-theme="yong"] h1{font:700 64px/1 var(--serif);letter-spacing:.24em;animation:none;
+  background:linear-gradient(180deg,var(--m1),var(--m) 60%,var(--m2));-webkit-background-clip:text;background-clip:text;color:transparent}
+[data-theme="yong"] .logo{border-radius:50%;font-family:var(--serif);color:#fff8e6;animation:none;
+  background:radial-gradient(circle at 35% 30%,var(--x1),var(--x) 60%,var(--x2));box-shadow:0 0 0 3px var(--bg),0 0 0 4.5px var(--gold),0 10px 24px -10px var(--x2)}
+[data-theme="yong"] .chip,[data-theme="yong"] .pbtn{background:var(--ypaper);border-color:rgba(199,154,58,.5);border-radius:999px;box-shadow:none;font-family:var(--serif);letter-spacing:.12em;color:var(--m)}
+[data-theme="yong"] .chip em{color:var(--x2)}
+[data-theme="yong"] .card{border-radius:10px;padding-top:30px;background:var(--ypaper);border:1px solid rgba(199,154,58,.55);
+  box-shadow:0 0 0 3px var(--ypaper),0 0 0 4px rgba(199,154,58,.35),0 14px 28px -18px var(--m);backdrop-filter:none}
+[data-theme="yong"] .card::after{inset:0;border-radius:9px;
+  background:var(--huiwen) top 8px left 0/20px 10px repeat-x,radial-gradient(260px circle at var(--mx) var(--my),rgba(var(--xr),.16),transparent 70%),var(--ypaper)}
+[data-theme="yong"] .card:hover{box-shadow:0 0 0 3px var(--ypaper),0 0 0 4px var(--gold),0 20px 34px -16px rgba(var(--xr),.6)}
+[data-theme="yong"] .card .sweep{background:linear-gradient(115deg,transparent 40%,rgba(var(--glow),.35) 50%,transparent 60%)}
+[data-theme="yong"] .num{font:700 30px/1 var(--serif);-webkit-text-stroke:0;color:rgba(199,154,58,.45)}
+[data-theme="yong"] .card:hover .num{color:var(--gold)}
+[data-theme="yong"] .t{font-family:var(--serif);letter-spacing:.06em;color:var(--m)}
+[data-theme="yong"] .v{background:linear-gradient(135deg,#e9b949,#c79a3a);color:#fff;border-radius:999px;font-family:var(--serif)}
+[data-theme="yong"] .btn{font-family:var(--serif);border-radius:999px;background:var(--ypaper);border-color:rgba(199,154,58,.6);color:var(--m)}
+[data-theme="yong"] .btn:hover{color:var(--x2);border-color:var(--x)}
+[data-theme="yong"] .btn.go{background:linear-gradient(135deg,var(--m1),var(--m));color:#fff8e6;box-shadow:0 6px 16px -8px var(--m)}
+[data-theme="yong"] .btn.go:hover{background:linear-gradient(135deg,var(--x1),var(--x2));color:#fff}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
+<div class="aurora"><i></i><i></i><i></i></div>
+<div class="veil"></div>
+<canvas id="net"></canvas>
+<canvas id="fx"></canvas>
+<div class="gridbg"></div>
+<svg class="shan" viewBox="0 0 1440 400" preserveAspectRatio="none" aria-hidden="true">
+  <defs><filter id="ink"><feGaussianBlur stdDeviation="6"/></filter></defs>
+  <path class="s1" filter="url(#ink)" d="M0 260 C120 180 200 120 300 170 S460 90 560 150 S720 60 860 140 S1040 80 1160 160 S1340 110 1440 170 V400 H0Z"/>
+  <path class="s2" filter="url(#ink)" d="M0 320 C160 250 260 210 380 260 S560 190 700 250 S900 200 1020 260 S1260 220 1440 270 V400 H0Z"/>
+  <path class="s3" d="M0 370 C200 330 340 320 520 350 S860 320 1040 345 S1300 330 1440 350 V400 H0Z"/>
+  <circle class="sun" cx="1220" cy="70" r="34"/>
+</svg>
 <main>
-  <h1>英政工具庫</h1>
-  <p class="lead">點一下工具卡片就會開啟。</p>
-  <p class="note">這些工具只是操作畫面：你拖進去的檔案只在自己電腦的瀏覽器裡計算，不會上傳。</p>
+  <header class="hero">
+    <div class="brand">
+      <div class="logo">訪</div>
+      <div>
+        <p class="kicker"><b></b>Toolkit · Local data only</p>
+        <h1>英政工具庫</h1>
+        <p class="note">工具只是操作畫面：拖進去的檔案只在自己電腦的瀏覽器裡計算，不會上傳。</p>
+      </div>
+    </div>
+    <div class="side">
+      <div class="picker">
+        <div class="prow" id="grpRow"><span class="plabel">風格</span></div>
+        <div class="prow" id="subRow"></div>
+      </div>
+      <div class="hud">
+        <span class="chip"><span class="dot"></span>ONLINE</span>
+        <span class="chip"><em id="cnt">--</em> TOOLS</span>
+        <span class="chip">DATA <em>LOCAL ONLY</em></span>
+      </div>
+    </div>
+  </header>
   <div class="grid" id="main"></div>
   <p class="status" id="status"></p>
 </main>
 <script>
+// 風格與選色（記在這台電腦的瀏覽器）。科技的每種色就是一個 data-theme；宋、雍正用 data-theme＋data-sub
+var GROUPS = [
+  {id:'tech', name:'科技', dot:'linear-gradient(135deg,#00c2ff,#7b2dff,#ff2d95)', subs:[
+    ['', '紫青', 'linear-gradient(135deg,#00c2ff,#7b2dff,#ff2d95)'], ['mint', '薄荷', 'linear-gradient(135deg,#00e0b8,#00a86b,#b8f400)'],
+    ['coral', '珊瑚', 'linear-gradient(135deg,#ffb200,#ff3b5c,#c82dff)'], ['ocean', '海洋', 'linear-gradient(135deg,#26e0ff,#2f6bff,#6a3bff)'],
+    ['mono', '極簡', 'linear-gradient(135deg,#8a94a8,#1a1f2e)']]},
+  {id:'song', name:'宋', dot:'linear-gradient(135deg,#8fb3a9 0 60%,#a8322a 60%)', subs:[
+    ['', '天青', '#8fb3a9'], ['moon', '月白', '#c9d6df'], ['plum', '梅子青', '#7fae8a'],
+    ['qiu', '秋香', '#c9b06b'], ['ou', '藕荷', '#c7a4ad'], ['dai', '黛藍', '#5b6f8e']]},
+  {id:'yong', name:'雍正', dot:'conic-gradient(#e9b949 0 33%,#b8456c 0 66%,#1f3d7a 0)', subs:[
+    ['', '霽藍', '#1f3d7a'], ['yanzhi', '胭脂紅', '#b8456c'], ['lemon', '檸檬黃', '#e6c229'], ['sky', '天藍', '#8fbcdc'],
+    ['turq', '松石綠', '#3fb3a4'], ['coral', '珊瑚紅', '#e2674a'], ['fenqing', '粉青', '#9cc3ad'], ['qiezi', '茄皮紫', '#8a5aa6']]},
+  {id:'hacker', name:'駭客', dot:'radial-gradient(circle,#00ff66 0 30%,#000 70%)', subs:[]}
+];
+(function(){
+  var root = document.documentElement, grpRow = document.getElementById('grpRow'), subRow = document.getElementById('subRow');
+  // 先記在記憶體；瀏覽器不准存（例如私密視窗）時，這次開著的期間一樣能切換
+  var mem = {};
+  function get(k, d){ if (k in mem) return mem[k]; try{ var v = localStorage.getItem(k); return v === null ? d : v; }catch(e){ return d; } }
+  function put(k, v){ mem[k] = v; try{ localStorage.setItem(k, v); }catch(e){} }
+  function btn(label, bg, on){ var b = document.createElement('button'); b.type = 'button'; b.className = 'pbtn';
+    b.innerHTML = '<i></i>'; b.firstChild.style.background = bg; b.appendChild(document.createTextNode(label)); b.onclick = on; return b; }
+  function apply(gid){
+    var g = GROUPS.filter(function(x){ return x.id === gid; })[0] || GROUPS[0], sub = get('yz-sub-' + g.id, '');
+    if (g.id === 'tech'){ if (sub) root.setAttribute('data-theme', sub); else root.removeAttribute('data-theme'); root.removeAttribute('data-sub'); }
+    else { root.setAttribute('data-theme', g.id); if (sub) root.setAttribute('data-sub', sub); else root.removeAttribute('data-sub'); }
+    put('yz-group', g.id);
+    [].forEach.call(grpRow.querySelectorAll('.pbtn'), function(b){ b.setAttribute('aria-pressed', b.dataset.g === g.id ? 'true' : 'false'); });
+    subRow.innerHTML = '';
+    g.subs.forEach(function(s){ var b = btn(s[1], s[2], function(){ put('yz-sub-' + g.id, s[0]); apply(g.id); });
+      b.setAttribute('aria-pressed', s[0] === sub ? 'true' : 'false'); subRow.appendChild(b); });
+  }
+  GROUPS.forEach(function(g){ var b = btn(g.name, g.dot, function(){ apply(g.id); }); b.dataset.g = g.id; grpRow.appendChild(b); });
+  apply(get('yz-group', 'tech'));
+})();
+
+// 背景粒子連線網（滑鼠靠近會連線）；駭客風格改畫代碼雨
+(function(){
+  var cv=document.getElementById('net'), cx=cv.getContext('2d'), W, H, P=[], M={x:-999,y:-999}, dpr=Math.min(window.devicePixelRatio||1,2);
+  var fv=document.getElementById('fx'), fx=fv.getContext('2d');
+  function size(){ W=innerWidth; H=innerHeight; cv.width=W*dpr; cv.height=H*dpr; cv.style.width=W+'px'; cv.style.height=H+'px'; cx.setTransform(dpr,0,0,dpr,0,0);
+    fv.width=W*dpr; fv.height=H*dpr; fv.style.width=W+'px'; fv.style.height=H+'px'; fx.setTransform(dpr,0,0,dpr,0,0);
+    var n=Math.round(W*H/16000); P=[]; for(var i=0;i<n;i++) P.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.35,vy:(Math.random()-.5)*.35}); }
+  // 宋＝滑鼠走過留下暈開的墨點；雍正＝背景走過裂出開片（金絲鐵線），在卡片上走過滴下窯變流釉
+  var T=[], LX=-999, LY=-999;
+  addEventListener('resize',size); size();
+  addEventListener('mousemove',function(e){ M.x=e.clientX; M.y=e.clientY;
+    var th=document.documentElement.getAttribute('data-theme'); if(th!=='song'&&th!=='yong') return;
+    var card=th==='yong'&&e.target.closest?e.target.closest('.card'):null;
+    var d=Math.hypot(M.x-LX,M.y-LY); if(d<(th==='song'?14:card?9:26)) return; LX=M.x; LY=M.y;
+    if(th==='song') T.push({k:'ink',x:M.x+(Math.random()-.5)*6,y:M.y+(Math.random()-.5)*6,r:2,R:16+Math.random()*30,a:.26});
+    else if(card){ var r=card.getBoundingClientRect();
+      T.push({k:'glaze',el:card,x:M.x-r.left+(Math.random()-.5)*8,y:M.y-r.top,r:8+Math.random()*9,vy:.12+Math.random()*.25,c:Math.floor(Math.random()*4),life:1,tr:[]}); }
+    else { var arms=4+Math.floor(Math.random()*3);
+      for(var a=0;a<arms;a++){ var ang=Math.random()*Math.PI*2, x=M.x+scrollX, y=M.y+scrollY, pts=[[x,y]], segs=2+Math.floor(Math.random()*3);
+        for(var k=0;k<segs;k++){ ang+=(Math.random()-.5)*.9; var L=6+Math.random()*12; x+=Math.cos(ang)*L; y+=Math.sin(ang)*L; pts.push([x,y]); }
+        T.push({k:'crack',pts:pts,gold:Math.random()<.45,life:1,grow:0}); } }
+    if(T.length>320) T.splice(0,T.length-320); });
+  function rgbVar(n,d){ return (getComputedStyle(document.documentElement).getPropertyValue(n).trim()||d); }
+  function rgb(h){ var m=String(h).trim().match(/^#(..)(..)(..)$/); return m?parseInt(m[1],16)+','+parseInt(m[2],16)+','+parseInt(m[3],16):'120,80,120'; }
+  function trail(th){
+    fx.clearRect(0,0,W,H);
+    var ink=rgbVar('--inkr','43,38,34'), cel=rgbVar('--cel','143,179,169');
+    // 流釉顏色跟著目前選的釉色：主色、點綴色、深淺各一
+    var GL=th==='yong'?[rgb(rgbVar('--m')),rgb(rgbVar('--x')),rgb(rgbVar('--m1')),rgb(rgbVar('--x2'))]:null;
+    for(var i=T.length-1;i>=0;i--){ var p=T[i];
+      if(p.k==='ink'){ p.r+=(p.R-p.r)*.06; p.a*=.975; if(p.a<.01){ T.splice(i,1); continue; }
+        var g=fx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r); g.addColorStop(0,'rgba('+ink+','+p.a+')'); g.addColorStop(.6,'rgba('+cel+','+(p.a*.5)+')'); g.addColorStop(1,'rgba('+cel+',0)');
+        fx.fillStyle=g; fx.beginPath(); fx.arc(p.x,p.y,p.r,0,7); fx.fill(); }
+      else if(p.k==='crack'){ p.grow=Math.min(1,p.grow+.12); p.life-=.006; if(p.life<=0){ T.splice(i,1); continue; }
+        var n=Math.max(1,Math.round((p.pts.length-1)*p.grow)), ox=scrollX, oy=scrollY;
+        cx.strokeStyle=p.gold?'rgba(190,140,40,'+(p.life*.9)+')':'rgba(40,32,28,'+(p.life*.7)+')'; cx.lineWidth=p.gold?.8:1.3;
+        cx.beginPath(); cx.moveTo(p.pts[0][0]-ox,p.pts[0][1]-oy); for(var k=1;k<=n;k++) cx.lineTo(p.pts[k][0]-ox,p.pts[k][1]-oy); cx.stroke(); }
+      else { if(!p.el.isConnected){ T.splice(i,1); continue; }
+        p.tr.push([p.x,p.y,p.r]); if(p.tr.length>26) p.tr.shift();
+        p.y+=p.vy; p.vy+=.012; p.r*=.995; p.x+=Math.sin(p.y/18)*.25; p.life-=.0065; if(p.life<=0){ T.splice(i,1); continue; }
+        var b=p.el.getBoundingClientRect(), c=GL[p.c];
+        fx.save(); fx.beginPath(); if(fx.roundRect) fx.roundRect(b.left,b.top,b.width,b.height,10); else fx.rect(b.left,b.top,b.width,b.height); fx.clip();
+        fx.globalCompositeOperation='multiply';
+        p.tr.forEach(function(q,k){ var a=p.life*.10*(k/p.tr.length), gx=b.left+q[0], gy=b.top+q[1];
+          var g=fx.createRadialGradient(gx,gy,0,gx,gy,q[2]); g.addColorStop(0,'rgba('+c+','+a+')'); g.addColorStop(1,'rgba('+c+',0)');
+          fx.fillStyle=g; fx.beginPath(); fx.arc(gx,gy,q[2],0,7); fx.fill(); });
+        var hx=b.left+p.x, hy=b.top+p.y, g2=fx.createRadialGradient(hx,hy,0,hx,hy,p.r*1.3);
+        g2.addColorStop(0,'rgba('+c+','+(p.life*.42)+')'); g2.addColorStop(1,'rgba('+c+',0)');
+        fx.fillStyle=g2; fx.beginPath(); fx.arc(hx,hy,p.r*1.3,0,7); fx.fill(); fx.restore(); } }
+  }
+  function col(){ return getComputedStyle(document.documentElement).getPropertyValue('--b').trim()||'#7b2dff'; }
+  function hex(c,a){ var m=c.match(/^#(..)(..)(..)$/); return m?'rgba('+parseInt(m[1],16)+','+parseInt(m[2],16)+','+parseInt(m[3],16)+','+a+')':c; }
+  var CH='01アイウエオカキクケコサシスセソタチツテトナニヌネノ0123456789ABCDEF訪', FS=16, drops=[], last=0;
+  function rain(t){
+    if(t-last<50) return; last=t;
+    var cols=Math.ceil(W/FS); while(drops.length<cols) drops.push(Math.random()*-60);
+    cx.fillStyle='rgba(0,0,0,.09)'; cx.fillRect(0,0,W,H);
+    cx.font='700 '+FS+'px "JetBrains Mono",monospace';
+    for(var i=0;i<cols;i++){ var y=drops[i]*FS; if(y>0){
+        cx.fillStyle='rgba(180,255,200,.95)'; cx.fillText(CH[Math.floor(Math.random()*CH.length)],i*FS,y);
+        cx.fillStyle='rgba(0,255,102,.75)'; cx.fillText(CH[Math.floor(Math.random()*CH.length)],i*FS,y-FS); }
+      drops[i]++; if(y>H && Math.random()>.975) drops[i]=0; }
+  }
+  var wasHacker=false;
+  (function tick(t){
+    var th=document.documentElement.getAttribute('data-theme');
+    if(th==='hacker'){ if(!wasHacker){ cx.fillStyle='#000'; cx.fillRect(0,0,W,H); wasHacker=true; T=[]; fx.clearRect(0,0,W,H); } rain(t||0); requestAnimationFrame(tick); return; }
+    wasHacker=false;
+    if(th==='song'||th==='yong'){ cx.clearRect(0,0,W,H); trail(th); requestAnimationFrame(tick); return; }
+    if(T.length){ T=[]; fx.clearRect(0,0,W,H); }
+    var c=col(); cx.clearRect(0,0,W,H);
+    for(var i=0;i<P.length;i++){ var p=P[i]; p.x+=p.vx; p.y+=p.vy; if(p.x<0||p.x>W)p.vx*=-1; if(p.y<0||p.y>H)p.vy*=-1;
+      cx.fillStyle=hex(c,.45); cx.beginPath(); cx.arc(p.x,p.y,1.6,0,7); cx.fill();
+      for(var j=i+1;j<P.length;j++){ var q=P[j], d=Math.hypot(p.x-q.x,p.y-q.y); if(d<120){ cx.strokeStyle=hex(c,.16*(1-d/120)); cx.lineWidth=1; cx.beginPath(); cx.moveTo(p.x,p.y); cx.lineTo(q.x,q.y); cx.stroke(); } }
+      var dm=Math.hypot(p.x-M.x,p.y-M.y); if(dm<170){ cx.strokeStyle=hex(c,.5*(1-dm/170)); cx.beginPath(); cx.moveTo(p.x,p.y); cx.lineTo(M.x,M.y); cx.stroke(); } }
+    requestAnimationFrame(tick);
+  })();
+})();
+
 // 工具清單：首頁開啟時讀 GitHub 倉庫根目錄的檔名，同名工具只列最新版號；讀不到就用下面的備用清單。
 var REPO_API = 'https://api.github.com/repos/1061005ttl-lab/tool/contents/';
 // 卡片一律連到網站上的工具：這個檔案單獨寄給別人、在自己電腦打開，點卡片也能開
 var SITE = 'https://1061005ttl-lab.github.io/tool/';
+// 已知工具的顯示名稱與排序（其他工具用檔名、排在後面）
 var INFO = {
-  '督導管理系統_執行追蹤儀表板': {t:'執行追蹤儀表板', d:'拖入工作管理、客戶資料、打卡異常原始檔；含異常打卡與店家分配頁籤。', main:1, o:1},
-  '打卡異常檢核工具': {t:'打卡異常檢核工具', d:'檢核打卡異常紀錄。', main:1, o:2},
-  '店家分配試算工具_計算說明': {t:'店家分配計算說明', d:'店家分配的計算方式說明。', main:1, o:3},
-  '原始檔案去識別化工具': {t:'原始檔案去識別化工具', d:'要交給外部的檔案先在這裡去識別化。', main:1, o:4},
-  '原始檔案虛擬生產器': {t:'原始檔案虛擬生產器', d:'產生測試用的虛擬原始檔。', main:1, o:5}
+  '督導管理系統_執行追蹤儀表板': {t:'執行追蹤儀表板', o:1},
+  '打卡異常檢核工具': {t:'打卡異常檢核工具', o:2},
+  '店家分配試算工具_計算說明': {t:'店家分配計算說明', o:3},
+  '原始檔案去識別化工具': {t:'原始檔案去識別化工具', o:4},
+  '原始檔案虛擬生產器': {t:'原始檔案虛擬生產器', o:5}
 };
-var FALLBACK = ['督導管理系統_執行追蹤儀表板_v569.html','打卡異常檢核工具_V115.html','店家分配試算工具_計算說明.html','原始檔案去識別化工具_V23.html','原始檔案虛擬生產器_V10.html'];
+var FALLBACK = ['督導管理系統_執行追蹤儀表板_v569.html','打卡異常檢核工具_v115.html','原始檔案去識別化工具_v23.html','原始檔案虛擬生產器_v10.html'];
 
 function pickLatest(names){
   var best = {};
@@ -58,28 +407,56 @@ function pickLatest(names){
   });
   return Object.keys(best).map(function(k){ return best[k]; });
 }
+// 下載：抓網站上的檔案存成本機 HTML（GitHub Pages 允許跨網域讀取，單獨打開這個檔案也能下載）
+function download(file, btn){
+  var old = btn.textContent; btn.disabled = true; btn.textContent = '下載中…';
+  fetch(SITE + encodeURIComponent(file), {cache:'no-store'})
+    .then(function(r){ if (!r.ok) throw new Error(r.status); return r.blob(); })
+    .then(function(b){
+      var a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = file;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); }, 5000);
+      btn.textContent = old;
+    })
+    .catch(function(){ btn.textContent = '下載失敗，再按一次'; })
+    .then(function(){ btn.disabled = false; });
+}
 function card(x){
-  var info = INFO[x.base] || {t:x.base.replace(/_/g,' '), d:'', main:0, o:99};
-  var a = document.createElement('a');
-  a.className = 'card'; a.href = SITE + encodeURIComponent(x.file);
-  a.innerHTML = '<p class="t"></p><p class="d"></p>' + (x.ver ? '<span class="v"></span>' : '');
-  a.querySelector('.t').textContent = info.t;
-  a.querySelector('.d').textContent = info.d;
-  if (x.ver) a.querySelector('.v').textContent = '版本 ' + x.ver;
-  return {el:a, main:info.main, o:info.o, t:info.t};
+  var info = INFO[x.base] || {t:x.base.replace(/_/g,' '), o:99};
+  var url = SITE + encodeURIComponent(x.file);
+  var c = document.createElement('div');
+  c.className = 'card'; c.tabIndex = 0; c.title = '開啟 ' + info.t;
+  c.innerHTML = '<span class="sweep"></span><span class="corner tl"></span><span class="corner br"></span><span class="num"></span>' +
+    '<p class="t"><span class="tn"></span>' + (x.ver ? '<span class="v"></span>' : '') + '</p><div class="foot">' +
+    '<div class="acts"><button class="btn dl" type="button">⤓ 下載</button><button class="btn go" type="button">開啟 →</button></div></div>';
+  c.querySelector('.tn').textContent = info.t;
+  if (x.ver) c.querySelector('.v').textContent = 'v' + x.ver;
+  var open = function(){ window.open(url, '_blank'); };
+  c.addEventListener('click', function(e){ if (!e.target.closest('.dl')) open(); });
+  c.addEventListener('keydown', function(e){ if (e.key === 'Enter' && e.target === c) open(); });
+  c.addEventListener('mousemove', function(e){ var r = c.getBoundingClientRect();
+    c.style.setProperty('--mx', (e.clientX - r.left) + 'px'); c.style.setProperty('--my', (e.clientY - r.top) + 'px'); });
+  c.querySelector('.dl').addEventListener('click', function(e){ e.stopPropagation(); download(x.file, this); });
+  return {el:c, o:info.o, t:info.t};
 }
 function render(files, note){
   var cards = pickLatest(files).map(card).sort(function(a,b){ return a.o - b.o || a.t.localeCompare(b.t,'zh-Hant'); });
   var main = document.getElementById('main');
   main.innerHTML = '';
-  cards.forEach(function(c){ main.appendChild(c.el); });
+  cards.forEach(function(c, i){
+    c.el.querySelector('.num').textContent = (i < 9 ? '0' : '') + (i + 1);
+    c.el.style.animationDelay = (i * 55) + 'ms'; main.appendChild(c.el); });
+  document.getElementById('cnt').textContent = cards.length;
   document.getElementById('status').textContent = note || '';
 }
-render(FALLBACK, '');
-fetch(REPO_API, {headers:{Accept:'application/vnd.github+json'}})
+// 清單只畫一次：等 GitHub 回應（最多 2.5 秒），讀不到才用備用清單，避免卡片畫兩次跳動
+var done = false, ac = window.AbortController ? new AbortController() : null;
+function once(files, note){ if (done) return; done = true; render(files, note); }
+setTimeout(function(){ if (ac) ac.abort(); once(FALLBACK, '// 暫時讀不到最新清單，先顯示內建清單'); }, 2500);
+fetch(REPO_API, {headers:{Accept:'application/vnd.github+json'}, signal: ac ? ac.signal : undefined})
   .then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); })
-  .then(function(list){ render(list.filter(function(x){ return x.type === 'file'; }).map(function(x){ return x.name; })); })
-  .catch(function(){ render(FALLBACK, '（暫時讀不到最新清單，先顯示內建清單）'); });
+  .then(function(list){ once(list.filter(function(x){ return x.type === 'file'; }).map(function(x){ return x.name; })); })
+  .catch(function(){ once(FALLBACK, '// 暫時讀不到最新清單，先顯示內建清單'); });
 </script>
 </body>
 </html>
